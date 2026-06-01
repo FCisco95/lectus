@@ -15,6 +15,8 @@ pub fn inject_text(text: &str) -> Result<()> {
     std::thread::sleep(std::time::Duration::from_millis(50));
     clipboard::simulate_paste()?;
 
+    // FIXME(phase-2): fixed delay doesn't confirm paste was consumed — slow apps
+    // (e.g. Electron) may receive stale clipboard if they defer the read past 200ms.
     if let Some(prev) = previous {
         std::thread::sleep(std::time::Duration::from_millis(200));
         clipboard::set_clipboard(&prev).ok();

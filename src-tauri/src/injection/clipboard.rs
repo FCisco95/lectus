@@ -20,8 +20,10 @@ pub fn simulate_paste() -> Result<()> {
     let modifier = Key::Control;
 
     enigo.key(modifier, Direction::Press)?;
-    enigo.key(Key::Unicode('v'), Direction::Click)?;
-    enigo.key(modifier, Direction::Release)?;
+    let click_result = enigo.key(Key::Unicode('v'), Direction::Click);
+    // Release modifier unconditionally — a stuck Ctrl/Cmd is visible to the user.
+    enigo.key(modifier, Direction::Release).ok();
+    click_result?;
     Ok(())
 }
 
