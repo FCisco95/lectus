@@ -5,7 +5,43 @@
 //! flag and emits `hold-stop`. The key-string→native-key maps below are the
 //! unit-testable core shared by both platforms.
 
-// Platform implementations + re-export are added in later tasks.
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+
+/// Everything a platform hook needs to install.
+pub struct HookContext {
+    pub app: tauri::AppHandle,
+    pub recording_active: Arc<AtomicBool>,
+    pub target_key: String,
+}
+
+/// A platform keyboard hook. Installed once at startup; `rearm` swaps the
+/// watched key live (no thread teardown). Cleanup happens on `Drop`.
+pub trait KeyboardHook: Sized {
+    fn install(ctx: HookContext) -> anyhow::Result<Self>;
+    fn rearm(&self, target_key: &str);
+}
+
+#[cfg(target_os = "windows")]
+mod windows;
+#[cfg(target_os = "windows")]
+pub use windows::WindowsHook as PlatformHook;
+
+#[cfg(target_os = "macos")]
+mod macos;
+#[cfg(target_os = "macos")]
+pub use macos::MacosHook as PlatformHook;
+
+// Fallback no-op so the crate still compiles on other targets (e.g. Linux CI).
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+pub struct PlatformHook;
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+impl KeyboardHook for PlatformHook {
+    fn install(_ctx: HookContext) -> anyhow::Result<Self> {
+        anyhow::bail!("keyboard hook not supported on this platform")
+    }
+    fn rearm(&self, _target_key: &str) {}
+}
 
 /// Map a Lectus config key string to a Windows virtual-key code (`VK_*`).
 /// Returns `None` for unknown keys or combos (only bare modifiers / F13-F15
