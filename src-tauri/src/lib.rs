@@ -96,6 +96,7 @@ fn save_config(
     new_config: config::Config,
     app_state: tauri::State<AppState>,
     whisper_state: tauri::State<WhisperState>,
+    activation: tauri::State<Activation>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     if new_config.use_cloud && new_config.cloud_api_key.trim().is_empty() {
@@ -120,6 +121,14 @@ fn save_config(
         let resolved_model = guard.model_path.clone();
         *guard = new_config;
         guard.model_path = resolved_model;
+    }
+
+    // Re-arm the hook to the (possibly new) hold key — no restart needed.
+    {
+        let key = app_state.config.lock().unwrap().hold_hotkey.clone();
+        if let Some(hook) = activation.hook.lock().unwrap().as_ref() {
+            hook.rearm(&key);
+        }
     }
     Ok(())
 }
