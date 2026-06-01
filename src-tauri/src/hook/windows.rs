@@ -14,7 +14,7 @@ use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::System::Threading::GetCurrentThreadId;
 use windows::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, DispatchMessageW, GetMessageW, PostThreadMessageW, SetWindowsHookExW,
-    TranslateMessage, UnhookWindowsHookEx, HC_ACTION, HHOOK, KBDLLHOOKSTRUCT, MSG, WH_KEYBOARD_LL,
+    TranslateMessage, UnhookWindowsHookEx, HC_ACTION, KBDLLHOOKSTRUCT, MSG, WH_KEYBOARD_LL,
     WM_KEYDOWN, WM_KEYUP, WM_QUIT, WM_SYSKEYDOWN, WM_SYSKEYUP,
 };
 
@@ -61,6 +61,9 @@ pub struct WindowsHook {
 
 impl KeyboardHook for WindowsHook {
     fn install(ctx: HookContext) -> anyhow::Result<Self> {
+        // Installed exactly once at startup; live key changes go through
+        // `rearm` (atomic store), never a second install. The `set` calls
+        // therefore never fail in practice — discard is intentional.
         let _ = APP_HANDLE.set(ctx.app);
         let _ = RECORDING_ACTIVE.set(ctx.recording_active);
         let vk = config_key_to_vk(&ctx.target_key)
@@ -125,6 +128,3 @@ impl Drop for WindowsHook {
     }
 }
 
-// Silence "field never read" — thread_id is read by Drop.
-#[allow(dead_code)]
-fn _assert_uses_hhook(_: HHOOK) {}
