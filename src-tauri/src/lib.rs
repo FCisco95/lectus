@@ -52,6 +52,43 @@ fn set_recording_state(
     do_set_state(&state_str, &app_state, &app_handle)
 }
 
+/// Return the current in-memory config for the Settings UI to display.
+#[tauri::command]
+fn get_config(app_state: tauri::State<AppState>) -> config::Config {
+    app_state.config.lock().unwrap().clone()
+}
+
+/// Persist edited config to disk, rebuild the cloud engine, and update in-memory state.
+/// `model_path` from the UI is ignored — the bundled/resolved path is preserved.
+#[tauri::command]
+fn save_config(
+    new_config: config::Config,
+    app_state: tauri::State<AppState>,
+    whisper_state: tauri::State<WhisperState>,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    // Persist to disk.
+    if let Ok(cfg_dir) = app_handle.path().app_config_dir() {
+        let cfg_path = cfg_dir.join("config.json");
+        new_config.save_to(&cfg_path).map_err(|e| e.to_string())?;
+    }
+
+    // Rebuild the cloud engine with the new credentials/URL.
+    *whisper_state.cloud.lock().unwrap() = Some(transcription::cloud::CloudWhisper::new(
+        &new_config.cloud_base_url,
+        &new_config.cloud_api_key,
+    ));
+
+    // Update in-memory config, preserving the resolved model_path.
+    {
+        let mut guard = app_state.config.lock().unwrap();
+        let resolved_model = guard.model_path.clone();
+        *guard = new_config;
+        guard.model_path = resolved_model;
+    }
+    Ok(())
+}
+
 /// Inner pipeline logic. Separated so `run_pipeline` can reset state on any error path.
 async fn do_pipeline(
     app_state: &AppState,
@@ -174,9 +211,22 @@ pub fn run() {
             local: Arc::new(Mutex::new(None)),
             cloud: Arc::new(Mutex::new(None)),
         })
-        .invoke_handler(tauri::generate_handler![set_recording_state, run_pipeline])
+        .invoke_handler(tauri::generate_handler![
+            set_recording_state,
+            run_pipeline,
+            get_config,
+            save_config
+        ])
         .setup(|app| {
             use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+            // Load persisted config from disk (falls back to Config::default()).
+            if let Ok(cfg_dir) = app.path().app_config_dir() {
+                let cfg_path = cfg_dir.join("config.json");
+                if let Ok(loaded) = config::Config::load_from(&cfg_path) {
+                    *app.state::<AppState>().config.lock().unwrap() = loaded;
+                }
+            }
 
             // Resolve bundled model path at runtime.
             if let Ok(res_dir) = app.path().resource_dir() {
@@ -195,6 +245,16 @@ pub fn run() {
                 Err(e) => {
                     eprintln!("warning: could not load whisper model at {model_path:?}: {e}");
                 }
+            }
+
+            // Pre-build the cloud engine from the (possibly persisted) config.
+            {
+                let cfg = app.state::<AppState>().config.lock().unwrap().clone();
+                *app.state::<WhisperState>().cloud.lock().unwrap() =
+                    Some(transcription::cloud::CloudWhisper::new(
+                        &cfg.cloud_base_url,
+                        &cfg.cloud_api_key,
+                    ));
             }
 
             // Register global hotkeys. Failures here must NOT brick startup —
