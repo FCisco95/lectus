@@ -470,6 +470,8 @@ dependencies = [
  "anyhow",
  "arboard",
  "cocoa",
+ "core-foundation 0.10.1",
+ "core-graphics 0.24.0",
  "cpal",
  "enigo",
  "env_logger",
