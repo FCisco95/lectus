@@ -7,6 +7,8 @@ mod transcription;
 
 use state::{AppState, RecordingState};
 use std::sync::{Arc, Mutex};
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::TrayIconBuilder;
 use tauri::{Emitter, Manager};
 
 /// Cached transcription engines. Loaded once at startup to avoid per-call setup cost.
@@ -219,6 +221,27 @@ pub fn run() {
         ])
         .setup(|app| {
             use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+            // Build the system tray with a Settings/Quit menu.
+            let settings_item =
+                MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit Chirp", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
+            TrayIconBuilder::with_id("main")
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(true)
+                .on_menu_event(|app, event| match event.id().as_ref() {
+                    "settings" => {
+                        if let Some(w) = app.get_webview_window("settings") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                        }
+                    }
+                    "quit" => app.exit(0),
+                    _ => {}
+                })
+                .build(app)?;
 
             // Load persisted config from disk (falls back to Config::default()).
             if let Ok(cfg_dir) = app.path().app_config_dir() {

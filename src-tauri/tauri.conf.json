@@ -36,10 +36,6 @@
         "y": 100
       }
     ],
-    "trayIcon": {
-      "id": "main",
-      "iconPath": "icons/32x32.png"
-    },
     "security": {
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
     }
