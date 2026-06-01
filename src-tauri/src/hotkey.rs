@@ -1,3 +1,4 @@
+#![allow(dead_code)] // off the call path since Phase 2.5 (kept for reference / tests)
 use anyhow::{anyhow, Result};
 
 /// Normalize a config hotkey string to tauri-plugin-global-shortcut format.

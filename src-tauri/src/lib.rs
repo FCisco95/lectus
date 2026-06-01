@@ -11,7 +11,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Listener, Manager};
+use hook::{HookContext, KeyboardHook};
 
 /// Whether the capture loop should keep recording: active (key still held)
 /// AND under the 30 s safety cap.
@@ -231,24 +232,46 @@ async fn run_pipeline(
     outcome
 }
 
+/// Run one dictation cycle triggered by the hold-to-talk hook.
+/// Pulls managed state from the handle so it can be spawned from an event listener.
+async fn run_hold_pipeline(app: tauri::AppHandle) {
+    let app_state = app.state::<AppState>();
+    let whisper = app.state::<WhisperState>();
+    let activation = app.state::<Activation>();
+    let local = whisper.local.clone();
+    let cloud = whisper.cloud.clone();
+    let recording_active = activation.recording_active.clone();
+    let use_cloud = app_state.config.lock().unwrap().use_cloud;
+
+    let outcome = do_pipeline(
+        app_state.inner(),
+        &app,
+        recording_active.clone(),
+        local,
+        cloud,
+        use_cloud,
+    )
+    .await;
+
+    // Never leave the flag stuck true (e.g. after the 30 s cap while still held).
+    recording_active.store(false, Ordering::SeqCst);
+    if outcome.is_err() {
+        do_set_state("idle", app_state.inner(), &app).ok();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .plugin(
-            tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, _shortcut, event| {
-                    use tauri_plugin_global_shortcut::ShortcutState;
-                    if event.state() == ShortcutState::Pressed {
-                        app.emit("pipeline-start", ()).ok();
-                    }
-                })
-                .build(),
-        )
         .manage(AppState::new())
         .manage(WhisperState {
             local: Arc::new(Mutex::new(None)),
             cloud: Arc::new(Mutex::new(None)),
+        })
+        .manage(Activation {
+            recording_active: Arc::new(AtomicBool::new(false)),
+            hook: Mutex::new(None),
         })
         .invoke_handler(tauri::generate_handler![
             set_recording_state,
@@ -257,8 +280,6 @@ pub fn run() {
             save_config
         ])
         .setup(|app| {
-            use tauri_plugin_global_shortcut::GlobalShortcutExt;
-
             // Build the system tray with a Settings/Quit menu.
             let settings_item =
                 MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
@@ -329,21 +350,36 @@ pub fn run() {
                     ));
             }
 
-            // Register global hotkeys. Failures here must NOT brick startup —
-            // an unregistrable hotkey (e.g. a bare modifier, which muda rejects)
-            // should log a warning and leave the app running.
-            let config = app.state::<AppState>().config.lock().unwrap().clone();
-            match hotkey::HotkeyManager::from_config(&config.hold_hotkey, &config.toggle_hotkey) {
-                Ok(hk) => {
-                    if let Err(e) = app.global_shortcut().register(hk.hold_shortcut.as_str()) {
-                        eprintln!(
-                            "warning: failed to register hold hotkey '{}': {e}",
-                            hk.hold_shortcut
-                        );
-                    }
+            // Install the low-level keyboard hook for hold-to-talk.
+            // Non-fatal on failure (matches the startup philosophy): a missing
+            // Accessibility grant (macOS) or hook error just disables hold-to-talk.
+            let hold_key = {
+                let app_state = app.state::<AppState>();
+                let cfg = app_state.config.lock().unwrap();
+                if hook::config_key_to_vk(&cfg.hold_hotkey).is_some() {
+                    cfg.hold_hotkey.clone()
+                } else {
+                    "RControl".to_string() // migrate legacy combo configs
                 }
-                Err(e) => eprintln!("warning: invalid hotkey config: {e}"),
+            };
+            let recording_active = app.state::<Activation>().recording_active.clone();
+            match hook::PlatformHook::install(HookContext {
+                app: app.handle().clone(),
+                recording_active,
+                target_key: hold_key,
+            }) {
+                Ok(installed) => {
+                    *app.state::<Activation>().hook.lock().unwrap() = Some(installed);
+                }
+                Err(e) => eprintln!("warning: keyboard hook not installed: {e}"),
             }
+
+            // Drive the pipeline directly from Rust on hold-start (no JS hop).
+            let pipeline_handle = app.handle().clone();
+            app.listen("hold-start", move |_event| {
+                let h = pipeline_handle.clone();
+                tauri::async_runtime::spawn(run_hold_pipeline(h));
+            });
             Ok(())
         })
         .run(tauri::generate_context!())
