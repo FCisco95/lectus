@@ -228,7 +228,7 @@ pub fn run() {
             // Build the system tray with a Settings/Quit menu.
             let settings_item =
                 MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit Chirp", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit Lectus", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
             TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
@@ -313,5 +313,5 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error running Chirp");
+        .expect("error running Lectus");
 }

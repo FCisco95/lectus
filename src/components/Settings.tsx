@@ -38,7 +38,7 @@ export function Settings() {
 
   return (
     <div style={{ padding: 24, fontFamily: 'system-ui', maxWidth: 432 }}>
-      <h2 style={{ marginTop: 0 }}>Chirp Settings</h2>
+      <h2 style={{ marginTop: 0 }}>Lectus Settings</h2>
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         <input
