@@ -115,6 +115,7 @@ fn save_config(
 async fn do_pipeline(
     app_state: &AppState,
     app_handle: &tauri::AppHandle,
+    recording_active: Arc<AtomicBool>,
     local: Arc<Mutex<Option<transcription::local::LocalWhisper>>>,
     cloud: Arc<Mutex<Option<transcription::cloud::CloudWhisper>>>,
     use_cloud: bool,
@@ -127,33 +128,24 @@ async fn do_pipeline(
         }
         *rec = RecordingState::Recording;
     }
-    app_handle.emit("state-changed", "recording").map_err(|e| e.to_string())?;
-    if let Some(tray) = app_handle.tray_by_id("main") {
-        if let Ok(res_dir) = app_handle.path().resource_dir() {
-            if let Ok(icon) = tauri::image::Image::from_path(res_dir.join("icons/tray-recording.png")) {
-                tray.set_icon(Some(icon)).ok();
-            }
-        }
-    }
+    // 1b. Enter Recording (emits state-changed, swaps tray icon, shows pill).
+    do_set_state("recording", app_state, app_handle)?;
 
-    // 2. Capture audio + VAD in a blocking thread (cpal::Stream is !Send).
-    let accumulated = tokio::task::spawn_blocking(|| {
-        use audio::{AudioCapture, EnergyVad};
+    // 2. Capture audio in a blocking thread (cpal::Stream is !Send).
+    //    Stop when the key is released (recording_active clears) or at 30 s.
+    let active = recording_active.clone();
+    let accumulated = tokio::task::spawn_blocking(move || {
+        use audio::AudioCapture;
         let capture = AudioCapture::start().map_err(|e| e.to_string())?;
-        let mut vad = EnergyVad::new(0.01);
         let mut accumulated: Vec<f32> = Vec::new();
-        let deadline = std::time::Instant::now();
+        let start = std::time::Instant::now();
         loop {
             std::thread::sleep(std::time::Duration::from_millis(32));
             let chunk = capture.drain();
             if !chunk.is_empty() {
-                let ended = vad.speech_ended(&chunk);
                 accumulated.extend_from_slice(&chunk);
-                if ended {
-                    break;
-                }
             }
-            if deadline.elapsed().as_secs() > 30 {
+            if !should_continue(active.load(Ordering::SeqCst), start.elapsed().as_secs()) {
                 break;
             }
         }
@@ -201,12 +193,26 @@ async fn do_pipeline(
 async fn run_pipeline(
     app_state: tauri::State<'_, AppState>,
     whisper_state: tauri::State<'_, WhisperState>,
+    activation: tauri::State<'_, Activation>,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
     let local = whisper_state.local.clone();
     let cloud = whisper_state.cloud.clone();
+    let recording_active = activation.recording_active.clone();
     let use_cloud = app_state.config.lock().unwrap().use_cloud;
-    let outcome = do_pipeline(&app_state, &app_handle, local, cloud, use_cloud).await;
+    // Manual invoke path: behave like a tap (record until the safety cap),
+    // since no physical key is being held. Pre-set the flag true.
+    recording_active.store(true, Ordering::SeqCst);
+    let outcome = do_pipeline(
+        &app_state,
+        &app_handle,
+        recording_active.clone(),
+        local,
+        cloud,
+        use_cloud,
+    )
+    .await;
+    recording_active.store(false, Ordering::SeqCst);
     if outcome.is_err() {
         do_set_state("idle", &app_state, &app_handle).ok();
     }
