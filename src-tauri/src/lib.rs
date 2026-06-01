@@ -58,6 +58,18 @@ fn do_set_state(
             }
         }
     }
+
+    // Show the pill while busy, hide it when idle/error.
+    if let Some(pill) = app_handle.get_webview_window("pill") {
+        match next {
+            RecordingState::Recording | RecordingState::Transcribing => {
+                let _ = pill.show();
+            }
+            _ => {
+                let _ = pill.hide();
+            }
+        }
+    }
     Ok(())
 }
 
