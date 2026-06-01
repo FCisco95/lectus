@@ -69,6 +69,10 @@ fn save_config(
     whisper_state: tauri::State<WhisperState>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
+    if new_config.use_cloud && new_config.cloud_api_key.trim().is_empty() {
+        return Err("Cannot enable cloud transcription without an API key".to_string());
+    }
+
     // Persist to disk.
     if let Ok(cfg_dir) = app_handle.path().app_config_dir() {
         let cfg_path = cfg_dir.join("config.json");
@@ -188,8 +192,7 @@ async fn run_pipeline(
     let use_cloud = app_state.config.lock().unwrap().use_cloud;
     let outcome = do_pipeline(&app_state, &app_handle, local, cloud, use_cloud).await;
     if outcome.is_err() {
-        app_state.set_state(RecordingState::Idle);
-        app_handle.emit("state-changed", "idle").ok();
+        do_set_state("idle", &app_state, &app_handle).ok();
     }
     outcome
 }
@@ -242,6 +245,18 @@ pub fn run() {
                     _ => {}
                 })
                 .build(app)?;
+
+            // Keep the settings window alive across closes: hide instead of destroy,
+            // so the tray "Settings" item can reopen it for the whole session.
+            if let Some(w) = app.get_webview_window("settings") {
+                let w_for_event = w.clone();
+                w.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = w_for_event.hide();
+                    }
+                });
+            }
 
             // Load persisted config from disk (falls back to Config::default()).
             if let Ok(cfg_dir) = app.path().app_config_dir() {
