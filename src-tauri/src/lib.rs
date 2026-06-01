@@ -137,6 +137,19 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![set_recording_state, run_pipeline])
         .setup(|app| {
             use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+            // Resolve bundled model path at runtime
+            if let Ok(res_dir) = app.path().resource_dir() {
+                let bundled_model = res_dir.join("models/ggml-tiny.en.bin");
+                if bundled_model.exists() {
+                    app.state::<AppState>()
+                        .config
+                        .lock()
+                        .unwrap()
+                        .model_path = bundled_model;
+                }
+            }
+
             let config = app.state::<AppState>().config.lock().unwrap().clone();
             let hk = hotkey::HotkeyManager::from_config(
                 &config.hold_hotkey,
