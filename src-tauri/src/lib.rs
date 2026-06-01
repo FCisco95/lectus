@@ -7,10 +7,25 @@ mod state;
 mod transcription;
 
 use state::{AppState, RecordingState};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{Emitter, Manager};
+
+/// Whether the capture loop should keep recording: active (key still held)
+/// AND under the 30 s safety cap.
+fn should_continue(active: bool, elapsed_secs: u64) -> bool {
+    active && elapsed_secs < 30
+}
+
+/// Managed activation state: the shared stop flag + the installed hook.
+struct Activation {
+    recording_active: Arc<AtomicBool>,
+    /// Kept alive for the app's lifetime; `rearm` swaps the key live.
+    #[allow(dead_code)]
+    hook: Mutex<Option<hook::PlatformHook>>,
+}
 
 /// Cached transcription engines. Loaded once at startup to avoid per-call setup cost.
 struct WhisperState {
@@ -315,4 +330,26 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error running Lectus");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_continue;
+
+    #[test]
+    fn continues_while_active_and_under_cap() {
+        assert!(should_continue(true, 0));
+        assert!(should_continue(true, 29));
+    }
+
+    #[test]
+    fn stops_on_release() {
+        assert!(!should_continue(false, 0));
+    }
+
+    #[test]
+    fn stops_at_safety_cap() {
+        assert!(!should_continue(true, 30));
+        assert!(!should_continue(true, 45));
+    }
 }
