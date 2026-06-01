@@ -9,8 +9,11 @@ use state::{AppState, RecordingState};
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 
-/// Cached Whisper engine. Loaded once at startup to avoid per-call disk I/O (~1–3 s overhead).
-struct WhisperState(Arc<Mutex<Option<transcription::local::LocalWhisper>>>);
+/// Cached transcription engines. Loaded once at startup to avoid per-call setup cost.
+struct WhisperState {
+    local: Arc<Mutex<Option<transcription::local::LocalWhisper>>>,
+    cloud: Arc<Mutex<Option<transcription::cloud::CloudWhisper>>>,
+}
 
 fn do_set_state(
     state_str: &str,
@@ -53,7 +56,9 @@ fn set_recording_state(
 async fn do_pipeline(
     app_state: &AppState,
     app_handle: &tauri::AppHandle,
-    whisper_arc: Arc<Mutex<Option<transcription::local::LocalWhisper>>>,
+    local: Arc<Mutex<Option<transcription::local::LocalWhisper>>>,
+    cloud: Arc<Mutex<Option<transcription::cloud::CloudWhisper>>>,
+    use_cloud: bool,
 ) -> Result<String, String> {
     // 1. Atomic claim: reject if another pipeline is already running (TOCTOU-safe).
     {
@@ -99,13 +104,23 @@ async fn do_pipeline(
     .await
     .map_err(|e| e.to_string())??;
 
-    // 3. Transcribe using the cached engine (no model reload on each call).
+    // 3. Transcribe using the selected cached engine (no reload per call).
     do_set_state("transcribing", app_state, app_handle)?;
     let transcript = tokio::task::spawn_blocking(move || {
-        let guard = whisper_arc.lock().unwrap();
-        match guard.as_ref() {
-            Some(engine) => engine.transcribe(&accumulated).map_err(|e| e.to_string()),
-            None => Err("Whisper model not loaded — run scripts/download_model.ps1 first".to_string()),
+        if use_cloud {
+            let guard = cloud.lock().unwrap();
+            match guard.as_ref() {
+                Some(engine) => engine.transcribe(&accumulated).map_err(|e| e.to_string()),
+                None => Err("Cloud backend not configured — set an API key in Settings".to_string()),
+            }
+        } else {
+            let guard = local.lock().unwrap();
+            match guard.as_ref() {
+                Some(engine) => engine.transcribe(&accumulated).map_err(|e| e.to_string()),
+                None => Err(
+                    "Whisper model not loaded — run scripts/download_model.ps1 first".to_string(),
+                ),
+            }
         }
     })
     .await
@@ -129,8 +144,10 @@ async fn run_pipeline(
     whisper_state: tauri::State<'_, WhisperState>,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
-    let whisper_arc = whisper_state.0.clone();
-    let outcome = do_pipeline(&app_state, &app_handle, whisper_arc).await;
+    let local = whisper_state.local.clone();
+    let cloud = whisper_state.cloud.clone();
+    let use_cloud = app_state.config.lock().unwrap().use_cloud;
+    let outcome = do_pipeline(&app_state, &app_handle, local, cloud, use_cloud).await;
     if outcome.is_err() {
         app_state.set_state(RecordingState::Idle);
         app_handle.emit("state-changed", "idle").ok();
@@ -153,7 +170,10 @@ pub fn run() {
                 .build(),
         )
         .manage(AppState::new())
-        .manage(WhisperState(Arc::new(Mutex::new(None))))
+        .manage(WhisperState {
+            local: Arc::new(Mutex::new(None)),
+            cloud: Arc::new(Mutex::new(None)),
+        })
         .invoke_handler(tauri::generate_handler![set_recording_state, run_pipeline])
         .setup(|app| {
             use tauri_plugin_global_shortcut::GlobalShortcutExt;
@@ -170,7 +190,7 @@ pub fn run() {
             let model_path = app.state::<AppState>().config.lock().unwrap().model_path.clone();
             match transcription::local::LocalWhisper::new(&model_path) {
                 Ok(engine) => {
-                    *app.state::<WhisperState>().0.lock().unwrap() = Some(engine);
+                    *app.state::<WhisperState>().local.lock().unwrap() = Some(engine);
                 }
                 Err(e) => {
                     eprintln!("warning: could not load whisper model at {model_path:?}: {e}");
