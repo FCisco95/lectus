@@ -51,8 +51,24 @@ async fn run_pipeline(
     app_state: tauri::State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
-    // 1. Start recording
-    do_set_state("recording", &app_state, &app_handle)?;
+    // 1. Atomic claim: reject if another pipeline is already running.
+    // We check + set in a single lock acquisition to avoid TOCTOU.
+    {
+        let mut rec = app_state.recording.lock().unwrap();
+        if *rec != RecordingState::Idle {
+            return Ok(String::new());
+        }
+        *rec = RecordingState::Recording;
+    }
+    // Emit + tray update for Recording (lock already released above).
+    app_handle.emit("state-changed", "recording").map_err(|e| e.to_string())?;
+    if let Some(tray) = app_handle.tray_by_id("main") {
+        if let Ok(res_dir) = app_handle.path().resource_dir() {
+            if let Ok(icon) = tauri::image::Image::from_path(res_dir.join("icons/tray-recording.png")) {
+                tray.set_icon(Some(icon)).ok();
+            }
+        }
+    }
 
     // 2. Capture audio + VAD in a blocking thread (AudioCapture / cpal::Stream is !Send)
     let accumulated = tokio::task::spawn_blocking(|| {
