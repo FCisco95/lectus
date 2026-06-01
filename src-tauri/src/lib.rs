@@ -1,6 +1,7 @@
 mod audio;
 mod config;
 mod state;
+mod transcription;
 
 use state::AppState;
 

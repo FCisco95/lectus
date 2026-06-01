@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Whisper model files (large binaries — download via scripts/download_model.ps1)
+models/*.bin
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
