@@ -177,13 +177,21 @@ pub fn run() {
                 }
             }
 
-            // Register global hotkeys.
+            // Register global hotkeys. Failures here must NOT brick startup —
+            // an unregistrable hotkey (e.g. a bare modifier, which muda rejects)
+            // should log a warning and leave the app running.
             let config = app.state::<AppState>().config.lock().unwrap().clone();
-            let hk = hotkey::HotkeyManager::from_config(
-                &config.hold_hotkey,
-                &config.toggle_hotkey,
-            )?;
-            app.global_shortcut().register(hk.hold_shortcut.as_str())?;
+            match hotkey::HotkeyManager::from_config(&config.hold_hotkey, &config.toggle_hotkey) {
+                Ok(hk) => {
+                    if let Err(e) = app.global_shortcut().register(hk.hold_shortcut.as_str()) {
+                        eprintln!(
+                            "warning: failed to register hold hotkey '{}': {e}",
+                            hk.hold_shortcut
+                        );
+                    }
+                }
+                Err(e) => eprintln!("warning: invalid hotkey config: {e}"),
+            }
             Ok(())
         })
         .run(tauri::generate_context!())
