@@ -1,0 +1,43 @@
+.pill-container {
+  width: 220px;
+  height: 64px;
+  background: rgba(0, 0, 0, 0.82);
+  border-radius: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.pill-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.pill-wave {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.pill-wave span {
+  display: block;
+  width: 3px;
+  background: #4ade80;
+  border-radius: 2px;
+  animation: wave 0.8s ease-in-out infinite;
+}
+
+.pill-wave span:nth-child(2) { animation-delay: 0.15s; }
+.pill-wave span:nth-child(3) { animation-delay: 0.30s; }
+
+@keyframes wave {
+  0%, 100% { height: 8px; }
+  50%       { height: 24px; }
+}
