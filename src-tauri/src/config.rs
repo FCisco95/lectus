@@ -57,11 +57,7 @@ mod tests {
         let cfg = Config::default();
         cfg.save_to(&path).unwrap();
         let loaded = Config::load_from(&path).unwrap();
-        assert_eq!(loaded.model_path, cfg.model_path);
-        assert_eq!(loaded.use_cloud, cfg.use_cloud);
-        assert_eq!(loaded.cloud_base_url, cfg.cloud_base_url);
-        assert_eq!(loaded.hold_hotkey, cfg.hold_hotkey);
-        assert_eq!(loaded.toggle_hotkey, cfg.toggle_hotkey);
+        assert_eq!(loaded, cfg);
     }
 
     #[test]
