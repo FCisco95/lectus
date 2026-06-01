@@ -1,4 +1,6 @@
+pub mod cloud;
 pub mod local;
+pub use cloud::CloudWhisper;
 pub use local::LocalWhisper;
 
 use anyhow::Result;
@@ -11,5 +13,11 @@ pub trait TranscriptionEngine: Send + Sync {
 impl TranscriptionEngine for LocalWhisper {
     fn transcribe(&self, samples: &[f32]) -> Result<String> {
         LocalWhisper::transcribe(self, samples)
+    }
+}
+
+impl TranscriptionEngine for CloudWhisper {
+    fn transcribe(&self, samples: &[f32]) -> Result<String> {
+        CloudWhisper::transcribe(self, samples)
     }
 }
