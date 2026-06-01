@@ -7,16 +7,23 @@ pub struct CloudWhisper {
     base_url: String,
     api_key: String,
     model: String,
+    client: reqwest::blocking::Client,
 }
 
 impl CloudWhisper {
     /// Build a cloud backend. `base_url` is the API root (no trailing
     /// `/audio/transcriptions`), e.g. "https://api.groq.com/openai/v1".
     pub fn new(base_url: &str, api_key: &str) -> Self {
+        let client = reqwest::blocking::Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(5))
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .expect("failed to build HTTP client");
         Self {
             base_url: base_url.trim_end_matches('/').to_string(),
             api_key: api_key.to_string(),
             model: "whisper-large-v3-turbo".to_string(),
+            client,
         }
     }
 
@@ -38,8 +45,8 @@ impl CloudWhisper {
             .text("response_format", "json");
 
         let url = format!("{}/audio/transcriptions", self.base_url);
-        let client = reqwest::blocking::Client::new();
-        let resp = client
+        let resp = self
+            .client
             .post(&url)
             .bearer_auth(&self.api_key)
             .multipart(form)
@@ -105,6 +112,15 @@ mod tests {
         let mut reader = hound::WavReader::new(std::io::Cursor::new(bytes)).expect("read failed");
         let decoded: Vec<i16> = reader.samples::<i16>().map(|s| s.unwrap()).collect();
         assert_eq!(decoded.len(), samples.len(), "sample count changed on roundtrip");
+    }
+
+    #[test]
+    fn test_samples_to_wav_bytes_boundary_values() {
+        // 0.0 → 0, 1.0 → 32767, -1.0 → -32767 (clamp then scale by 32767.0)
+        let bytes = samples_to_wav_bytes(&[0.0, 1.0, -1.0]).expect("encode failed");
+        let mut reader = hound::WavReader::new(std::io::Cursor::new(bytes)).expect("read failed");
+        let decoded: Vec<i16> = reader.samples::<i16>().map(|s| s.unwrap()).collect();
+        assert_eq!(decoded, vec![0i16, 32767, -32767]);
     }
 
     #[test]
