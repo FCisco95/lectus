@@ -1,5 +1,6 @@
 mod audio;
 mod config;
+mod hotkey;
 mod injection;
 mod state;
 mod transcription;
