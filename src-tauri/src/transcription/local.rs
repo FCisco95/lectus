@@ -48,7 +48,7 @@ pub fn load_wav_as_f32(path: &Path) -> Result<Vec<f32>> {
         hound::SampleFormat::Float => reader.samples::<f32>().map(|s| Ok(s?)).collect::<Result<Vec<_>>>()?,
         hound::SampleFormat::Int => reader
             .samples::<i16>()
-            .map(|s| Ok(s? as f32 / i16::MAX as f32))
+            .map(|s| Ok(s? as f32 / 32768.0))
             .collect::<Result<Vec<_>>>()?,
     };
     Ok(samples)
