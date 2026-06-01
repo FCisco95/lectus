@@ -12,7 +12,7 @@ edition = "2021"
 # to make the lib name unique and wouldn't conflict with the bin name.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "chirp_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = ["cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -25,8 +25,9 @@ serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 cpal = "0.15"
 arboard = "3"
-enigo = "0.2"
-global-hotkey = "0.5"
+# Windows: injecting into elevated windows needs uiAccess manifest entry
+enigo = "=0.2.1"
+tauri-plugin-global-shortcut = "2"
 reqwest = { version = "0.12", features = ["json"] }
 anyhow = "1"
 log = "0.4"

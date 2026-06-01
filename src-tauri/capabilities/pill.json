@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "pill-cap",
+  "description": "Capabilities for the pill overlay window",
+  "windows": ["pill"],
+  "permissions": ["core:default"]
+}
