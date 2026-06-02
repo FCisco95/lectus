@@ -1,15 +1,32 @@
 mod audio;
 mod config;
+mod hook;
 mod hotkey;
 mod injection;
 mod state;
 mod transcription;
 
 use state::{AppState, RecordingState};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Listener, Manager};
+use hook::{HookContext, KeyboardHook};
+
+/// Whether the capture loop should keep recording: active (key still held)
+/// AND under the 30 s safety cap.
+fn should_continue(active: bool, elapsed_secs: u64) -> bool {
+    active && elapsed_secs < 30
+}
+
+/// Managed activation state: the shared stop flag + the installed hook.
+struct Activation {
+    recording_active: Arc<AtomicBool>,
+    /// Kept alive for the app's lifetime; `rearm` swaps the key live.
+    #[allow(dead_code)]
+    hook: Mutex<Option<hook::PlatformHook>>,
+}
 
 /// Cached transcription engines. Loaded once at startup to avoid per-call setup cost.
 struct WhisperState {
@@ -42,6 +59,18 @@ fn do_set_state(
             }
         }
     }
+
+    // Show the pill while busy, hide it when idle/error.
+    if let Some(pill) = app_handle.get_webview_window("pill") {
+        match next {
+            RecordingState::Recording | RecordingState::Transcribing => {
+                let _ = pill.show();
+            }
+            _ => {
+                let _ = pill.hide();
+            }
+        }
+    }
     Ok(())
 }
 
@@ -67,6 +96,7 @@ fn save_config(
     new_config: config::Config,
     app_state: tauri::State<AppState>,
     whisper_state: tauri::State<WhisperState>,
+    activation: tauri::State<Activation>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     if new_config.use_cloud && new_config.cloud_api_key.trim().is_empty() {
@@ -92,6 +122,14 @@ fn save_config(
         *guard = new_config;
         guard.model_path = resolved_model;
     }
+
+    // Re-arm the hook to the (possibly new) hold key — no restart needed.
+    {
+        let key = app_state.config.lock().unwrap().hold_hotkey.clone();
+        if let Some(hook) = activation.hook.lock().unwrap().as_ref() {
+            hook.rearm(&key);
+        }
+    }
     Ok(())
 }
 
@@ -99,6 +137,7 @@ fn save_config(
 async fn do_pipeline(
     app_state: &AppState,
     app_handle: &tauri::AppHandle,
+    recording_active: Arc<AtomicBool>,
     local: Arc<Mutex<Option<transcription::local::LocalWhisper>>>,
     cloud: Arc<Mutex<Option<transcription::cloud::CloudWhisper>>>,
     use_cloud: bool,
@@ -111,33 +150,24 @@ async fn do_pipeline(
         }
         *rec = RecordingState::Recording;
     }
-    app_handle.emit("state-changed", "recording").map_err(|e| e.to_string())?;
-    if let Some(tray) = app_handle.tray_by_id("main") {
-        if let Ok(res_dir) = app_handle.path().resource_dir() {
-            if let Ok(icon) = tauri::image::Image::from_path(res_dir.join("icons/tray-recording.png")) {
-                tray.set_icon(Some(icon)).ok();
-            }
-        }
-    }
+    // 1b. Enter Recording (emits state-changed, swaps tray icon, shows pill).
+    do_set_state("recording", app_state, app_handle)?;
 
-    // 2. Capture audio + VAD in a blocking thread (cpal::Stream is !Send).
-    let accumulated = tokio::task::spawn_blocking(|| {
-        use audio::{AudioCapture, EnergyVad};
+    // 2. Capture audio in a blocking thread (cpal::Stream is !Send).
+    //    Stop when the key is released (recording_active clears) or at 30 s.
+    let active = recording_active.clone();
+    let accumulated = tokio::task::spawn_blocking(move || {
+        use audio::AudioCapture;
         let capture = AudioCapture::start().map_err(|e| e.to_string())?;
-        let mut vad = EnergyVad::new(0.01);
         let mut accumulated: Vec<f32> = Vec::new();
-        let deadline = std::time::Instant::now();
+        let start = std::time::Instant::now();
         loop {
             std::thread::sleep(std::time::Duration::from_millis(32));
             let chunk = capture.drain();
             if !chunk.is_empty() {
-                let ended = vad.speech_ended(&chunk);
                 accumulated.extend_from_slice(&chunk);
-                if ended {
-                    break;
-                }
             }
-            if deadline.elapsed().as_secs() > 30 {
+            if !should_continue(active.load(Ordering::SeqCst), start.elapsed().as_secs()) {
                 break;
             }
         }
@@ -179,42 +209,84 @@ async fn do_pipeline(
     Ok(transcript)
 }
 
-/// One dictation cycle: record → VAD → transcribe → inject.
+/// One dictation cycle: record → transcribe → inject.
 /// On any error, resets to Idle so future hotkey triggers are not blocked.
+///
+/// NOTE: not currently invoked from the frontend (hold-to-talk drives the
+/// pipeline from Rust via `run_hold_pipeline`). Kept as a manual/test entry
+/// point. It shares the `recording_active` flag with the hold path; the Idle
+/// claim in `do_pipeline` serializes the two, but do not re-wire this from the
+/// UI without revisiting that shared-flag interaction.
 #[tauri::command]
 async fn run_pipeline(
     app_state: tauri::State<'_, AppState>,
     whisper_state: tauri::State<'_, WhisperState>,
+    activation: tauri::State<'_, Activation>,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
     let local = whisper_state.local.clone();
     let cloud = whisper_state.cloud.clone();
+    let recording_active = activation.recording_active.clone();
     let use_cloud = app_state.config.lock().unwrap().use_cloud;
-    let outcome = do_pipeline(&app_state, &app_handle, local, cloud, use_cloud).await;
+    // Manual invoke path: behave like a tap (record until the safety cap),
+    // since no physical key is being held. Pre-set the flag true.
+    recording_active.store(true, Ordering::SeqCst);
+    let outcome = do_pipeline(
+        &app_state,
+        &app_handle,
+        recording_active.clone(),
+        local,
+        cloud,
+        use_cloud,
+    )
+    .await;
+    recording_active.store(false, Ordering::SeqCst);
     if outcome.is_err() {
         do_set_state("idle", &app_state, &app_handle).ok();
     }
     outcome
 }
 
+/// Run one dictation cycle triggered by the hold-to-talk hook.
+/// Pulls managed state from the handle so it can be spawned from an event listener.
+async fn run_hold_pipeline(app: tauri::AppHandle) {
+    let app_state = app.state::<AppState>();
+    let whisper = app.state::<WhisperState>();
+    let activation = app.state::<Activation>();
+    let local = whisper.local.clone();
+    let cloud = whisper.cloud.clone();
+    let recording_active = activation.recording_active.clone();
+    let use_cloud = app_state.config.lock().unwrap().use_cloud;
+
+    let outcome = do_pipeline(
+        app_state.inner(),
+        &app,
+        recording_active.clone(),
+        local,
+        cloud,
+        use_cloud,
+    )
+    .await;
+
+    // Never leave the flag stuck true (e.g. after the 30 s cap while still held).
+    recording_active.store(false, Ordering::SeqCst);
+    if outcome.is_err() {
+        do_set_state("idle", app_state.inner(), &app).ok();
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .plugin(
-            tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, _shortcut, event| {
-                    use tauri_plugin_global_shortcut::ShortcutState;
-                    if event.state() == ShortcutState::Pressed {
-                        app.emit("pipeline-start", ()).ok();
-                    }
-                })
-                .build(),
-        )
         .manage(AppState::new())
         .manage(WhisperState {
             local: Arc::new(Mutex::new(None)),
             cloud: Arc::new(Mutex::new(None)),
+        })
+        .manage(Activation {
+            recording_active: Arc::new(AtomicBool::new(false)),
+            hook: Mutex::new(None),
         })
         .invoke_handler(tauri::generate_handler![
             set_recording_state,
@@ -223,8 +295,6 @@ pub fn run() {
             save_config
         ])
         .setup(|app| {
-            use tauri_plugin_global_shortcut::GlobalShortcutExt;
-
             // Build the system tray with a Settings/Quit menu.
             let settings_item =
                 MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
@@ -295,23 +365,60 @@ pub fn run() {
                     ));
             }
 
-            // Register global hotkeys. Failures here must NOT brick startup —
-            // an unregistrable hotkey (e.g. a bare modifier, which muda rejects)
-            // should log a warning and leave the app running.
-            let config = app.state::<AppState>().config.lock().unwrap().clone();
-            match hotkey::HotkeyManager::from_config(&config.hold_hotkey, &config.toggle_hotkey) {
-                Ok(hk) => {
-                    if let Err(e) = app.global_shortcut().register(hk.hold_shortcut.as_str()) {
-                        eprintln!(
-                            "warning: failed to register hold hotkey '{}': {e}",
-                            hk.hold_shortcut
-                        );
-                    }
+            // Install the low-level keyboard hook for hold-to-talk.
+            // Non-fatal on failure (matches the startup philosophy): a missing
+            // Accessibility grant (macOS) or hook error just disables hold-to-talk.
+            let hold_key = {
+                let app_state = app.state::<AppState>();
+                let cfg = app_state.config.lock().unwrap();
+                if hook::config_key_to_vk(&cfg.hold_hotkey).is_some() {
+                    cfg.hold_hotkey.clone()
+                } else {
+                    "RControl".to_string() // migrate legacy combo configs
                 }
-                Err(e) => eprintln!("warning: invalid hotkey config: {e}"),
+            };
+            let recording_active = app.state::<Activation>().recording_active.clone();
+            match hook::PlatformHook::install(HookContext {
+                app: app.handle().clone(),
+                recording_active,
+                target_key: hold_key,
+            }) {
+                Ok(installed) => {
+                    *app.state::<Activation>().hook.lock().unwrap() = Some(installed);
+                }
+                Err(e) => eprintln!("warning: keyboard hook not installed: {e}"),
             }
+
+            // Drive the pipeline directly from Rust on hold-start (no JS hop).
+            let pipeline_handle = app.handle().clone();
+            app.listen("hold-start", move |_event| {
+                let h = pipeline_handle.clone();
+                tauri::async_runtime::spawn(run_hold_pipeline(h));
+            });
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error running Lectus");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_continue;
+
+    #[test]
+    fn continues_while_active_and_under_cap() {
+        assert!(should_continue(true, 0));
+        assert!(should_continue(true, 29));
+    }
+
+    #[test]
+    fn stops_on_release() {
+        assert!(!should_continue(false, 0));
+    }
+
+    #[test]
+    fn stops_at_safety_cap() {
+        assert!(!should_continue(true, 30));
+        assert!(!should_continue(true, 45));
+    }
 }

@@ -1,6 +1,20 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
+// KeyboardEvent.code → Lectus config key string.
+// MUST stay in sync with config_key_to_vk in src-tauri/src/hook/mod.rs.
+const CODE_TO_KEY: Record<string, string> = {
+  ControlRight: 'RControl',
+  ControlLeft: 'LControl',
+  ShiftRight: 'RShift',
+  ShiftLeft: 'LShift',
+  AltRight: 'RAlt',
+  AltLeft: 'LAlt',
+  F13: 'F13',
+  F14: 'F14',
+  F15: 'F15',
+};
+
 interface Config {
   model_path: string;
   use_cloud: boolean;
@@ -13,6 +27,7 @@ interface Config {
 export function Settings() {
   const [config, setConfig] = useState<Config | null>(null);
   const [status, setStatus] = useState('');
+  const [capturing, setCapturing] = useState(false);
 
   useEffect(() => {
     invoke<Config>('get_config')
@@ -72,13 +87,35 @@ export function Settings() {
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Dictation hotkey</label>
-        <input
-          type="text"
-          value={config.hold_hotkey}
-          readOnly
-          style={{ width: '100%', padding: 6, background: '#f0f0f0' }}
-        />
-        <small style={{ color: '#888' }}>Editable hotkey capture lands in a later phase.</small>
+        <button
+          type="button"
+          onClick={() => { setCapturing(true); setStatus('Press a key…'); }}
+          onKeyDown={(e) => {
+            if (!capturing) return;
+            e.preventDefault();
+            const mapped = CODE_TO_KEY[e.code];
+            setCapturing(false);
+            if (!mapped) {
+              setStatus(`Unsupported key (${e.code}). Try Right Ctrl, Shift, Alt, or F13-F15.`);
+              return;
+            }
+            update({ hold_hotkey: mapped });
+            setStatus(`Captured: ${mapped} — click Save`);
+          }}
+          style={{
+            width: '100%',
+            padding: 6,
+            textAlign: 'left',
+            background: capturing ? '#fffbe6' : '#fff',
+            border: '1px solid #ccc',
+            cursor: 'pointer',
+          }}
+        >
+          {capturing ? 'Press a key…' : config.hold_hotkey}
+        </button>
+        <small style={{ color: '#888' }}>
+          Click, then press your hold-to-talk key (hold to talk, release to stop).
+        </small>
       </div>
 
       <button onClick={save} style={{ padding: '8px 16px' }}>

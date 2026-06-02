@@ -1,5 +1,7 @@
 pub mod vad;
-pub use vad::EnergyVad;
+// `vad::EnergyVad` is reachable as `audio::vad::EnergyVad`. It is no longer on
+// the dictation path (Phase 2.5 stops on key-release, not VAD silence) but is
+// kept for its own tests and possible future use.
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::{Arc, Mutex};

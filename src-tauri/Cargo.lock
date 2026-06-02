@@ -465,11 +465,13 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "chirp"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "arboard",
  "cocoa",
+ "core-foundation 0.10.1",
+ "core-graphics 0.24.0",
  "cpal",
  "enigo",
  "env_logger",

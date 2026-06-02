@@ -19,13 +19,11 @@ impl Default for Config {
             use_cloud: false,
             cloud_base_url: "https://api.groq.com/openai/v1".into(),
             cloud_api_key: String::new(),
-            // NOTE: tauri-plugin-global-shortcut (muda) cannot register a bare
-            // modifier (e.g. Right Ctrl) as a global hotkey — it needs a real
-            // key in the accelerator. True "hold a bare modifier to talk"
-            // (Whisper Flow UX) requires a low-level keyboard hook
-            // (Win WH_KEYBOARD_LL / macOS CGEventTap) — deferred to Phase 2.
-            // Default to a registrable combo; the pipeline is tap-to-start anyway.
-            hold_hotkey: "Ctrl+Shift+Space".into(),
+            // Hold-to-talk default: bare Right Ctrl. Activated via a low-level
+            // keyboard hook (Win WH_KEYBOARD_LL / macOS CGEventTap), not the
+            // global-shortcut plugin (which can't register a bare modifier).
+            hold_hotkey: "RControl".into(),
+            // reserved: toggle mode — kept in schema, not wired this phase.
             toggle_hotkey: "F13".into(),
         }
     }
