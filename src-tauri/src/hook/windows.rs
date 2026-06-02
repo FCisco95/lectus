@@ -115,6 +115,12 @@ impl KeyboardHook for WindowsHook {
         // Live key swap is a single atomic store — no thread teardown.
         if let Some(vk) = config_key_to_vk(target_key) {
             TARGET_VK.store(vk, Ordering::Relaxed);
+            // Clear stale press-state: the old key may still be physically held
+            // during the swap, so the new key starts from a clean slate.
+            KEY_DOWN.store(false, Ordering::SeqCst);
+            if let Some(active) = RECORDING_ACTIVE.get() {
+                active.store(false, Ordering::SeqCst);
+            }
         }
     }
 }

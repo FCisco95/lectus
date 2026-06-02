@@ -209,8 +209,14 @@ async fn do_pipeline(
     Ok(transcript)
 }
 
-/// One dictation cycle: record → VAD → transcribe → inject.
+/// One dictation cycle: record → transcribe → inject.
 /// On any error, resets to Idle so future hotkey triggers are not blocked.
+///
+/// NOTE: not currently invoked from the frontend (hold-to-talk drives the
+/// pipeline from Rust via `run_hold_pipeline`). Kept as a manual/test entry
+/// point. It shares the `recording_active` flag with the hold path; the Idle
+/// claim in `do_pipeline` serializes the two, but do not re-wire this from the
+/// UI without revisiting that shared-flag interaction.
 #[tauri::command]
 async fn run_pipeline(
     app_state: tauri::State<'_, AppState>,

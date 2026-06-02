@@ -131,6 +131,12 @@ impl KeyboardHook for MacosHook {
     fn rearm(&self, target_key: &str) {
         if let Some(keycode) = config_key_to_mackey(target_key) {
             TARGET_KEY.store(keycode as u32, Ordering::Relaxed);
+            // Clear stale press-state: the old key may still be physically held
+            // during the swap, so the new key starts from a clean slate.
+            KEY_DOWN.store(false, Ordering::SeqCst);
+            if let Some(active) = RECORDING_ACTIVE.get() {
+                active.store(false, Ordering::SeqCst);
+            }
         }
     }
 }
