@@ -13,6 +13,21 @@ pub struct HookContext {
     pub app: tauri::AppHandle,
     pub recording_active: Arc<AtomicBool>,
     pub target_key: String,
+    /// "hold" (push-to-talk) or "toggle" (tap on / tap off).
+    pub trigger_mode: String,
+}
+
+/// Numeric trigger-mode code shared with the platform hooks (which keep it in an
+/// atomic). 1 = toggle, 0 = hold.
+pub const MODE_HOLD: u32 = 0;
+pub const MODE_TOGGLE: u32 = 1;
+
+pub fn mode_code(s: &str) -> u32 {
+    if s.eq_ignore_ascii_case("toggle") {
+        MODE_TOGGLE
+    } else {
+        MODE_HOLD
+    }
 }
 
 /// A platform keyboard hook. Installed once at startup; `rearm` swaps the
@@ -20,6 +35,11 @@ pub struct HookContext {
 pub trait KeyboardHook: Sized {
     fn install(ctx: HookContext) -> anyhow::Result<Self>;
     fn rearm(&self, target_key: &str);
+    /// Live-swap the trigger mode ("hold"/"toggle") without reinstalling.
+    fn set_mode(&self, mode: &str);
+    /// Force the internal toggle latch (so click-to-toggle and the physical
+    /// toggle key stay in sync). No-op in hold mode.
+    fn set_toggle_state(&self, on: bool);
 }
 
 #[cfg(target_os = "windows")]
@@ -41,6 +61,8 @@ impl KeyboardHook for PlatformHook {
         anyhow::bail!("keyboard hook not supported on this platform")
     }
     fn rearm(&self, _target_key: &str) {}
+    fn set_mode(&self, _mode: &str) {}
+    fn set_toggle_state(&self, _on: bool) {}
 }
 
 /// Map a Lectus config key string to a Windows virtual-key code (`VK_*`).
@@ -129,5 +151,13 @@ mod tests {
     fn is_supported_matches_vk_map() {
         assert!(is_supported_hold_key("RControl"));
         assert!(!is_supported_hold_key("Ctrl+Shift+Space"));
+    }
+
+    #[test]
+    fn mode_code_maps_toggle_and_hold() {
+        assert_eq!(mode_code("toggle"), MODE_TOGGLE);
+        assert_eq!(mode_code("Toggle"), MODE_TOGGLE);
+        assert_eq!(mode_code("hold"), MODE_HOLD);
+        assert_eq!(mode_code("anything-else"), MODE_HOLD);
     }
 }

@@ -20,7 +20,6 @@ impl AudioCapture {
             .default_input_device()
             .ok_or_else(|| anyhow::anyhow!("no input device found"))?;
 
-        // Query native config instead of hardcoding 16kHz
         let supported = device.default_input_config()?;
         let native_rate = supported.sample_rate().0;
         let channels = supported.channels() as usize;

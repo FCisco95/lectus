@@ -5,7 +5,7 @@
 //! per target keycode. F13-F15 arrive as ordinary `KeyDown`/`KeyUp`. Requires
 //! Accessibility permission (`AXIsProcessTrusted`).
 
-use super::{config_key_to_mackey, HookContext, KeyboardHook};
+use super::{config_key_to_mackey, mode_code, HookContext, KeyboardHook, MODE_TOGGLE};
 use core_foundation::runloop::{kCFRunLoopCommonModes, CFRunLoop};
 use core_graphics::event::{
     CGEventTap, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventType,
@@ -19,30 +19,44 @@ static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
 static RECORDING_ACTIVE: OnceLock<Arc<AtomicBool>> = OnceLock::new();
 static TARGET_KEY: AtomicU32 = AtomicU32::new(62); // kVK_RightControl default
 static KEY_DOWN: AtomicBool = AtomicBool::new(false);
+static TRIGGER_MODE: AtomicU32 = AtomicU32::new(0); // 0 = hold, 1 = toggle
+static TOGGLE_ON: AtomicBool = AtomicBool::new(false); // latched state in toggle mode
 
 #[link(name = "ApplicationServices", kind = "framework")]
 extern "C" {
     fn AXIsProcessTrusted() -> bool;
 }
 
-fn fire_start() {
-    if !KEY_DOWN.swap(true, Ordering::SeqCst) {
-        if let Some(active) = RECORDING_ACTIVE.get() {
-            active.store(true, Ordering::SeqCst);
-        }
-        if let Some(app) = APP_HANDLE.get() {
-            let _ = app.emit("hold-start", ());
-        }
+/// Set recording active/inactive and emit the matching start/stop event.
+fn signal(start: bool) {
+    if let Some(active) = RECORDING_ACTIVE.get() {
+        active.store(start, Ordering::SeqCst);
+    }
+    if let Some(app) = APP_HANDLE.get() {
+        let _ = app.emit(if start { "hold-start" } else { "hold-stop" }, ());
     }
 }
 
-fn fire_stop() {
-    KEY_DOWN.store(false, Ordering::SeqCst);
-    if let Some(active) = RECORDING_ACTIVE.get() {
-        active.store(false, Ordering::SeqCst);
+/// Physical key just went down (debounced). Hold mode starts; toggle flips.
+fn on_down_edge() {
+    if KEY_DOWN.swap(true, Ordering::SeqCst) {
+        return; // already down — ignore auto-repeat
     }
-    if let Some(app) = APP_HANDLE.get() {
-        let _ = app.emit("hold-stop", ());
+    if TRIGGER_MODE.load(Ordering::Relaxed) == MODE_TOGGLE {
+        let now_on = !TOGGLE_ON.fetch_xor(true, Ordering::SeqCst);
+        signal(now_on);
+    } else {
+        signal(true);
+    }
+}
+
+/// Physical key just went up. Hold mode stops; toggle ignores the release.
+fn on_up_edge() {
+    if !KEY_DOWN.swap(false, Ordering::SeqCst) {
+        return; // already up
+    }
+    if TRIGGER_MODE.load(Ordering::Relaxed) != MODE_TOGGLE {
+        signal(false);
     }
 }
 
@@ -64,6 +78,7 @@ impl KeyboardHook for MacosHook {
         let keycode = config_key_to_mackey(&ctx.target_key)
             .ok_or_else(|| anyhow::anyhow!("unsupported hold key: {}", ctx.target_key))?;
         TARGET_KEY.store(keycode as u32, Ordering::Relaxed);
+        TRIGGER_MODE.store(mode_code(&ctx.trigger_mode), Ordering::Relaxed);
 
         let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
         std::thread::spawn(move || {
@@ -81,14 +96,15 @@ impl KeyboardHook for MacosHook {
                         event.get_integer_value_field(EventField::KEYBOARD_EVENT_KEYCODE) as u32;
                     if keycode == TARGET_KEY.load(Ordering::Relaxed) {
                         match event_type {
-                            CGEventType::KeyDown => fire_start(),
-                            CGEventType::KeyUp => fire_stop(),
+                            CGEventType::KeyDown => on_down_edge(),
+                            CGEventType::KeyUp => on_up_edge(),
                             CGEventType::FlagsChanged => {
-                                // Modifier: down-edge if not already tracked as down.
+                                // Modifier toggled: if currently tracked down it's
+                                // a release edge, otherwise a press edge.
                                 if KEY_DOWN.load(Ordering::SeqCst) {
-                                    fire_stop();
+                                    on_up_edge();
                                 } else {
-                                    fire_start();
+                                    on_down_edge();
                                 }
                             }
                             _ => {}
@@ -138,5 +154,18 @@ impl KeyboardHook for MacosHook {
                 active.store(false, Ordering::SeqCst);
             }
         }
+    }
+
+    fn set_mode(&self, mode: &str) {
+        TRIGGER_MODE.store(mode_code(mode), Ordering::Relaxed);
+        TOGGLE_ON.store(false, Ordering::SeqCst);
+        KEY_DOWN.store(false, Ordering::SeqCst);
+        if let Some(active) = RECORDING_ACTIVE.get() {
+            active.store(false, Ordering::SeqCst);
+        }
+    }
+
+    fn set_toggle_state(&self, on: bool) {
+        TOGGLE_ON.store(on, Ordering::SeqCst);
     }
 }

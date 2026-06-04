@@ -17,6 +17,14 @@ export default function App() {
     return () => { unlisten.then((f) => f()); };
   }, []);
 
+  // The pill window is transparent; tag <html> so pill.css can neutralise the
+  // global opaque background for this window only.
+  useEffect(() => {
+    if (windowLabel === 'pill') {
+      document.documentElement.classList.add('pill-window');
+    }
+  }, [windowLabel]);
+
   if (windowLabel === 'pill') return <Pill state={appState} />;
   return <Settings />;
 }

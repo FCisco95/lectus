@@ -1,3 +1,4 @@
+use super::TranscribeOptions;
 use anyhow::{anyhow, Result};
 use serde::Deserialize;
 use std::io::Cursor;
@@ -29,7 +30,10 @@ impl CloudWhisper {
 
     /// Transcribe 16kHz mono f32 samples by uploading them as a WAV file.
     /// Blocking — call from a blocking context (spawn_blocking), never an async task.
-    pub fn transcribe(&self, samples: &[f32]) -> Result<String> {
+    ///
+    /// `opts.language` of `None` omits the `language` field so the API
+    /// auto-detects; `opts.initial_prompt` is sent as the `prompt` bias field.
+    pub fn transcribe(&self, samples: &[f32], opts: &TranscribeOptions) -> Result<String> {
         if self.api_key.trim().is_empty() {
             return Err(anyhow!("cloud API key is not set"));
         }
@@ -38,11 +42,16 @@ impl CloudWhisper {
         let part = reqwest::blocking::multipart::Part::bytes(wav)
             .file_name("audio.wav")
             .mime_str("audio/wav")?;
-        let form = reqwest::blocking::multipart::Form::new()
+        let mut form = reqwest::blocking::multipart::Form::new()
             .part("file", part)
             .text("model", self.model.clone())
-            .text("language", "en")
             .text("response_format", "json");
+        if let Some(lang) = opts.language.as_deref() {
+            form = form.text("language", lang.to_string());
+        }
+        if let Some(prompt) = opts.initial_prompt.as_deref() {
+            form = form.text("prompt", prompt.to_string());
+        }
 
         let url = format!("{}/audio/transcriptions", self.base_url);
         let resp = self
@@ -130,7 +139,7 @@ mod tests {
         let engine = CloudWhisper::new("https://api.groq.com/openai/v1", &key);
         // 1s of 440Hz tone — Groq returns *some* text; we only assert no error.
         let samples: Vec<f32> = (0..16000).map(|i| ((i as f32) * 0.1).sin() * 0.2).collect();
-        let result = engine.transcribe(&samples);
+        let result = engine.transcribe(&samples, &TranscribeOptions::default());
         assert!(result.is_ok(), "cloud transcription errored: {:?}", result);
     }
 }

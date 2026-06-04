@@ -1,3 +1,14 @@
+/// Root-mean-square amplitude of a sample buffer — a cheap proxy for loudness.
+///
+/// Reused both by the VAD below and by the live audio-level meter that drives
+/// the recording pill. Returns 0.0 for an empty buffer.
+pub fn rms(samples: &[f32]) -> f32 {
+    if samples.is_empty() {
+        return 0.0;
+    }
+    (samples.iter().map(|s| s * s).sum::<f32>() / samples.len() as f32).sqrt()
+}
+
 pub struct EnergyVad {
     threshold: f32,
     silence_frame_count: u32,
@@ -17,8 +28,7 @@ impl EnergyVad {
 
     /// Returns true if this frame contains speech
     pub fn is_speech(&mut self, samples: &[f32]) -> bool {
-        let rms = (samples.iter().map(|s| s * s).sum::<f32>() / samples.len() as f32).sqrt();
-        let speaking = rms > self.threshold;
+        let speaking = rms(samples) > self.threshold;
         if speaking {
             self.silence_frame_count = 0;
             self.was_speaking = true;

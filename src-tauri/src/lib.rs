@@ -1,10 +1,13 @@
+mod ai;
 mod audio;
 mod config;
+mod history;
 mod hook;
 mod hotkey;
 mod injection;
 mod state;
 mod transcription;
+mod worker;
 
 use state::{AppState, RecordingState};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -14,10 +17,45 @@ use tauri::tray::TrayIconBuilder;
 use tauri::{Emitter, Listener, Manager};
 use hook::{HookContext, KeyboardHook};
 
-/// Whether the capture loop should keep recording: active (key still held)
-/// AND under the 30 s safety cap.
-fn should_continue(active: bool, elapsed_secs: u64) -> bool {
-    active && elapsed_secs < 30
+/// Whether the capture loop should keep recording: active (key still held / latch
+/// on) AND under the safety cap. The cap is mode-dependent — short for hold
+/// (push-to-talk bursts), long for toggle (hands-free dictation).
+fn should_continue(active: bool, elapsed_secs: u64, max_secs: u64) -> bool {
+    active && elapsed_secs < max_secs
+}
+
+/// Current Unix time in milliseconds (0 if the clock is before the epoch).
+fn now_millis() -> i64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
+/// Safety cap for the capture loop, by trigger mode.
+fn safety_cap_secs(trigger_mode: &str) -> u64 {
+    if trigger_mode.eq_ignore_ascii_case("toggle") {
+        300
+    } else {
+        30
+    }
+}
+
+/// The key the hook should watch given the active trigger mode: the toggle key
+/// in toggle mode, otherwise the hold key. Falls back to Right Ctrl if the
+/// configured value isn't a supported single key (e.g. a legacy combo).
+fn active_trigger_key(cfg: &config::Config) -> String {
+    let key = if cfg.trigger_mode.eq_ignore_ascii_case("toggle") {
+        &cfg.toggle_hotkey
+    } else {
+        &cfg.hold_hotkey
+    };
+    if hook::config_key_to_vk(key).is_some() {
+        key.clone()
+    } else {
+        "RControl".to_string()
+    }
 }
 
 /// Managed activation state: the shared stop flag + the installed hook.
@@ -32,6 +70,18 @@ struct Activation {
 struct WhisperState {
     local: Arc<Mutex<Option<transcription::local::LocalWhisper>>>,
     cloud: Arc<Mutex<Option<transcription::cloud::CloudWhisper>>>,
+}
+
+/// A downloadable model plus its current status on disk.
+#[derive(serde::Serialize, Clone)]
+struct ModelStatus {
+    name: String,
+    display_name: String,
+    size_mb: u32,
+    multilingual: bool,
+    description: String,
+    downloaded: bool,
+    active: bool,
 }
 
 fn do_set_state(
@@ -60,16 +110,15 @@ fn do_set_state(
         }
     }
 
-    // Show the pill while busy, hide it when idle/error.
     if let Some(pill) = app_handle.get_webview_window("pill") {
-        match next {
+        let size = match next {
             RecordingState::Recording | RecordingState::Transcribing => {
-                let _ = pill.show();
+                tauri::LogicalSize::new(240.0, 72.0)
             }
-            _ => {
-                let _ = pill.hide();
-            }
-        }
+            _ => tauri::LogicalSize::new(72.0, 72.0),
+        };
+        let _ = pill.set_size(size);
+        let _ = pill.show();
     }
     Ok(())
 }
@@ -83,14 +132,83 @@ fn set_recording_state(
     do_set_state(&state_str, &app_state, &app_handle)
 }
 
+/// Toggle recording from the UI (e.g. clicking the pill). Idle → start, else
+/// stop. Mirrors the physical toggle key and keeps the hook's latch in sync.
+#[tauri::command]
+fn toggle_recording(
+    app_state: tauri::State<AppState>,
+    activation: tauri::State<Activation>,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    let is_idle = *app_state.recording.lock().unwrap() == RecordingState::Idle;
+    let start = is_idle;
+    activation.recording_active.store(start, Ordering::SeqCst);
+    if let Some(hook) = activation.hook.lock().unwrap().as_ref() {
+        hook.set_toggle_state(start);
+    }
+    app_handle
+        .emit(if start { "hold-start" } else { "hold-stop" }, ())
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Return the current in-memory config for the Settings UI to display.
 #[tauri::command]
 fn get_config(app_state: tauri::State<AppState>) -> config::Config {
     app_state.config.lock().unwrap().clone()
 }
 
+/// Whether the Claude Code CLI is available for AI cleanup (shown in Settings).
+#[tauri::command]
+fn check_claude_cli() -> bool {
+    ai::claude_available()
+}
+
+/// Recent dictations, newest last.
+#[tauri::command]
+fn get_history(app_handle: tauri::AppHandle) -> Vec<history::HistoryEntry> {
+    app_handle
+        .path()
+        .app_data_dir()
+        .map(|d| history::load(&d))
+        .unwrap_or_default()
+}
+
+/// Erase all stored history.
+#[tauri::command]
+fn clear_history(app_handle: tauri::AppHandle) -> Result<(), String> {
+    let dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
+    history::clear(&dir).map_err(|e| e.to_string())
+}
+
+/// Copy a past transcript back to the clipboard.
+#[tauri::command]
+fn copy_to_clipboard(text: String) -> Result<(), String> {
+    injection::clipboard::set_clipboard(&text).map_err(|e| e.to_string())
+}
+
+/// Persist the pill's on-screen position after the user drags it.
+#[tauri::command]
+fn save_pill_position(
+    x: i32,
+    y: i32,
+    app_state: tauri::State<AppState>,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    let snapshot = {
+        let mut guard = app_state.config.lock().unwrap();
+        guard.pill_x = x;
+        guard.pill_y = y;
+        guard.clone()
+    };
+    if let Ok(cfg_dir) = app_handle.path().app_config_dir() {
+        let cfg_path = cfg_dir.join("config.json");
+        snapshot.save_to(&cfg_path).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 /// Persist edited config to disk, rebuild the cloud engine, and update in-memory state.
-/// `model_path` from the UI is ignored — the bundled/resolved path is preserved.
 #[tauri::command]
 fn save_config(
     new_config: config::Config,
@@ -103,33 +221,122 @@ fn save_config(
         return Err("Cannot enable cloud transcription without an API key".to_string());
     }
 
-    // Persist to disk.
     if let Ok(cfg_dir) = app_handle.path().app_config_dir() {
         let cfg_path = cfg_dir.join("config.json");
         new_config.save_to(&cfg_path).map_err(|e| e.to_string())?;
     }
 
-    // Rebuild the cloud engine with the new credentials/URL.
     *whisper_state.cloud.lock().unwrap() = Some(transcription::cloud::CloudWhisper::new(
         &new_config.cloud_base_url,
         &new_config.cloud_api_key,
     ));
 
-    // Update in-memory config, preserving the resolved model_path.
     {
         let mut guard = app_state.config.lock().unwrap();
         let resolved_model = guard.model_path.clone();
+        let (px, py) = (guard.pill_x, guard.pill_y);
         *guard = new_config;
         guard.model_path = resolved_model;
+        guard.pill_x = px;
+        guard.pill_y = py;
     }
 
-    // Re-arm the hook to the (possibly new) hold key — no restart needed.
     {
-        let key = app_state.config.lock().unwrap().hold_hotkey.clone();
+        let (active_key, mode) = {
+            let cfg = app_state.config.lock().unwrap();
+            (active_trigger_key(&cfg), cfg.trigger_mode.clone())
+        };
         if let Some(hook) = activation.hook.lock().unwrap().as_ref() {
-            hook.rearm(&key);
+            hook.set_mode(&mode);
+            hook.rearm(&active_key);
         }
     }
+    Ok(())
+}
+
+/// Return the download/active status of every known model.
+#[tauri::command]
+fn get_models_status(
+    app_state: tauri::State<AppState>,
+    app_handle: tauri::AppHandle,
+) -> Vec<ModelStatus> {
+    let current = app_state.config.lock().unwrap().model_name.clone();
+    transcription::model::AVAILABLE_MODELS
+        .iter()
+        .map(|m| ModelStatus {
+            name: m.name.to_string(),
+            display_name: m.display_name.to_string(),
+            size_mb: m.size_mb,
+            multilingual: m.multilingual,
+            description: m.description.to_string(),
+            downloaded: transcription::model::is_downloaded(&app_handle, m.name),
+            active: current == m.name,
+        })
+        .collect()
+}
+
+/// Kick off a background download for a model. Emits `model-download-progress`
+/// (f64 0..1) and `model-ready` (String model_name) when done.
+#[tauri::command]
+fn download_model(model_name: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+    // Validate the name is one we know about.
+    if !transcription::model::AVAILABLE_MODELS.iter().any(|m| m.name == model_name) {
+        return Err(format!("Unknown model: {model_name}"));
+    }
+    let app = app_handle.clone();
+    std::thread::spawn(move || {
+        if let Err(e) = transcription::model::ensure_model(&app, &model_name) {
+            eprintln!("model download failed: {e}");
+        }
+    });
+    Ok(())
+}
+
+/// Load a downloaded model and make it the active engine. Non-blocking — emits
+/// `model-loading` (String model_name) immediately, then `model-active` (String)
+/// once swapped in, or `model-load-failed` (String) on error.
+#[tauri::command]
+fn select_model(
+    model_name: String,
+    app_state: tauri::State<AppState>,
+    whisper_state: tauri::State<WhisperState>,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    let path = transcription::model::model_path(&app_handle, &model_name)
+        .map_err(|e| e.to_string())?;
+    if !path.exists() {
+        return Err(format!("Model '{model_name}' is not downloaded yet"));
+    }
+
+    let _ = app_handle.emit("model-loading", model_name.clone());
+
+    let local = Arc::clone(&whisper_state.local);
+    let app = app_handle.clone();
+    let name_clone = model_name.clone();
+    std::thread::spawn(move || {
+        match transcription::local::LocalWhisper::new(&path) {
+            Ok(engine) => {
+                *local.lock().unwrap() = Some(engine);
+                // Update in-memory config (model_name + model_path).
+                let app_state = app.state::<AppState>();
+                {
+                    let mut cfg = app_state.config.lock().unwrap();
+                    cfg.model_name = name_clone.clone();
+                    cfg.model_path = path;
+                }
+                // Persist.
+                if let Ok(cfg_dir) = app.path().app_config_dir() {
+                    let cfg = app_state.config.lock().unwrap().clone();
+                    let _ = cfg.save_to(&cfg_dir.join("config.json"));
+                }
+                let _ = app.emit("model-active", name_clone);
+            }
+            Err(e) => {
+                let _ = app.emit("model-load-failed", e.to_string());
+            }
+        }
+    });
+
     Ok(())
 }
 
@@ -140,9 +347,10 @@ async fn do_pipeline(
     recording_active: Arc<AtomicBool>,
     local: Arc<Mutex<Option<transcription::local::LocalWhisper>>>,
     cloud: Arc<Mutex<Option<transcription::cloud::CloudWhisper>>>,
-    use_cloud: bool,
+    cfg: config::Config,
 ) -> Result<String, String> {
-    // 1. Atomic claim: reject if another pipeline is already running (TOCTOU-safe).
+    let use_cloud = cfg.use_cloud;
+    // 1. Atomic claim: reject if another pipeline is already running.
     {
         let mut rec = app_state.recording.lock().unwrap();
         if *rec != RecordingState::Idle {
@@ -150,12 +358,12 @@ async fn do_pipeline(
         }
         *rec = RecordingState::Recording;
     }
-    // 1b. Enter Recording (emits state-changed, swaps tray icon, shows pill).
     do_set_state("recording", app_state, app_handle)?;
 
-    // 2. Capture audio in a blocking thread (cpal::Stream is !Send).
-    //    Stop when the key is released (recording_active clears) or at 30 s.
+    // 2. Capture audio.
     let active = recording_active.clone();
+    let level_app = app_handle.clone();
+    let max_secs = safety_cap_secs(&cfg.trigger_mode);
     let accumulated = tokio::task::spawn_blocking(move || {
         use audio::AudioCapture;
         let capture = AudioCapture::start().map_err(|e| e.to_string())?;
@@ -165,58 +373,89 @@ async fn do_pipeline(
             std::thread::sleep(std::time::Duration::from_millis(32));
             let chunk = capture.drain();
             if !chunk.is_empty() {
+                let _ = level_app.emit("audio-level", audio::vad::rms(&chunk));
                 accumulated.extend_from_slice(&chunk);
             }
-            if !should_continue(active.load(Ordering::SeqCst), start.elapsed().as_secs()) {
+            if !should_continue(active.load(Ordering::SeqCst), start.elapsed().as_secs(), max_secs) {
                 break;
             }
         }
         drop(capture);
+        let _ = level_app.emit("audio-level", 0.0_f32);
         Ok::<Vec<f32>, String>(accumulated)
     })
     .await
     .map_err(|e| e.to_string())??;
 
-    // 3. Transcribe using the selected cached engine (no reload per call).
+    // 3. Transcribe.
     do_set_state("transcribing", app_state, app_handle)?;
-    let transcript = tokio::task::spawn_blocking(move || {
-        if use_cloud {
-            let guard = cloud.lock().unwrap();
-            match guard.as_ref() {
-                Some(engine) => engine.transcribe(&accumulated).map_err(|e| e.to_string()),
-                None => Err("Cloud backend not configured — set an API key in Settings".to_string()),
+    let bias = transcription::dictionary::bias_prompt(&cfg.dictionary_words);
+    let opts = transcription::TranscribeOptions::from_config(&cfg.language, bias);
+    let worker = app_handle.state::<worker::TranscribeWorker>().inner().clone();
+    let mut transcript = tokio::task::spawn_blocking(move || {
+        worker.run(move || {
+            if use_cloud {
+                let guard = cloud.lock().unwrap();
+                match guard.as_ref() {
+                    Some(engine) => engine.transcribe(&accumulated, &opts).map_err(|e| e.to_string()),
+                    None => Err("Cloud backend not configured — set an API key in Settings".to_string()),
+                }
+            } else {
+                let mut guard = local.lock().unwrap();
+                match guard.as_mut() {
+                    Some(engine) => engine.transcribe(&accumulated, &opts).map_err(|e| e.to_string()),
+                    None => Err(
+                        "Whisper model not loaded — run scripts/download_model.ps1 first".to_string(),
+                    ),
+                }
             }
-        } else {
-            let guard = local.lock().unwrap();
-            match guard.as_ref() {
-                Some(engine) => engine.transcribe(&accumulated).map_err(|e| e.to_string()),
-                None => Err(
-                    "Whisper model not loaded — run scripts/download_model.ps1 first".to_string(),
-                ),
-            }
-        }
+        })
     })
     .await
     .map_err(|e| e.to_string())??;
 
-    // 4. Inject text into the focused field.
-    if !transcript.is_empty() {
-        injection::inject_text(&transcript).map_err(|e| e.to_string())?;
+    // 4. Post-process: replacement rules + optional AI cleanup.
+    transcript = transcription::dictionary::apply_rules(&transcript, &cfg.replacement_rules);
+    if cfg.ai_cleanup_enabled && !transcript.is_empty() {
+        let to_clean = transcript.clone();
+        let cfg_for_cleanup = cfg.clone();
+        let cleaned = tokio::task::spawn_blocking(move || {
+            ai::cleanup(&to_clean, &cfg_for_cleanup)
+        })
+        .await
+        .map_err(|e| e.to_string())?;
+        match cleaned {
+            Ok(text) if !text.trim().is_empty() => transcript = text,
+            Ok(_) => {}
+            Err(e) => eprintln!("warning: AI cleanup failed, using raw transcript: {e}"),
+        }
     }
 
-    // 5. Return to idle.
+    // 5. Inject into the focused field.
+    if !transcript.is_empty() {
+        injection::inject_text(&transcript).map_err(|e| e.to_string())?;
+
+        if let Ok(dir) = app_handle.path().app_data_dir() {
+            let language = match cfg.language.trim() {
+                "" | "auto" => None,
+                l => Some(l.to_string()),
+            };
+            let entry = history::HistoryEntry {
+                text: transcript.clone(),
+                timestamp: now_millis(),
+                language,
+            };
+            if history::append(&dir, entry.clone()).is_ok() {
+                let _ = app_handle.emit("history-added", entry);
+            }
+        }
+    }
+
     do_set_state("idle", app_state, app_handle)?;
     Ok(transcript)
 }
 
 /// One dictation cycle: record → transcribe → inject.
-/// On any error, resets to Idle so future hotkey triggers are not blocked.
-///
-/// NOTE: not currently invoked from the frontend (hold-to-talk drives the
-/// pipeline from Rust via `run_hold_pipeline`). Kept as a manual/test entry
-/// point. It shares the `recording_active` flag with the hold path; the Idle
-/// claim in `do_pipeline` serializes the two, but do not re-wire this from the
-/// UI without revisiting that shared-flag interaction.
 #[tauri::command]
 async fn run_pipeline(
     app_state: tauri::State<'_, AppState>,
@@ -227,9 +466,7 @@ async fn run_pipeline(
     let local = whisper_state.local.clone();
     let cloud = whisper_state.cloud.clone();
     let recording_active = activation.recording_active.clone();
-    let use_cloud = app_state.config.lock().unwrap().use_cloud;
-    // Manual invoke path: behave like a tap (record until the safety cap),
-    // since no physical key is being held. Pre-set the flag true.
+    let cfg = app_state.config.lock().unwrap().clone();
     recording_active.store(true, Ordering::SeqCst);
     let outcome = do_pipeline(
         &app_state,
@@ -237,7 +474,7 @@ async fn run_pipeline(
         recording_active.clone(),
         local,
         cloud,
-        use_cloud,
+        cfg,
     )
     .await;
     recording_active.store(false, Ordering::SeqCst);
@@ -248,7 +485,6 @@ async fn run_pipeline(
 }
 
 /// Run one dictation cycle triggered by the hold-to-talk hook.
-/// Pulls managed state from the handle so it can be spawned from an event listener.
 async fn run_hold_pipeline(app: tauri::AppHandle) {
     let app_state = app.state::<AppState>();
     let whisper = app.state::<WhisperState>();
@@ -256,7 +492,7 @@ async fn run_hold_pipeline(app: tauri::AppHandle) {
     let local = whisper.local.clone();
     let cloud = whisper.cloud.clone();
     let recording_active = activation.recording_active.clone();
-    let use_cloud = app_state.config.lock().unwrap().use_cloud;
+    let cfg = app_state.config.lock().unwrap().clone();
 
     let outcome = do_pipeline(
         app_state.inner(),
@@ -264,12 +500,14 @@ async fn run_hold_pipeline(app: tauri::AppHandle) {
         recording_active.clone(),
         local,
         cloud,
-        use_cloud,
+        cfg,
     )
     .await;
 
-    // Never leave the flag stuck true (e.g. after the 30 s cap while still held).
     recording_active.store(false, Ordering::SeqCst);
+    if let Some(hook) = activation.hook.lock().unwrap().as_ref() {
+        hook.set_toggle_state(false);
+    }
     if outcome.is_err() {
         do_set_state("idle", app_state.inner(), &app).ok();
     }
@@ -284,18 +522,27 @@ pub fn run() {
             local: Arc::new(Mutex::new(None)),
             cloud: Arc::new(Mutex::new(None)),
         })
+        .manage(worker::TranscribeWorker::new())
         .manage(Activation {
             recording_active: Arc::new(AtomicBool::new(false)),
             hook: Mutex::new(None),
         })
         .invoke_handler(tauri::generate_handler![
             set_recording_state,
+            toggle_recording,
             run_pipeline,
             get_config,
-            save_config
+            save_config,
+            save_pill_position,
+            check_claude_cli,
+            get_history,
+            clear_history,
+            copy_to_clipboard,
+            get_models_status,
+            download_model,
+            select_model,
         ])
         .setup(|app| {
-            // Build the system tray with a Settings/Quit menu.
             let settings_item =
                 MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit Lectus", true, None::<&str>)?;
@@ -316,8 +563,6 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Keep the settings window alive across closes: hide instead of destroy,
-            // so the tray "Settings" item can reopen it for the whole session.
             if let Some(w) = app.get_webview_window("settings") {
                 let w_for_event = w.clone();
                 w.on_window_event(move |event| {
@@ -328,7 +573,6 @@ pub fn run() {
                 });
             }
 
-            // Load persisted config from disk (falls back to Config::default()).
             if let Ok(cfg_dir) = app.path().app_config_dir() {
                 let cfg_path = cfg_dir.join("config.json");
                 if let Ok(loaded) = config::Config::load_from(&cfg_path) {
@@ -336,15 +580,37 @@ pub fn run() {
                 }
             }
 
-            // Resolve bundled model path at runtime.
-            if let Ok(res_dir) = app.path().resource_dir() {
-                let bundled = res_dir.join("models/ggml-tiny.en.bin");
-                if bundled.exists() {
-                    app.state::<AppState>().config.lock().unwrap().model_path = bundled;
+            if let Some(pill) = app.get_webview_window("pill") {
+                let (x, y) = {
+                    let st = app.state::<AppState>();
+                    let cfg = st.config.lock().unwrap();
+                    (cfg.pill_x, cfg.pill_y)
+                };
+                let _ = pill.set_position(tauri::PhysicalPosition::new(x, y));
+                let _ = pill.show();
+            }
+
+            // Resolve the active model: prefer the downloaded multilingual model;
+            // otherwise fall back to the bundled tiny.en so the app works on first run.
+            {
+                let app_state = app.state::<AppState>();
+                let model_name = app_state.config.lock().unwrap().model_name.clone();
+                let resolved = transcription::model::model_path(app.handle(), &model_name)
+                    .ok()
+                    .filter(|p| p.exists())
+                    .or_else(|| {
+                        app.path()
+                            .resource_dir()
+                            .ok()
+                            .map(|d| d.join("models/ggml-tiny.en.bin"))
+                            .filter(|p| p.exists())
+                    });
+                if let Some(path) = resolved {
+                    app_state.config.lock().unwrap().model_path = path;
                 }
             }
 
-            // Pre-load Whisper model into the cache.
+            // Pre-load the configured model into the engine cache.
             let model_path = app.state::<AppState>().config.lock().unwrap().model_path.clone();
             match transcription::local::LocalWhisper::new(&model_path) {
                 Ok(engine) => {
@@ -355,7 +621,29 @@ pub fn run() {
                 }
             }
 
-            // Pre-build the cloud engine from the (possibly persisted) config.
+            // On first run the bundled model is English-only. Download the
+            // configured multilingual model in background, then hot-swap it.
+            {
+                let bg = app.handle().clone();
+                let model_name = app.state::<AppState>().config.lock().unwrap().model_name.clone();
+                let already = transcription::model::is_downloaded(&bg, &model_name);
+                if !already {
+                    std::thread::spawn(move || {
+                        match transcription::model::ensure_model(&bg, &model_name) {
+                            Ok(path) => match transcription::local::LocalWhisper::new(&path) {
+                                Ok(engine) => {
+                                    *bg.state::<WhisperState>().local.lock().unwrap() = Some(engine);
+                                    bg.state::<AppState>().config.lock().unwrap().model_path = path;
+                                    eprintln!("multilingual model loaded; language auto-detect active");
+                                }
+                                Err(e) => eprintln!("warning: failed to load downloaded model: {e}"),
+                            },
+                            Err(e) => eprintln!("warning: multilingual model not available: {e}"),
+                        }
+                    });
+                }
+            }
+
             {
                 let cfg = app.state::<AppState>().config.lock().unwrap().clone();
                 *app.state::<WhisperState>().cloud.lock().unwrap() =
@@ -365,23 +653,17 @@ pub fn run() {
                     ));
             }
 
-            // Install the low-level keyboard hook for hold-to-talk.
-            // Non-fatal on failure (matches the startup philosophy): a missing
-            // Accessibility grant (macOS) or hook error just disables hold-to-talk.
-            let hold_key = {
+            let (active_key, trigger_mode) = {
                 let app_state = app.state::<AppState>();
                 let cfg = app_state.config.lock().unwrap();
-                if hook::config_key_to_vk(&cfg.hold_hotkey).is_some() {
-                    cfg.hold_hotkey.clone()
-                } else {
-                    "RControl".to_string() // migrate legacy combo configs
-                }
+                (active_trigger_key(&cfg), cfg.trigger_mode.clone())
             };
             let recording_active = app.state::<Activation>().recording_active.clone();
             match hook::PlatformHook::install(HookContext {
                 app: app.handle().clone(),
                 recording_active,
-                target_key: hold_key,
+                target_key: active_key,
+                trigger_mode,
             }) {
                 Ok(installed) => {
                     *app.state::<Activation>().hook.lock().unwrap() = Some(installed);
@@ -389,7 +671,6 @@ pub fn run() {
                 Err(e) => eprintln!("warning: keyboard hook not installed: {e}"),
             }
 
-            // Drive the pipeline directly from Rust on hold-start (no JS hop).
             let pipeline_handle = app.handle().clone();
             app.listen("hold-start", move |_event| {
                 let h = pipeline_handle.clone();
@@ -403,22 +684,31 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::should_continue;
+    use super::{safety_cap_secs, should_continue};
 
     #[test]
     fn continues_while_active_and_under_cap() {
-        assert!(should_continue(true, 0));
-        assert!(should_continue(true, 29));
+        assert!(should_continue(true, 0, 30));
+        assert!(should_continue(true, 29, 30));
     }
 
     #[test]
     fn stops_on_release() {
-        assert!(!should_continue(false, 0));
+        assert!(!should_continue(false, 0, 30));
     }
 
     #[test]
     fn stops_at_safety_cap() {
-        assert!(!should_continue(true, 30));
-        assert!(!should_continue(true, 45));
+        assert!(!should_continue(true, 30, 30));
+        assert!(!should_continue(true, 45, 30));
+        assert!(should_continue(true, 45, 300));
+    }
+
+    #[test]
+    fn safety_cap_depends_on_mode() {
+        assert_eq!(safety_cap_secs("hold"), 30);
+        assert_eq!(safety_cap_secs("toggle"), 300);
+        assert_eq!(safety_cap_secs("TOGGLE"), 300);
+        assert_eq!(safety_cap_secs("whatever"), 30);
     }
 }
