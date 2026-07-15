@@ -41,7 +41,7 @@ export function DictationPanel({ config, update }: PanelProps) {
       <div className="field">
         <label className="field-label">Hold-to-talk key</label>
         <HotkeyCapture value={config.hold_hotkey} onCapture={(k) => update({ hold_hotkey: k })} />
-        <div className="field-hint">Used in hold mode. Bare Right Ctrl/Shift/Alt or F13–F15.</div>
+        <div className="field-hint">Used in hold mode. A modifier (Ctrl/Shift/Alt/Win), a two-key combo (hold both, e.g. Ctrl+Win), or F13–F15.</div>
       </div>
 
       <div className="field">

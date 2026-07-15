@@ -39,6 +39,8 @@ export const CODE_TO_KEY: Record<string, string> = {
   ShiftLeft: 'LShift',
   AltRight: 'RAlt',
   AltLeft: 'LAlt',
+  MetaLeft: 'LWin',
+  MetaRight: 'RWin',
   F13: 'F13',
   F14: 'F14',
   F15: 'F15',

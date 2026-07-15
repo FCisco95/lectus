@@ -388,6 +388,8 @@ async fn do_pipeline(
     .map_err(|e| e.to_string())??;
 
     // 3. Transcribe.
+    log::info!("pipeline: captured {:.2}s of audio", accumulated.len() as f32 / 16000.0);
+    let t_transcribe = std::time::Instant::now();
     do_set_state("transcribing", app_state, app_handle)?;
     let bias = transcription::dictionary::bias_prompt(&cfg.dictionary_words);
     let opts = transcription::TranscribeOptions::from_config(&cfg.language, bias);
@@ -413,6 +415,12 @@ async fn do_pipeline(
     })
     .await
     .map_err(|e| e.to_string())??;
+
+    log::info!(
+        "pipeline: transcription took {} ms ({} chars)",
+        t_transcribe.elapsed().as_millis(),
+        transcript.len()
+    );
 
     // 4. Post-process: replacement rules + optional AI cleanup.
     transcript = transcription::dictionary::apply_rules(&transcript, &cfg.replacement_rules);
@@ -515,6 +523,9 @@ async fn run_hold_pipeline(app: tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Default to info-level logs (stage timings etc.); RUST_LOG overrides.
+    let _ = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        .try_init();
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(AppState::new())
