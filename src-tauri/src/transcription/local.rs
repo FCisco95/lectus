@@ -80,6 +80,60 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
+    /// Task A1 latency benchmark: per-model, per-clip wall-clock for short
+    /// utterances (batch-1), plus model+state load time. Not a CI test.
+    /// Run: cargo test --release bench_latency -- --ignored --nocapture
+    /// (Vulkan build env required — see memory lectus-vulkan-build.)
+    #[test]
+    #[ignore = "benchmark — requires downloaded models in %APPDATA%"]
+    fn bench_latency() {
+        let appdata = std::env::var("APPDATA").expect("APPDATA not set");
+        let model_dir = PathBuf::from(appdata).join("ai.organic.lectus").join("models");
+        let sample_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/audio_samples");
+
+        let models = ["ggml-tiny.bin", "ggml-base.bin", "ggml-small.bin"];
+        let clips = ["tts_en_4s.wav", "jfk_en_11s.wav"];
+
+        println!("\n=== Lectus A1 latency bench ===");
+        for model in models {
+            let model_path = model_dir.join(model);
+            if !model_path.exists() {
+                println!("{model}: NOT DOWNLOADED, skipping");
+                continue;
+            }
+            let t_load = std::time::Instant::now();
+            let mut engine = LocalWhisper::new(&model_path).expect("model load failed");
+            println!("\n{model}: load {} ms", t_load.elapsed().as_millis());
+
+            for clip in clips {
+                let wav = sample_dir.join(clip);
+                let samples = load_wav_as_f32(&wav).expect("wav load failed");
+                let audio_secs = samples.len() as f32 / 16000.0;
+
+                // Warmup run — mirrors the app's GPU warmup at engine load.
+                let opts = TranscribeOptions::default();
+                let _ = engine.transcribe(&samples, &opts).expect("warmup failed");
+
+                let mut times = Vec::new();
+                let mut text = String::new();
+                for _ in 0..3 {
+                    let t = std::time::Instant::now();
+                    text = engine.transcribe(&samples, &opts).expect("transcribe failed");
+                    times.push(t.elapsed().as_millis());
+                }
+                let best = *times.iter().min().unwrap();
+                println!(
+                    "  {clip} ({audio_secs:.1}s audio): runs {:?} ms | best {} ms | RTF {:.3} | \"{}\"",
+                    times,
+                    best,
+                    best as f32 / 1000.0 / audio_secs,
+                    text.chars().take(60).collect::<String>()
+                );
+            }
+        }
+        println!("\n=== end bench ===\n");
+    }
+
     #[test]
     #[ignore = "requires model file — run: cargo test -- --ignored after download_model"]
     fn test_transcribe_known_audio() {

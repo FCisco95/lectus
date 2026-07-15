@@ -452,6 +452,7 @@ async fn do_pipeline(
     // 4. Post-process: replacement rules + optional AI cleanup.
     transcript = transcription::dictionary::apply_rules(&transcript, &cfg.replacement_rules);
     if cfg.ai_cleanup_enabled && !transcript.is_empty() {
+        let t_cleanup = std::time::Instant::now();
         let to_clean = transcript.clone();
         let cfg_for_cleanup = cfg.clone();
         let cleaned = tokio::task::spawn_blocking(move || {
@@ -464,11 +465,14 @@ async fn do_pipeline(
             Ok(_) => {}
             Err(e) => eprintln!("warning: AI cleanup failed, using raw transcript: {e}"),
         }
+        log::info!("pipeline: AI cleanup took {} ms", t_cleanup.elapsed().as_millis());
     }
 
     // 5. Inject into the focused field.
     if !transcript.is_empty() {
+        let t_inject = std::time::Instant::now();
         injection::inject_text(&transcript).map_err(|e| e.to_string())?;
+        log::info!("pipeline: injection took {} ms", t_inject.elapsed().as_millis());
 
         if let Ok(dir) = app_handle.path().app_data_dir() {
             let language = match cfg.language.trim() {
