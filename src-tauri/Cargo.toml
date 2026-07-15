@@ -14,6 +14,13 @@ edition = "2021"
 name = "chirp_lib"
 crate-type = ["cdylib", "rlib"]
 
+[features]
+# Serve the embedded frontend (dist/) instead of the dev server URL.
+# Enabled by default so `cargo build --release` produces a standalone binary;
+# `tauri dev` disables default features itself.
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
