@@ -1,6 +1,7 @@
 mod ai;
 mod audio;
 mod config;
+mod context;
 mod history;
 mod hook;
 mod hotkey;
@@ -285,6 +286,13 @@ fn save_config(
 #[tauri::command]
 fn list_input_devices() -> Vec<String> {
     audio::list_input_devices()
+}
+
+/// Exe name of the currently focused app (for the Apps settings panel's
+/// "use current app" helper).
+#[tauri::command]
+fn get_foreground_app() -> Option<String> {
+    context::foreground_app()
 }
 
 /// Status of the local cleanup LLM, for the AI settings panel.
@@ -601,7 +609,13 @@ async fn run_pipeline(
     let local = whisper_state.local.clone();
     let cloud = whisper_state.cloud.clone();
     let recording_active = activation.recording_active.clone();
-    let cfg = app_state.config.lock().unwrap().clone();
+    // Snapshot config with the focused app's profile applied — the focused
+    // app at trigger time is where the text will land.
+    let cfg = app_state
+        .config
+        .lock()
+        .unwrap()
+        .with_app_profile(context::foreground_app().as_deref());
     recording_active.store(true, Ordering::SeqCst);
     let outcome = do_pipeline(
         &app_state,
@@ -627,7 +641,11 @@ async fn run_hold_pipeline(app: tauri::AppHandle) {
     let local = whisper.local.clone();
     let cloud = whisper.cloud.clone();
     let recording_active = activation.recording_active.clone();
-    let cfg = app_state.config.lock().unwrap().clone();
+    let cfg = app_state
+        .config
+        .lock()
+        .unwrap()
+        .with_app_profile(context::foreground_app().as_deref());
 
     let outcome = do_pipeline(
         app_state.inner(),
@@ -683,6 +701,7 @@ pub fn run() {
             select_model,
             get_cleanup_model_status,
             download_cleanup_model,
+            get_foreground_app,
         ])
         .setup(|app| {
             let settings_item =

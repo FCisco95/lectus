@@ -52,6 +52,53 @@ pub struct Config {
     /// Gate audio through Silero neural VAD before the whisper encoder:
     /// trims silence/noise and suppresses the hallucinations they cause.
     pub vad_enabled: bool,
+    /// Per-app overrides, matched (first hit wins) against the focused app's
+    /// executable name at the moment the hotkey lands.
+    pub app_profiles: Vec<AppProfile>,
+}
+
+/// Overrides applied when dictating into a matching app. `None` = keep the
+/// global setting.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct AppProfile {
+    /// Case-insensitive substring of the target exe name (e.g. "code", "slack").
+    pub app_match: String,
+    pub ai_cleanup_enabled: Option<bool>,
+    pub ai_cleanup_tone: Option<String>,
+    /// "auto" or an ISO code — e.g. force "en" inside a code editor.
+    pub language: Option<String>,
+    pub injection_mode: Option<String>,
+}
+
+impl Config {
+    /// Overlay the first matching app profile onto a copy of the config.
+    pub fn with_app_profile(&self, app_exe: Option<&str>) -> Config {
+        let mut cfg = self.clone();
+        let Some(exe) = app_exe else { return cfg };
+        let exe = exe.to_ascii_lowercase();
+        if let Some(p) = self
+            .app_profiles
+            .iter()
+            .filter(|p| !p.app_match.trim().is_empty())
+            .find(|p| exe.contains(&p.app_match.trim().to_ascii_lowercase()))
+        {
+            log::info!("app profile matched: {:?} for {exe}", p.app_match);
+            if let Some(v) = p.ai_cleanup_enabled {
+                cfg.ai_cleanup_enabled = v;
+            }
+            if let Some(v) = &p.ai_cleanup_tone {
+                cfg.ai_cleanup_tone = v.clone();
+            }
+            if let Some(v) = &p.language {
+                cfg.language = v.clone();
+            }
+            if let Some(v) = &p.injection_mode {
+                cfg.injection_mode = v.clone();
+            }
+        }
+        cfg
+    }
 }
 
 /// A single exact find/replace rule applied to the transcript post-recognition.
@@ -88,6 +135,7 @@ impl Default for Config {
             input_device: String::new(),
             injection_mode: "auto".into(),
             vad_enabled: true,
+            app_profiles: Vec::new(),
         }
     }
 }
@@ -149,6 +197,33 @@ mod tests {
         assert_eq!(loaded.hold_hotkey, defaults.hold_hotkey);
         assert_eq!(loaded.cloud_base_url, defaults.cloud_base_url);
         assert_eq!(loaded.model_path, defaults.model_path);
+    }
+
+    #[test]
+    fn test_app_profile_overlay() {
+        let mut cfg = Config::default();
+        cfg.ai_cleanup_enabled = true;
+        cfg.app_profiles = vec![AppProfile {
+            app_match: "Code".into(),
+            ai_cleanup_enabled: Some(false),
+            language: Some("en".into()),
+            ..Default::default()
+        }];
+
+        // Matching app (case-insensitive substring) applies overrides.
+        let over = cfg.with_app_profile(Some("code.exe"));
+        assert!(!over.ai_cleanup_enabled);
+        assert_eq!(over.language, "en");
+        // Unset fields keep global values.
+        assert_eq!(over.ai_cleanup_tone, cfg.ai_cleanup_tone);
+
+        // Non-matching / unknown app keeps globals.
+        assert!(cfg.with_app_profile(Some("chrome.exe")).ai_cleanup_enabled);
+        assert!(cfg.with_app_profile(None).ai_cleanup_enabled);
+
+        // Empty match strings never match everything.
+        cfg.app_profiles[0].app_match = "  ".into();
+        assert!(cfg.with_app_profile(Some("code.exe")).ai_cleanup_enabled);
     }
 
     #[test]

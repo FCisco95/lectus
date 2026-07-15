@@ -8,10 +8,11 @@ import { LanguagePanel } from './settings/LanguagePanel';
 import { DictionaryPanel } from './settings/DictionaryPanel';
 import { HistoryPanel } from './settings/HistoryPanel';
 import { AIPanel } from './settings/AIPanel';
+import { AppsPanel } from './settings/AppsPanel';
 import { ModelsPanel } from './settings/ModelsPanel';
 import { AboutPanel } from './settings/AboutPanel';
 
-type TabId = 'general' | 'dictation' | 'language' | 'dictionary' | 'history' | 'ai' | 'models' | 'about';
+type TabId = 'general' | 'dictation' | 'language' | 'dictionary' | 'history' | 'ai' | 'apps' | 'models' | 'about';
 
 const TABS: Array<{ id: TabId; label: string; icon: string }> = [
   { id: 'general', label: 'General', icon: '⚙️' },
@@ -20,6 +21,7 @@ const TABS: Array<{ id: TabId; label: string; icon: string }> = [
   { id: 'dictionary', label: 'Dictionary', icon: '📖' },
   { id: 'history', label: 'History', icon: '🕘' },
   { id: 'ai', label: 'AI cleanup', icon: '✨' },
+  { id: 'apps', label: 'Apps', icon: '🪟' },
   { id: 'models', label: 'Models', icon: '🧠' },
   { id: 'about', label: 'About', icon: '🦜' },
 ];
@@ -87,6 +89,7 @@ export function Settings() {
         {tab === 'dictionary' && <DictionaryPanel config={config} update={update} />}
         {tab === 'history' && <HistoryPanel />}
         {tab === 'ai' && <AIPanel config={config} update={update} />}
+        {tab === 'apps' && <AppsPanel config={config} update={update} />}
         {tab === 'models' && <ModelsPanel config={config} update={update} />}
         {tab === 'about' && <AboutPanel />}
 

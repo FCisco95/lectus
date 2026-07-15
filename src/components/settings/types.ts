@@ -6,6 +6,15 @@ export interface ReplacementRule {
   case_sensitive: boolean;
 }
 
+// Mirrors `AppProfile` in src-tauri/src/config.rs (null ⇔ Option::None).
+export interface AppProfile {
+  app_match: string;
+  ai_cleanup_enabled: boolean | null;
+  ai_cleanup_tone: string | null;
+  language: string | null;
+  injection_mode: string | null;
+}
+
 export interface Config {
   model_path: string;
   use_cloud: boolean;
@@ -26,6 +35,7 @@ export interface Config {
   input_device: string;
   injection_mode: string;
   vad_enabled: boolean;
+  app_profiles: AppProfile[];
 }
 
 export interface PanelProps {
