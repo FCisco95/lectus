@@ -26,31 +26,61 @@ const GROQ_CLEANUP_MODEL: &str = "llama-3.3-70b-versatile";
 /// Clean up `text` using the engine selected in `cfg`. On any error the caller
 /// falls back to the original transcript. `local_model_path` locates the GGUF
 /// for the fully-offline "local" engine (None disables that engine).
-pub fn cleanup(text: &str, cfg: &Config, local_model_path: Option<&Path>) -> Result<String> {
+/// `language` is whisper's detected/forced ISO code — pinned in the prompt so
+/// the model cleans in place instead of translating (small local models
+/// translated pt→en without it, measured in the B2 bench).
+pub fn cleanup(
+    text: &str,
+    cfg: &Config,
+    local_model_path: Option<&Path>,
+    language: Option<&str>,
+) -> Result<String> {
     if text.trim().is_empty() {
         return Ok(text.to_string());
     }
+    let system = system_prompt(&cfg.ai_cleanup_tone, language);
     match cfg.ai_cleanup_engine.as_str() {
-        "groq" => cleanup_groq(text, cfg),
+        "groq" => cleanup_groq(text, cfg, &system),
         "local" => {
             let path = local_model_path
                 .ok_or_else(|| anyhow!("local cleanup model path not available"))?;
-            local_llm::cleanup_local(text, &system_prompt(&cfg.ai_cleanup_tone), path)
+            local_llm::cleanup_local(text, &system, path)
         }
         // Default to the Claude CLI path.
-        _ => cleanup_claude(text, &cfg.ai_cleanup_tone),
+        _ => cleanup_claude(text, &system),
     }
 }
 
-/// System instruction shared by both engines.
-fn system_prompt(tone: &str) -> String {
+/// System instruction shared by all engines. Written in the transcript's own
+/// language where we have a translation: an English instruction block makes
+/// small local models answer in English — i.e. translate the transcript —
+/// no matter how loudly a "never translate" line says otherwise (measured).
+pub(crate) fn system_prompt(tone: &str, language: Option<&str>) -> String {
     let tone = if tone.trim().is_empty() { "neutral" } else { tone.trim() };
-    format!(
-        "You are a dictation cleanup tool. Fix punctuation, capitalization, and \
-         spacing, and remove filler words (um, uh, like, you know). Keep the \
-         speaker's wording and meaning; do not add or summarize. Use a {tone} \
-         tone. Output ONLY the cleaned text, with no preamble, quotes, or notes."
-    )
+    match language {
+        Some("pt") => format!(
+            "Você é uma ferramenta de limpeza de ditado. Corrija pontuação, \
+             capitalização e espaçamento, e remova vícios de linguagem (hum, é, \
+             tipo, né). Mantenha as palavras e o significado de quem fala; não \
+             adicione nem resuma. NÃO traduza: a resposta deve permanecer em \
+             português. Tom: {tone}. Responda APENAS com o texto limpo, sem \
+             preâmbulo, aspas ou observações."
+        ),
+        Some(l) if l != "en" => format!(
+            "You are a dictation cleanup tool. Fix punctuation, capitalization, and \
+             spacing, and remove filler words. Keep the speaker's wording and \
+             meaning; do not add or summarize. Use a {tone} tone. The transcript is \
+             in language code '{l}' — the cleaned text MUST stay in that language; \
+             never translate. Output ONLY the cleaned text, with no preamble, \
+             quotes, or notes."
+        ),
+        _ => format!(
+            "You are a dictation cleanup tool. Fix punctuation, capitalization, and \
+             spacing, and remove filler words (um, uh, like, you know). Keep the \
+             speaker's wording and meaning; do not add or summarize. Use a {tone} \
+             tone. Output ONLY the cleaned text, with no preamble, quotes, or notes."
+        ),
+    }
 }
 
 /// Locate the Claude Code CLI on PATH, accounting for Windows shims.
@@ -78,15 +108,11 @@ pub fn claude_available() -> bool {
     claude_binary().is_some()
 }
 
-fn cleanup_claude(text: &str, tone: &str) -> Result<String> {
+fn cleanup_claude(text: &str, system: &str) -> Result<String> {
     let bin = claude_binary().ok_or_else(|| {
         anyhow!("Claude CLI not found on PATH — install Claude Code or pick the Groq engine")
     })?;
-    let prompt = format!(
-        "{}\n\nTranscript:\n{}\n\nCleaned text:",
-        system_prompt(tone),
-        text
-    );
+    let prompt = format!("{system}\n\nTranscript:\n{text}\n\nCleaned text:");
 
     let mut child = Command::new(&bin)
         .arg("-p")
@@ -122,7 +148,7 @@ fn cleanup_claude(text: &str, tone: &str) -> Result<String> {
     Ok(cleaned)
 }
 
-fn cleanup_groq(text: &str, cfg: &Config) -> Result<String> {
+fn cleanup_groq(text: &str, cfg: &Config, system: &str) -> Result<String> {
     if cfg.cloud_api_key.trim().is_empty() {
         return Err(anyhow!("Groq cleanup needs an API key (set it in Settings)"));
     }
@@ -131,7 +157,7 @@ fn cleanup_groq(text: &str, cfg: &Config) -> Result<String> {
         "model": GROQ_CLEANUP_MODEL,
         "temperature": 0.2,
         "messages": [
-            { "role": "system", "content": system_prompt(&cfg.ai_cleanup_tone) },
+            { "role": "system", "content": system },
             { "role": "user", "content": text }
         ]
     });
@@ -184,14 +210,27 @@ mod tests {
 
     #[test]
     fn system_prompt_includes_tone() {
-        assert!(system_prompt("formal").contains("formal"));
+        assert!(system_prompt("formal", None).contains("formal"));
         // Empty tone falls back to neutral.
-        assert!(system_prompt("").contains("neutral"));
+        assert!(system_prompt("", None).contains("neutral"));
+    }
+
+    #[test]
+    fn system_prompt_pins_detected_language() {
+        // Portuguese gets a fully localized instruction block.
+        let pt = system_prompt("neutral", Some("pt"));
+        assert!(pt.contains("NÃO traduza"));
+        // Other non-English languages get the English block with a pin.
+        let es = system_prompt("neutral", Some("es"));
+        assert!(es.contains("'es'") && es.contains("never translate"));
+        // English/unknown gets no pin.
+        assert!(!system_prompt("neutral", None).contains("never translate"));
+        assert!(!system_prompt("neutral", Some("en")).contains("never translate"));
     }
 
     #[test]
     fn cleanup_passthrough_on_empty() {
         let cfg = Config::default();
-        assert_eq!(cleanup("   ", &cfg, None).unwrap(), "   ");
+        assert_eq!(cleanup("   ", &cfg, None, None).unwrap(), "   ");
     }
 }

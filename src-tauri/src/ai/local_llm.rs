@@ -17,12 +17,14 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 /// GGUF filename in `<app_data>/models/` (same dir as the whisper models).
-pub const CLEANUP_MODEL_NAME: &str = "gemma-3-270m-it-Q4_K_M.gguf";
+/// Gemma 3 1B: the 270M variant was measured too weak (barely cleaned EN,
+/// translated PT); 1B cleans well at ~120-140 ms warm on the RTX 3080.
+pub const CLEANUP_MODEL_NAME: &str = "gemma-3-1b-it-Q4_K_M.gguf";
 /// Approximate download size, for the settings UI.
-pub const CLEANUP_MODEL_SIZE_MB: u32 = 253;
+pub const CLEANUP_MODEL_SIZE_MB: u32 = 769;
 
 pub fn cleanup_model_url() -> String {
-    format!("https://huggingface.co/unsloth/gemma-3-270m-it-GGUF/resolve/main/{CLEANUP_MODEL_NAME}")
+    format!("https://huggingface.co/unsloth/gemma-3-1b-it-GGUF/resolve/main/{CLEANUP_MODEL_NAME}")
 }
 
 static BACKEND: OnceLock<LlamaBackend> = OnceLock::new();
@@ -183,21 +185,19 @@ mod tests {
             .join(file);
         assert!(model_path.exists(), "cleanup model not downloaded at {model_path:?}");
 
-        let system = "You are a dictation cleanup tool. Fix punctuation, capitalization, and \
-             spacing, and remove filler words (um, uh, like, you know). Keep the \
-             speaker's wording and meaning; do not add or summarize. Use a neutral \
-             tone. Output ONLY the cleaned text, with no preamble, quotes, or notes.";
-
+        // Same system prompt the pipeline builds, incl. the language pin that
+        // stops small models from translating instead of cleaning.
         let cases = [
-            "um so basically i think we should uh move the meeting to thursday because like the client isnt available on wednesday",
-            "ok testing one two three this is a short dictation latency benchmark",
-            "então tipo eu acho que a gente devia mudar a reunião pra quinta porque o cliente não tá disponível na quarta",
+            ("um so basically i think we should uh move the meeting to thursday because like the client isnt available on wednesday", "en"),
+            ("ok testing one two three this is a short dictation latency benchmark", "en"),
+            ("então tipo eu acho que a gente devia mudar a reunião pra quinta porque o cliente não tá disponível na quarta", "pt"),
         ];
-        for (i, text) in cases.iter().enumerate() {
+        for (i, (text, lang)) in cases.iter().enumerate() {
+            let system = crate::ai::system_prompt("neutral", Some(lang));
             let t = std::time::Instant::now();
-            let out = cleanup_local(text, system, &model_path).expect("cleanup failed");
+            let out = cleanup_local(text, &system, &model_path).expect("cleanup failed");
             println!(
-                "case {i}: {} ms\n  in:  {text}\n  out: {out}\n",
+                "case {i} ({lang}): {} ms\n  in:  {text}\n  out: {out}\n",
                 t.elapsed().as_millis()
             );
         }

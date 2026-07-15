@@ -28,11 +28,17 @@ impl LocalWhisper {
         Ok(Self { ctx, state })
     }
 
-    /// Transcribe 16kHz mono f32 samples. Returns trimmed transcript string.
+    /// Transcribe 16kHz mono f32 samples. Returns the trimmed transcript and
+    /// the language whisper used (detected or forced) as an ISO code — the
+    /// cleanup LLM needs it to avoid translating instead of cleaning.
     ///
     /// `opts.language` of `None` lets whisper auto-detect (requires a
     /// multilingual model). `opts.initial_prompt` biases toward custom words.
-    pub fn transcribe(&mut self, samples: &[f32], opts: &TranscribeOptions) -> Result<String> {
+    pub fn transcribe(
+        &mut self,
+        samples: &[f32],
+        opts: &TranscribeOptions,
+    ) -> Result<(String, Option<String>)> {
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
         let n_threads = std::thread::available_parallelism()
             .map(|n| n.get().min(8))
@@ -83,7 +89,10 @@ impl LocalWhisper {
             .trim()
             .to_string();
 
-        Ok(text)
+        let language = whisper_rs::get_lang_str(self.state.full_lang_id_from_state())
+            .map(|s| s.to_string());
+
+        Ok((text, language))
     }
 }
 
@@ -156,7 +165,7 @@ mod tests {
                     let mut text = String::new();
                     for _ in 0..3 {
                         let t = std::time::Instant::now();
-                        text = engine.transcribe(&samples, &opts).expect("transcribe failed");
+                        text = engine.transcribe(&samples, &opts).expect("transcribe failed").0;
                         times.push(t.elapsed().as_millis());
                     }
                     let best = *times.iter().min().unwrap();
@@ -200,7 +209,7 @@ mod tests {
         }
 
         let samples = load_wav_as_f32(&wav_path).expect("failed to load wav");
-        let result = engine
+        let (result, _lang) = engine
             .transcribe(&samples, &TranscribeOptions::default())
             .expect("transcription failed");
         println!("Transcript: {result:?}");

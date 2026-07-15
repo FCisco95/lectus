@@ -511,12 +511,15 @@ async fn do_pipeline(
         }
     }
     let worker = app_handle.state::<worker::TranscribeWorker>().inner().clone();
-    let mut transcript = tokio::task::spawn_blocking(move || {
+    let (mut transcript, detected_language) = tokio::task::spawn_blocking(move || {
         worker.run(move || {
             if use_cloud {
                 let guard = cloud.lock().unwrap();
                 match guard.as_ref() {
-                    Some(engine) => engine.transcribe(&accumulated, &opts).map_err(|e| e.to_string()),
+                    Some(engine) => engine
+                        .transcribe(&accumulated, &opts)
+                        .map(|text| (text, None))
+                        .map_err(|e| e.to_string()),
                     None => Err("Cloud backend not configured — set an API key in Settings".to_string()),
                 }
             } else {
@@ -546,8 +549,9 @@ async fn do_pipeline(
         let to_clean = transcript.clone();
         let cfg_for_cleanup = cfg.clone();
         let llm_path = transcription::model::model_path(&app_handle, ai::local_llm::CLEANUP_MODEL_NAME).ok();
+        let lang_for_cleanup = detected_language.clone();
         let cleaned = tokio::task::spawn_blocking(move || {
-            ai::cleanup(&to_clean, &cfg_for_cleanup, llm_path.as_deref())
+            ai::cleanup(&to_clean, &cfg_for_cleanup, llm_path.as_deref(), lang_for_cleanup.as_deref())
         })
         .await
         .map_err(|e| e.to_string())?;
@@ -566,10 +570,11 @@ async fn do_pipeline(
         log::info!("pipeline: injection took {} ms", t_inject.elapsed().as_millis());
 
         if let Ok(dir) = app_handle.path().app_data_dir() {
-            let language = match cfg.language.trim() {
+            // Prefer whisper's detected language; fall back to a forced config value.
+            let language = detected_language.clone().or_else(|| match cfg.language.trim() {
                 "" | "auto" => None,
                 l => Some(l.to_string()),
-            };
+            });
             let entry = history::HistoryEntry {
                 text: transcript.clone(),
                 timestamp: now_millis(),
