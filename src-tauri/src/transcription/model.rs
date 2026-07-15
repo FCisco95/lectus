@@ -41,6 +41,20 @@ pub const AVAILABLE_MODELS: &[ModelInfo] = &[
         multilingual: true,
         description: "Higher accuracy, slower. Recommended if you have a GPU (Vulkan/CUDA) or can wait 5–10 s.",
     },
+    ModelInfo {
+        name: "ggml-medium.bin",
+        display_name: "Medium",
+        size_mb: 1530,
+        multilingual: true,
+        description: "High accuracy for non-English languages. GPU strongly recommended.",
+    },
+    ModelInfo {
+        name: "ggml-large-v3-turbo.bin",
+        display_name: "Large v3 Turbo",
+        size_mb: 1620,
+        multilingual: true,
+        description: "Best multilingual accuracy (recommended for Portuguese) with near-realtime speed on a GPU.",
+    },
 ];
 
 fn model_url(model_name: &str) -> String {
@@ -95,7 +109,7 @@ pub fn ensure_model(app: &AppHandle, model_name: &str) -> Result<PathBuf> {
 fn download_with_progress(app: &AppHandle, url: &str, dest: &Path) -> Result<()> {
     let client = reqwest::blocking::Client::builder()
         .connect_timeout(std::time::Duration::from_secs(10))
-        .timeout(std::time::Duration::from_secs(900))
+        .timeout(std::time::Duration::from_secs(3600))
         .build()?;
     let mut resp = client.get(url).send()?;
     if !resp.status().is_success() {
