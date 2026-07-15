@@ -25,6 +25,7 @@ export interface Config {
   ai_cleanup_tone: string;
   input_device: string;
   injection_mode: string;
+  vad_enabled: boolean;
 }
 
 export interface PanelProps {

@@ -49,6 +49,9 @@ pub struct Config {
     /// fallback), "sendinput" (typed keystrokes — works in terminals/CLIs),
     /// or "clipboard" (paste — fastest for very long texts).
     pub injection_mode: String,
+    /// Gate audio through Silero neural VAD before the whisper encoder:
+    /// trims silence/noise and suppresses the hallucinations they cause.
+    pub vad_enabled: bool,
 }
 
 /// A single exact find/replace rule applied to the transcript post-recognition.
@@ -84,6 +87,7 @@ impl Default for Config {
             ai_cleanup_tone: "neutral".into(),
             input_device: String::new(),
             injection_mode: "auto".into(),
+            vad_enabled: true,
         }
     }
 }

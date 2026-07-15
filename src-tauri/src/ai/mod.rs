@@ -10,9 +10,11 @@
 //!
 //! Cleanup is best-effort: any failure returns the original text via the caller.
 
+pub mod local_llm;
+
 use crate::config::Config;
 use anyhow::{anyhow, Result};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
@@ -22,13 +24,19 @@ const CLAUDE_TIMEOUT: Duration = Duration::from_secs(20);
 const GROQ_CLEANUP_MODEL: &str = "llama-3.3-70b-versatile";
 
 /// Clean up `text` using the engine selected in `cfg`. On any error the caller
-/// falls back to the original transcript.
-pub fn cleanup(text: &str, cfg: &Config) -> Result<String> {
+/// falls back to the original transcript. `local_model_path` locates the GGUF
+/// for the fully-offline "local" engine (None disables that engine).
+pub fn cleanup(text: &str, cfg: &Config, local_model_path: Option<&Path>) -> Result<String> {
     if text.trim().is_empty() {
         return Ok(text.to_string());
     }
     match cfg.ai_cleanup_engine.as_str() {
         "groq" => cleanup_groq(text, cfg),
+        "local" => {
+            let path = local_model_path
+                .ok_or_else(|| anyhow!("local cleanup model path not available"))?;
+            local_llm::cleanup_local(text, &system_prompt(&cfg.ai_cleanup_tone), path)
+        }
         // Default to the Claude CLI path.
         _ => cleanup_claude(text, &cfg.ai_cleanup_tone),
     }
@@ -184,6 +192,6 @@ mod tests {
     #[test]
     fn cleanup_passthrough_on_empty() {
         let cfg = Config::default();
-        assert_eq!(cleanup("   ", &cfg).unwrap(), "   ");
+        assert_eq!(cleanup("   ", &cfg, None).unwrap(), "   ");
     }
 }

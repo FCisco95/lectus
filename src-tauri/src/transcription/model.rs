@@ -57,6 +57,14 @@ pub const AVAILABLE_MODELS: &[ModelInfo] = &[
     },
 ];
 
+/// Silero neural VAD model (whisper.cpp built-in VAD support). Tiny (~0.9 MB),
+/// auto-downloaded at startup.
+pub const VAD_MODEL_NAME: &str = "ggml-silero-v5.1.2.bin";
+
+pub fn vad_model_url() -> String {
+    format!("https://huggingface.co/ggml-org/whisper-vad/resolve/main/{VAD_MODEL_NAME}")
+}
+
 fn model_url(model_name: &str) -> String {
     format!(
         "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/{model_name}"
@@ -75,10 +83,12 @@ pub fn model_path(app: &AppHandle, model_name: &str) -> Result<PathBuf> {
     Ok(models_dir(app)?.join(model_name))
 }
 
-/// True if the model file is already present and plausibly complete (> 1 MB).
+/// True if the model file is already present and plausibly complete (> 100 KB —
+/// the smallest real model, Silero VAD, is ~0.9 MB; a truncated/HTML error
+/// response is far under this).
 pub fn is_downloaded(app: &AppHandle, model_name: &str) -> bool {
     match model_path(app, model_name) {
-        Ok(p) => p.exists() && std::fs::metadata(&p).map(|m| m.len() > 1_000_000).unwrap_or(false),
+        Ok(p) => p.exists() && std::fs::metadata(&p).map(|m| m.len() > 100_000).unwrap_or(false),
         Err(_) => false,
     }
 }
@@ -96,6 +106,25 @@ pub fn ensure_model(app: &AppHandle, model_name: &str) -> Result<PathBuf> {
     match download_with_progress(app, &url, &dest) {
         Ok(()) => {
             let _ = app.emit("model-ready", model_name.to_string());
+            Ok(dest)
+        }
+        Err(e) => {
+            let _ = app.emit("model-download-failed", e.to_string());
+            Err(e)
+        }
+    }
+}
+
+/// Ensure an arbitrary model file (e.g. the cleanup LLM GGUF) is present in the
+/// models dir, downloading from `url` if needed. Same events as `ensure_model`.
+pub fn ensure_file_from_url(app: &AppHandle, url: &str, file_name: &str) -> Result<PathBuf> {
+    let dest = model_path(app, file_name)?;
+    if is_downloaded(app, file_name) {
+        return Ok(dest);
+    }
+    match download_with_progress(app, url, &dest) {
+        Ok(()) => {
+            let _ = app.emit("model-ready", file_name.to_string());
             Ok(dest)
         }
         Err(e) => {

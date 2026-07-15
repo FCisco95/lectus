@@ -43,6 +43,14 @@ hound = "3.5"
 # vulkan: GPU inference via ggml Vulkan backend — build needs the LunarG Vulkan
 # SDK (VULKAN_SDK env var); runtime only needs vulkan-1.dll, shipped with GPU drivers.
 whisper-rs = { version = "0.16", features = ["openmp", "vulkan"] }
+# In-process cleanup LLM (Gemma 3 270M GGUF). Vulkan-offloaded like whisper;
+# the model is tiny (~253 MB Q4_K_M) so it co-resides with the ASR model.
+# MUST stay dynamic-link: whisper-rs links ggml statically, and a second static
+# ggml in llama-cpp-sys-2 collides at link time (LNK2005 ggml_* duplicate
+# symbols). Dynamic keeps llama's ggml inside its own DLLs; backends
+# (ggml-vulkan.dll etc.) load at runtime via llama_cpp_2::load_backends().
+llama-cpp-2 = { version = "0.1", features = ["vulkan", "dynamic-link", "dynamic-backends"] }
+encoding_rs = "0.8"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.26"

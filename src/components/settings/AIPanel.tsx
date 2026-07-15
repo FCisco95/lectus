@@ -4,13 +4,36 @@ import type { PanelProps } from './types';
 
 const TONES = ['neutral', 'formal', 'casual', 'concise'];
 
+interface CleanupModelStatus {
+  downloaded: boolean;
+  size_mb: number;
+}
+
 export function AIPanel({ config, update }: PanelProps) {
   const [claudeAvailable, setClaudeAvailable] = useState<boolean | null>(null);
+  const [localModel, setLocalModel] = useState<CleanupModelStatus | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const engine = config.ai_cleanup_engine || 'claude';
 
   useEffect(() => {
     invoke<boolean>('check_claude_cli').then(setClaudeAvailable).catch(() => setClaudeAvailable(false));
+    invoke<CleanupModelStatus>('get_cleanup_model_status').then(setLocalModel).catch(() => setLocalModel(null));
   }, []);
+
+  const downloadLocalModel = async () => {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      await invoke('download_cleanup_model');
+      const status = await invoke<CleanupModelStatus>('get_cleanup_model_status');
+      setLocalModel(status);
+    } catch (e) {
+      setDownloadError(String(e));
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div>
@@ -34,6 +57,23 @@ export function AIPanel({ config, update }: PanelProps) {
           <div className="field">
             <label className="field-label">Engine</label>
             <div className="radio-group">
+              <label className={`radio-card${engine === 'local' ? ' selected' : ''}`}>
+                <input
+                  type="radio"
+                  name="ai_engine"
+                  checked={engine === 'local'}
+                  onChange={() => update({ ai_cleanup_engine: 'local' })}
+                />
+                <span>
+                  <div className="radio-title">
+                    Local (offline){' '}
+                    {localModel?.downloaded && <span className="badge ok">ready</span>}
+                  </div>
+                  <div className="radio-desc">
+                    Gemma 3 on your GPU. Free, private, no internet — the fully local pipeline.
+                  </div>
+                </span>
+              </label>
               <label className={`radio-card${engine === 'claude' ? ' selected' : ''}`}>
                 <input
                   type="radio"
@@ -63,6 +103,15 @@ export function AIPanel({ config, update }: PanelProps) {
                 </span>
               </label>
             </div>
+            {engine === 'local' && localModel && !localModel.downloaded && (
+              <div className="field-hint">
+                Needs a one-time model download ({localModel.size_mb} MB).{' '}
+                <button className="btn" onClick={downloadLocalModel} disabled={downloading}>
+                  {downloading ? 'Downloading…' : 'Download model'}
+                </button>
+                {downloadError && <span className="badge warn">{downloadError}</span>}
+              </div>
+            )}
             {engine === 'claude' && claudeAvailable === false && (
               <div className="field-hint">
                 Claude CLI not found on PATH. Install Claude Code, or switch to Groq. If unavailable,

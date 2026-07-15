@@ -49,6 +49,18 @@ export function GeneralPanel({ config, update }: PanelProps) {
       <label className="checkbox-row">
         <input
           type="checkbox"
+          checked={config.vad_enabled}
+          onChange={(e) => update({ vad_enabled: e.target.checked })}
+        />
+        <span className="checkbox-text">
+          Voice activity detection
+          <small>Neural VAD trims silence and background noise before recognition — fewer “ghost words” from quiet moments. Recommended on.</small>
+        </span>
+      </label>
+
+      <label className="checkbox-row">
+        <input
+          type="checkbox"
           checked={config.use_cloud}
           onChange={(e) => update({ use_cloud: e.target.checked })}
         />

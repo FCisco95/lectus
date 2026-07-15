@@ -287,6 +287,38 @@ fn list_input_devices() -> Vec<String> {
     audio::list_input_devices()
 }
 
+/// Status of the local cleanup LLM, for the AI settings panel.
+#[derive(serde::Serialize)]
+struct CleanupModelStatus {
+    downloaded: bool,
+    size_mb: u32,
+}
+
+#[tauri::command]
+fn get_cleanup_model_status(app_handle: tauri::AppHandle) -> CleanupModelStatus {
+    CleanupModelStatus {
+        downloaded: transcription::model::is_downloaded(&app_handle, ai::local_llm::CLEANUP_MODEL_NAME),
+        size_mb: ai::local_llm::CLEANUP_MODEL_SIZE_MB,
+    }
+}
+
+/// Download the local cleanup LLM (progress via `model-download-progress`),
+/// then load it resident so the first dictation doesn't pay the load cost.
+#[tauri::command]
+async fn download_cleanup_model(app_handle: tauri::AppHandle) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        let path = transcription::model::ensure_file_from_url(
+            &app_handle,
+            &ai::local_llm::cleanup_model_url(),
+            ai::local_llm::CLEANUP_MODEL_NAME,
+        )
+        .map_err(|e| e.to_string())?;
+        ai::local_llm::warmup(&path).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Run a short silent inference on the whisper worker so the GPU backend
 /// compiles its pipelines up front instead of on the first real dictation
 /// (~8 s of Vulkan shader compilation on first `whisper_full`).
@@ -470,7 +502,14 @@ async fn do_pipeline(
     let t_transcribe = std::time::Instant::now();
     do_set_state("transcribing", app_state, app_handle)?;
     let bias = transcription::dictionary::bias_prompt(&cfg.dictionary_words);
-    let opts = transcription::TranscribeOptions::from_config(&cfg.language, bias);
+    let mut opts = transcription::TranscribeOptions::from_config(&cfg.language, bias);
+    if cfg.vad_enabled && !use_cloud {
+        if let Ok(p) = transcription::model::model_path(&app_handle, transcription::model::VAD_MODEL_NAME) {
+            if p.exists() {
+                opts.vad_model_path = p.to_str().map(String::from);
+            }
+        }
+    }
     let worker = app_handle.state::<worker::TranscribeWorker>().inner().clone();
     let mut transcript = tokio::task::spawn_blocking(move || {
         worker.run(move || {
@@ -506,8 +545,9 @@ async fn do_pipeline(
         let t_cleanup = std::time::Instant::now();
         let to_clean = transcript.clone();
         let cfg_for_cleanup = cfg.clone();
+        let llm_path = transcription::model::model_path(&app_handle, ai::local_llm::CLEANUP_MODEL_NAME).ok();
         let cleaned = tokio::task::spawn_blocking(move || {
-            ai::cleanup(&to_clean, &cfg_for_cleanup)
+            ai::cleanup(&to_clean, &cfg_for_cleanup, llm_path.as_deref())
         })
         .await
         .map_err(|e| e.to_string())?;
@@ -636,6 +676,8 @@ pub fn run() {
             get_models_status,
             download_model,
             select_model,
+            get_cleanup_model_status,
+            download_cleanup_model,
         ])
         .setup(|app| {
             let settings_item =
@@ -742,6 +784,42 @@ pub fn run() {
                                 Err(e) => eprintln!("warning: failed to load downloaded model: {e}"),
                             },
                             Err(e) => eprintln!("warning: multilingual model not available: {e}"),
+                        }
+                    });
+                }
+            }
+
+            // Fetch the tiny Silero VAD model in background (one-time, ~0.9 MB).
+            {
+                let bg = app.handle().clone();
+                if !transcription::model::is_downloaded(app.handle(), transcription::model::VAD_MODEL_NAME) {
+                    std::thread::spawn(move || {
+                        if let Err(e) = transcription::model::ensure_file_from_url(
+                            &bg,
+                            &transcription::model::vad_model_url(),
+                            transcription::model::VAD_MODEL_NAME,
+                        ) {
+                            log::warn!("VAD model download failed (VAD stays off): {e}");
+                        }
+                    });
+                }
+            }
+
+            // Warm the local cleanup LLM so the first dictation doesn't pay
+            // the model-load cost. Only when it's the selected engine.
+            {
+                let cfg = app.state::<AppState>().config.lock().unwrap().clone();
+                if cfg.ai_cleanup_enabled && cfg.ai_cleanup_engine == "local" {
+                    let bg = app.handle().clone();
+                    std::thread::spawn(move || {
+                        if let Ok(path) =
+                            transcription::model::model_path(&bg, ai::local_llm::CLEANUP_MODEL_NAME)
+                        {
+                            if path.exists() {
+                                if let Err(e) = ai::local_llm::warmup(&path) {
+                                    log::warn!("cleanup LLM warmup failed: {e}");
+                                }
+                            }
                         }
                     });
                 }

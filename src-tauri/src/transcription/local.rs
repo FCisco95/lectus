@@ -59,6 +59,19 @@ impl LocalWhisper {
         params.set_suppress_blank(true);
         params.set_suppress_nst(true);
 
+        // Silero neural VAD (whisper.cpp built-in): gate frames before the
+        // encoder. Trims leading/trailing silence (incl. the pre-roll ring)
+        // and starves silence-triggered hallucinations.
+        if let Some(vad_path) = opts.vad_model_path.as_deref() {
+            params.set_vad_model_path(Some(vad_path));
+            let mut vad = whisper_rs::WhisperVadParams::new();
+            vad.set_threshold(0.6);
+            vad.set_min_speech_duration(250); // ms — ignore blips
+            vad.set_min_silence_duration(200); // ms — split point
+            params.set_vad_params(vad);
+            params.enable_vad(true);
+        }
+
         self.state.full(params, samples)?;
 
         let n = self.state.full_n_segments();
@@ -118,30 +131,44 @@ mod tests {
             let mut engine = LocalWhisper::new(&model_path).expect("model load failed");
             println!("\n{model}: load {} ms", t_load.elapsed().as_millis());
 
+            // Second pass with Silero VAD when the model is present (A6).
+            let vad_path = model_dir.join("ggml-silero-v5.1.2.bin");
+            let vad_variants: Vec<Option<String>> = if vad_path.exists() {
+                vec![None, vad_path.to_str().map(String::from)]
+            } else {
+                vec![None]
+            };
+
             for clip in clips {
                 let wav = sample_dir.join(clip);
                 let samples = load_wav_as_f32(&wav).expect("wav load failed");
                 let audio_secs = samples.len() as f32 / 16000.0;
 
-                // Warmup run — mirrors the app's GPU warmup at engine load.
-                let opts = TranscribeOptions::default();
-                let _ = engine.transcribe(&samples, &opts).expect("warmup failed");
+                for vad in &vad_variants {
+                    let opts = TranscribeOptions {
+                        vad_model_path: vad.clone(),
+                        ..Default::default()
+                    };
+                    // Warmup run — mirrors the app's GPU warmup at engine load.
+                    let _ = engine.transcribe(&samples, &opts).expect("warmup failed");
 
-                let mut times = Vec::new();
-                let mut text = String::new();
-                for _ in 0..3 {
-                    let t = std::time::Instant::now();
-                    text = engine.transcribe(&samples, &opts).expect("transcribe failed");
-                    times.push(t.elapsed().as_millis());
+                    let mut times = Vec::new();
+                    let mut text = String::new();
+                    for _ in 0..3 {
+                        let t = std::time::Instant::now();
+                        text = engine.transcribe(&samples, &opts).expect("transcribe failed");
+                        times.push(t.elapsed().as_millis());
+                    }
+                    let best = *times.iter().min().unwrap();
+                    println!(
+                        "  {clip} ({audio_secs:.1}s audio, vad={}): runs {:?} ms | best {} ms | RTF {:.3} | \"{}\"",
+                        vad.is_some(),
+                        times,
+                        best,
+                        best as f32 / 1000.0 / audio_secs,
+                        text.chars().take(60).collect::<String>()
+                    );
                 }
-                let best = *times.iter().min().unwrap();
-                println!(
-                    "  {clip} ({audio_secs:.1}s audio): runs {:?} ms | best {} ms | RTF {:.3} | \"{}\"",
-                    times,
-                    best,
-                    best as f32 / 1000.0 / audio_secs,
-                    text.chars().take(60).collect::<String>()
-                );
             }
         }
         println!("\n=== end bench ===\n");

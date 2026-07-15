@@ -15,6 +15,10 @@ pub struct TranscribeOptions {
     /// Optional context/vocabulary bias — fed to whisper as `initial_prompt`
     /// locally and as the `prompt` field for the cloud API.
     pub initial_prompt: Option<String>,
+    /// Path to a Silero VAD ggml model. When set, whisper.cpp gates frames
+    /// through neural VAD before the encoder — trims silence/noise and
+    /// suppresses the hallucinations they trigger. `None` = VAD off.
+    pub vad_model_path: Option<String>,
 }
 
 impl TranscribeOptions {
@@ -26,7 +30,7 @@ impl TranscribeOptions {
             other => Some(other.to_string()),
         };
         let initial_prompt = initial_prompt.filter(|p| !p.trim().is_empty());
-        Self { language, initial_prompt }
+        Self { language, initial_prompt, vad_model_path: None }
     }
 }
 
