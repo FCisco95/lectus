@@ -43,6 +43,8 @@ pub struct Config {
     pub ai_cleanup_engine: String,
     /// Desired tone for the cleanup pass: "neutral", "formal", "casual", …
     pub ai_cleanup_tone: String,
+    /// Input device name for recording; empty string = system default.
+    pub input_device: String,
 }
 
 /// A single exact find/replace rule applied to the transcript post-recognition.
@@ -76,6 +78,7 @@ impl Default for Config {
             ai_cleanup_enabled: false,
             ai_cleanup_engine: "claude".into(),
             ai_cleanup_tone: "neutral".into(),
+            input_device: String::new(),
         }
     }
 }

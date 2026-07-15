@@ -12,13 +12,37 @@ pub struct AudioCapture {
     _stream: cpal::Stream,
 }
 
+/// Names of all available input devices, for the settings mic picker.
+pub fn list_input_devices() -> Vec<String> {
+    let host = cpal::default_host();
+    host.input_devices()
+        .map(|devices| devices.filter_map(|d| d.name().ok()).collect())
+        .unwrap_or_default()
+}
+
 impl AudioCapture {
     /// Start capturing mic audio. Resamples to 16kHz mono f32 for Whisper compatibility.
-    pub fn start() -> Result<Self> {
+    /// `device_name` of `None`/empty selects the system default input; an unknown
+    /// name falls back to the default with a warning (device may be unplugged).
+    pub fn start(device_name: Option<&str>) -> Result<Self> {
         let host = cpal::default_host();
-        let device = host
-            .default_input_device()
-            .ok_or_else(|| anyhow::anyhow!("no input device found"))?;
+        let device = match device_name.filter(|n| !n.is_empty()) {
+            Some(wanted) => match host
+                .input_devices()?
+                .find(|d| d.name().map(|n| n == wanted).unwrap_or(false))
+            {
+                Some(d) => d,
+                None => {
+                    log::warn!("input device {wanted:?} not found; using system default");
+                    host.default_input_device()
+                        .ok_or_else(|| anyhow::anyhow!("no input device found"))?
+                }
+            },
+            None => host
+                .default_input_device()
+                .ok_or_else(|| anyhow::anyhow!("no input device found"))?,
+        };
+        log::info!("recording from input device: {:?}", device.name().unwrap_or_default());
 
         let supported = device.default_input_config()?;
         let native_rate = supported.sample_rate().0;

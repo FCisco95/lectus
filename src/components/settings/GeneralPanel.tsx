@@ -1,10 +1,33 @@
+import { useEffect, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import type { PanelProps } from './types';
 
 export function GeneralPanel({ config, update }: PanelProps) {
+  const [devices, setDevices] = useState<string[]>([]);
+
+  useEffect(() => {
+    invoke<string[]>('list_input_devices').then(setDevices).catch(() => setDevices([]));
+  }, []);
+
   return (
     <div>
       <h2 className="settings-panel-title">General</h2>
-      <p className="settings-panel-sub">Choose where transcription runs.</p>
+      <p className="settings-panel-sub">Microphone and where transcription runs.</p>
+
+      <div className="field">
+        <label className="field-label">Microphone</label>
+        <select
+          className="input"
+          value={config.input_device}
+          onChange={(e) => update({ input_device: e.target.value })}
+        >
+          <option value="">System default</option>
+          {devices.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+        <div className="field-hint">Which input device Lectus records from.</div>
+      </div>
 
       <label className="checkbox-row">
         <input

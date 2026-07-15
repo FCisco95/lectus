@@ -254,6 +254,32 @@ fn save_config(
     Ok(())
 }
 
+/// Names of the available recording devices for the settings mic picker.
+#[tauri::command]
+fn list_input_devices() -> Vec<String> {
+    audio::list_input_devices()
+}
+
+/// Run a short silent inference on the whisper worker so the GPU backend
+/// compiles its pipelines up front instead of on the first real dictation
+/// (~8 s of Vulkan shader compilation on first `whisper_full`).
+fn warmup_engine(app: &tauri::AppHandle) {
+    let local = app.state::<WhisperState>().local.clone();
+    let worker = app.state::<worker::TranscribeWorker>().inner().clone();
+    std::thread::spawn(move || {
+        worker.run(move || {
+            let mut guard = local.lock().unwrap();
+            if let Some(engine) = guard.as_mut() {
+                let silence = vec![0.0_f32; 16_000];
+                let opts = transcription::TranscribeOptions::from_config("en", None);
+                let t = std::time::Instant::now();
+                let _ = engine.transcribe(&silence, &opts);
+                log::info!("whisper warmup finished in {} ms", t.elapsed().as_millis());
+            }
+        });
+    });
+}
+
 /// Return the download/active status of every known model.
 #[tauri::command]
 fn get_models_status(
@@ -329,6 +355,7 @@ fn select_model(
                     let cfg = app_state.config.lock().unwrap().clone();
                     let _ = cfg.save_to(&cfg_dir.join("config.json"));
                 }
+                warmup_engine(&app);
                 let _ = app.emit("model-active", name_clone);
             }
             Err(e) => {
@@ -364,9 +391,10 @@ async fn do_pipeline(
     let active = recording_active.clone();
     let level_app = app_handle.clone();
     let max_secs = safety_cap_secs(&cfg.trigger_mode);
+    let input_device = cfg.input_device.clone();
     let accumulated = tokio::task::spawn_blocking(move || {
         use audio::AudioCapture;
-        let capture = AudioCapture::start().map_err(|e| e.to_string())?;
+        let capture = AudioCapture::start(Some(&input_device)).map_err(|e| e.to_string())?;
         let mut accumulated: Vec<f32> = Vec::new();
         let start = std::time::Instant::now();
         loop {
@@ -539,6 +567,7 @@ pub fn run() {
             hook: Mutex::new(None),
         })
         .invoke_handler(tauri::generate_handler![
+            list_input_devices,
             set_recording_state,
             toggle_recording,
             run_pipeline,
@@ -626,6 +655,7 @@ pub fn run() {
             match transcription::local::LocalWhisper::new(&model_path) {
                 Ok(engine) => {
                     *app.state::<WhisperState>().local.lock().unwrap() = Some(engine);
+                    warmup_engine(&app.handle().clone());
                 }
                 Err(e) => {
                     eprintln!("warning: could not load whisper model at {model_path:?}: {e}");
@@ -645,6 +675,7 @@ pub fn run() {
                                 Ok(engine) => {
                                     *bg.state::<WhisperState>().local.lock().unwrap() = Some(engine);
                                     bg.state::<AppState>().config.lock().unwrap().model_path = path;
+                                    warmup_engine(&bg);
                                     eprintln!("multilingual model loaded; language auto-detect active");
                                 }
                                 Err(e) => eprintln!("warning: failed to load downloaded model: {e}"),
