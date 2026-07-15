@@ -17,7 +17,9 @@ pub struct LocalWhisper {
 
 impl LocalWhisper {
     pub fn new(model_path: &Path) -> Result<Self> {
-        let params = WhisperContextParameters::default();
+        let mut params = WhisperContextParameters::default();
+        // Vulkan GPU inference; whisper.cpp falls back to CPU when no device is found.
+        params.use_gpu(true);
         let ctx = WhisperContext::new_with_params(
             model_path.to_str().ok_or_else(|| anyhow::anyhow!("invalid model path"))?,
             params,

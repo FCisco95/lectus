@@ -23,6 +23,7 @@ const BAR_COLORS = [
 
 const BAR_COUNT = BAR_COLORS.length;
 
+// Floating dictation indicator: idle orb, rainbow audio-level bars while recording, spinner while transcribing.
 export function Pill({ state }: PillProps) {
   // Latest mic RMS, written by the event listener, read by the rAF loop.
   // A ref (not state) keeps ~31 emits/sec from triggering React re-renders.

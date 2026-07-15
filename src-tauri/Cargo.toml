@@ -33,7 +33,9 @@ anyhow = "1"
 log = "0.4"
 env_logger = "0.11"
 hound = "3.5"
-whisper-rs = { version = "0.16", features = ["openmp"] }
+# vulkan: GPU inference via ggml Vulkan backend — build needs the LunarG Vulkan
+# SDK (VULKAN_SDK env var); runtime only needs vulkan-1.dll, shipped with GPU drivers.
+whisper-rs = { version = "0.16", features = ["openmp", "vulkan"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.26"
