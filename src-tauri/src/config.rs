@@ -45,6 +45,10 @@ pub struct Config {
     pub ai_cleanup_tone: String,
     /// Input device name for recording; empty string = system default.
     pub input_device: String,
+    /// How text lands in the focused field: "auto" (SendInput with clipboard
+    /// fallback), "sendinput" (typed keystrokes — works in terminals/CLIs),
+    /// or "clipboard" (paste — fastest for very long texts).
+    pub injection_mode: String,
 }
 
 /// A single exact find/replace rule applied to the transcript post-recognition.
@@ -79,6 +83,7 @@ impl Default for Config {
             ai_cleanup_engine: "claude".into(),
             ai_cleanup_tone: "neutral".into(),
             input_device: String::new(),
+            injection_mode: "auto".into(),
         }
     }
 }

@@ -29,6 +29,23 @@ export function GeneralPanel({ config, update }: PanelProps) {
         <div className="field-hint">Which input device Lectus records from.</div>
       </div>
 
+      <div className="field">
+        <label className="field-label">Text insertion</label>
+        <select
+          className="input"
+          value={config.injection_mode}
+          onChange={(e) => update({ injection_mode: e.target.value })}
+        >
+          <option value="auto">Auto (recommended)</option>
+          <option value="sendinput">Typed keystrokes</option>
+          <option value="clipboard">Clipboard paste</option>
+        </select>
+        <div className="field-hint">
+          Auto types the text natively (works in terminals, never touches your clipboard)
+          and falls back to paste if blocked. Clipboard paste is fastest for very long dictations.
+        </div>
+      </div>
+
       <label className="checkbox-row">
         <input
           type="checkbox"

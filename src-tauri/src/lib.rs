@@ -65,6 +65,23 @@ struct Activation {
     hook: Mutex<Option<hook::PlatformHook>>,
 }
 
+/// Always-on capture stream feeding the 500 ms pre-roll ring. `None` when the
+/// mic could not be opened at startup — the pipeline then falls back to a
+/// per-dictation stream (no pre-roll, first word may clip).
+struct PreRoll(Mutex<Option<audio::PersistentCapture>>);
+
+/// (Re)open the persistent pre-roll stream on the configured device, replacing
+/// any existing one. Failure leaves the fallback path in place.
+fn restart_preroll(app: &tauri::AppHandle, device: &str) {
+    let preroll = app.state::<PreRoll>();
+    let mut guard = preroll.0.lock().unwrap();
+    *guard = None; // drop the old stream before opening the device again
+    match audio::PersistentCapture::start(Some(device)) {
+        Ok(cap) => *guard = Some(cap),
+        Err(e) => log::warn!("pre-roll capture unavailable, falling back to per-dictation stream: {e}"),
+    }
+}
+
 /// Cached transcription engines. Loaded once at startup to avoid per-call setup cost.
 struct WhisperState {
     local: Arc<Mutex<Option<transcription::local::LocalWhisper>>>,
@@ -230,14 +247,25 @@ fn save_config(
         &new_config.cloud_api_key,
     ));
 
-    {
+    let device_changed = {
         let mut guard = app_state.config.lock().unwrap();
+        let changed = guard.input_device != new_config.input_device;
         let resolved_model = guard.model_path.clone();
         let (px, py) = (guard.pill_x, guard.pill_y);
         *guard = new_config;
         guard.model_path = resolved_model;
         guard.pill_x = px;
         guard.pill_y = py;
+        changed
+    };
+
+    // Move the always-on pre-roll stream to the new mic. Done off-thread: the
+    // pipeline holds the PreRoll lock for the whole dictation, and save fires
+    // from the UI (auto-save) — blocking here would freeze settings.
+    if device_changed {
+        let handle = app_handle.clone();
+        let device = app_state.config.lock().unwrap().input_device.clone();
+        std::thread::spawn(move || restart_preroll(&handle, &device));
     }
 
     {
@@ -386,19 +414,39 @@ async fn do_pipeline(
     }
     do_set_state("recording", app_state, app_handle)?;
 
-    // 2. Capture audio.
+    // 2. Capture audio. Preferred path: the always-on stream, which contributes
+    // up to 500 ms of pre-roll from before the hotkey landed. Fallback: open a
+    // per-dictation stream (no pre-roll) if the persistent one is unavailable.
     let active = recording_active.clone();
     let level_app = app_handle.clone();
     let max_secs = safety_cap_secs(&cfg.trigger_mode);
     let input_device = cfg.input_device.clone();
     let accumulated = tokio::task::spawn_blocking(move || {
         use audio::AudioCapture;
-        let capture = AudioCapture::start(Some(&input_device)).map_err(|e| e.to_string())?;
-        let mut accumulated: Vec<f32> = Vec::new();
+        let preroll_state = level_app.state::<PreRoll>();
+        let preroll = preroll_state.0.lock().unwrap();
+
+        let mut fallback: Option<AudioCapture> = None;
+        let mut accumulated: Vec<f32> = match preroll.as_ref() {
+            Some(cap) => {
+                let snapshot = cap.begin();
+                log::info!("pipeline: pre-roll contributed {:.0} ms", snapshot.len() as f32 / 16.0);
+                snapshot
+            }
+            None => {
+                fallback = Some(AudioCapture::start(Some(&input_device)).map_err(|e| e.to_string())?);
+                Vec::new()
+            }
+        };
+
         let start = std::time::Instant::now();
         loop {
             std::thread::sleep(std::time::Duration::from_millis(32));
-            let chunk = capture.drain();
+            let chunk = match (preroll.as_ref(), fallback.as_ref()) {
+                (Some(cap), _) => cap.drain_live(),
+                (None, Some(cap)) => cap.drain(),
+                (None, None) => unreachable!(),
+            };
             if !chunk.is_empty() {
                 let _ = level_app.emit("audio-level", audio::vad::rms(&chunk));
                 accumulated.extend_from_slice(&chunk);
@@ -407,7 +455,10 @@ async fn do_pipeline(
                 break;
             }
         }
-        drop(capture);
+        if let Some(cap) = preroll.as_ref() {
+            accumulated.extend_from_slice(&cap.end());
+        }
+        drop(fallback);
         let _ = level_app.emit("audio-level", 0.0_f32);
         Ok::<Vec<f32>, String>(accumulated)
     })
@@ -471,7 +522,7 @@ async fn do_pipeline(
     // 5. Inject into the focused field.
     if !transcript.is_empty() {
         let t_inject = std::time::Instant::now();
-        injection::inject_text(&transcript).map_err(|e| e.to_string())?;
+        injection::inject_text(&transcript, &cfg.injection_mode).map_err(|e| e.to_string())?;
         log::info!("pipeline: injection took {} ms", t_inject.elapsed().as_millis());
 
         if let Ok(dir) = app_handle.path().app_data_dir() {
@@ -569,6 +620,7 @@ pub fn run() {
             recording_active: Arc::new(AtomicBool::new(false)),
             hook: Mutex::new(None),
         })
+        .manage(PreRoll(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             list_input_devices,
             set_recording_state,
@@ -621,6 +673,12 @@ pub fn run() {
                 if let Ok(loaded) = config::Config::load_from(&cfg_path) {
                     *app.state::<AppState>().config.lock().unwrap() = loaded;
                 }
+            }
+
+            // Start the always-on pre-roll capture stream (500 ms ring).
+            {
+                let device = app.state::<AppState>().config.lock().unwrap().input_device.clone();
+                restart_preroll(&app.handle().clone(), &device);
             }
 
             if let Some(pill) = app.get_webview_window("pill") {
@@ -712,6 +770,24 @@ pub fn run() {
             }) {
                 Ok(installed) => {
                     *app.state::<Activation>().hook.lock().unwrap() = Some(installed);
+
+                    // Watchdog: Windows silently drops WH_KEYBOARD_LL hooks whose
+                    // callback times out (sleep, RDP, load spikes) — the hotkey
+                    // then dies until restart. Renew the registration every 60 s,
+                    // skipping while a dictation is active.
+                    let watchdog = app.handle().clone();
+                    std::thread::spawn(move || loop {
+                        std::thread::sleep(std::time::Duration::from_secs(60));
+                        let activation = watchdog.state::<Activation>();
+                        if activation.recording_active.load(Ordering::SeqCst) {
+                            continue;
+                        }
+                        let mut guard = activation.hook.lock().unwrap();
+                        if let Some(hook) = guard.as_mut() {
+                            hook.reinstall();
+                        }
+                        drop(guard);
+                    });
                 }
                 Err(e) => eprintln!("warning: keyboard hook not installed: {e}"),
             }
@@ -750,10 +826,11 @@ mod tests {
     }
 
     #[test]
-    fn safety_cap_depends_on_mode() {
-        assert_eq!(safety_cap_secs("hold"), 30);
+    fn safety_cap_is_uniform_runaway_guard() {
+        // Unified to 300 s for every mode — long dictations are normal.
+        assert_eq!(safety_cap_secs("hold"), 300);
         assert_eq!(safety_cap_secs("toggle"), 300);
         assert_eq!(safety_cap_secs("TOGGLE"), 300);
-        assert_eq!(safety_cap_secs("whatever"), 30);
+        assert_eq!(safety_cap_secs("whatever"), 300);
     }
 }

@@ -46,6 +46,19 @@ impl LocalWhisper {
         params.set_print_realtime(false);
         params.set_print_timestamps(false);
 
+        // Hallucination hardening. Each dictation is independent: carrying the
+        // previous text as context lets one hallucinated phrase poison the next
+        // output (whisper.cpp #2286). `initial_prompt` (dictionary bias) is
+        // unaffected — it is injected regardless of no_context.
+        params.set_no_context(true);
+        // Tighter decoder-fallback thresholds than the 2.4 / -1.0 defaults:
+        // reject low-confidence segments (typically silence/noise hallucinations).
+        params.set_entropy_thold(2.6);
+        params.set_logprob_thold(-1.25);
+        // Drop non-speech token artifacts ("[BLANK_AUDIO]", music notes, etc.).
+        params.set_suppress_blank(true);
+        params.set_suppress_nst(true);
+
         self.state.full(params, samples)?;
 
         let n = self.state.full_n_segments();

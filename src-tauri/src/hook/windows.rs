@@ -97,6 +97,48 @@ pub struct WindowsHook {
     thread_id: u32,
 }
 
+/// Spawn the message-pump thread that owns the WH_KEYBOARD_LL hook. The hook
+/// must be installed on, and events delivered to, the thread running the pump.
+/// Returns the pump's thread id (used to post WM_QUIT for teardown).
+fn spawn_hook_thread() -> anyhow::Result<u32> {
+    let (tx, rx) = std::sync::mpsc::channel::<Result<u32, String>>();
+    std::thread::spawn(move || unsafe {
+        let hmod = match GetModuleHandleW(None) {
+            Ok(h) => h,
+            Err(e) => {
+                let _ = tx.send(Err(e.to_string()));
+                return;
+            }
+        };
+        let hook = SetWindowsHookExW(
+            WH_KEYBOARD_LL,
+            Some(keyboard_hook_proc),
+            HINSTANCE(hmod.0),
+            0,
+        );
+        match hook {
+            Ok(h) => {
+                let _ = tx.send(Ok(GetCurrentThreadId()));
+                let mut msg = MSG::default();
+                while GetMessageW(&mut msg, None, 0, 0).as_bool() {
+                    let _ = TranslateMessage(&msg);
+                    DispatchMessageW(&msg);
+                }
+                let _ = UnhookWindowsHookEx(h);
+            }
+            Err(e) => {
+                let _ = tx.send(Err(e.to_string()));
+            }
+        }
+    });
+
+    match rx.recv() {
+        Ok(Ok(thread_id)) => Ok(thread_id),
+        Ok(Err(e)) => Err(anyhow::anyhow!("SetWindowsHookExW failed: {e}")),
+        Err(_) => Err(anyhow::anyhow!("hook thread died during install")),
+    }
+}
+
 impl KeyboardHook for WindowsHook {
     fn install(ctx: HookContext) -> anyhow::Result<Self> {
         // Installed exactly once at startup; live key changes go through
@@ -110,45 +152,8 @@ impl KeyboardHook for WindowsHook {
         TARGET_VK2.store(vk2.unwrap_or(0), Ordering::Relaxed);
         TRIGGER_MODE.store(mode_code(&ctx.trigger_mode), Ordering::Relaxed);
 
-        // The hook must be installed on, and events delivered to, the thread
-        // running the message pump. Spawn that thread and report install
-        // success/failure back over a channel.
-        let (tx, rx) = std::sync::mpsc::channel::<Result<u32, String>>();
-        std::thread::spawn(move || unsafe {
-            let hmod = match GetModuleHandleW(None) {
-                Ok(h) => h,
-                Err(e) => {
-                    let _ = tx.send(Err(e.to_string()));
-                    return;
-                }
-            };
-            let hook = SetWindowsHookExW(
-                WH_KEYBOARD_LL,
-                Some(keyboard_hook_proc),
-                HINSTANCE(hmod.0),
-                0,
-            );
-            match hook {
-                Ok(h) => {
-                    let _ = tx.send(Ok(GetCurrentThreadId()));
-                    let mut msg = MSG::default();
-                    while GetMessageW(&mut msg, None, 0, 0).as_bool() {
-                        let _ = TranslateMessage(&msg);
-                        DispatchMessageW(&msg);
-                    }
-                    let _ = UnhookWindowsHookEx(h);
-                }
-                Err(e) => {
-                    let _ = tx.send(Err(e.to_string()));
-                }
-            }
-        });
-
-        match rx.recv() {
-            Ok(Ok(thread_id)) => Ok(WindowsHook { thread_id }),
-            Ok(Err(e)) => Err(anyhow::anyhow!("SetWindowsHookExW failed: {e}")),
-            Err(_) => Err(anyhow::anyhow!("hook thread died during install")),
-        }
+        let thread_id = spawn_hook_thread()?;
+        Ok(WindowsHook { thread_id })
     }
 
     fn rearm(&self, target_key: &str) {
@@ -172,6 +177,23 @@ impl KeyboardHook for WindowsHook {
     fn set_toggle_state(&self, on: bool) {
         // Keep the physical toggle key in sync with click-to-toggle / pipeline end.
         TOGGLE_ON.store(on, Ordering::SeqCst);
+    }
+
+    fn reinstall(&mut self) {
+        // Tear down the old pump (also unhooks) and install a fresh hook.
+        // Statics (target keys, mode, latches) carry over untouched; only the
+        // OS-level hook registration is renewed.
+        unsafe {
+            let _ = PostThreadMessageW(self.thread_id, WM_QUIT, WPARAM(0), LPARAM(0));
+        }
+        match spawn_hook_thread() {
+            Ok(id) => {
+                self.thread_id = id;
+                clear_press_state();
+                log::debug!("keyboard hook reinstalled (watchdog)");
+            }
+            Err(e) => log::error!("keyboard hook reinstall failed: {e}"),
+        }
     }
 }
 

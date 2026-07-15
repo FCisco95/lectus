@@ -24,6 +24,7 @@ export interface Config {
   ai_cleanup_engine: string;
   ai_cleanup_tone: string;
   input_device: string;
+  injection_mode: string;
 }
 
 export interface PanelProps {

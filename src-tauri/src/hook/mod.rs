@@ -40,6 +40,11 @@ pub trait KeyboardHook: Sized {
     /// Force the internal toggle latch (so click-to-toggle and the physical
     /// toggle key stay in sync). No-op in hold mode.
     fn set_toggle_state(&self, on: bool);
+    /// Tear down and re-install the OS-level hook. Windows silently removes a
+    /// low-level keyboard hook whose callback times out (common after sleep,
+    /// RDP sessions, or system load spikes) — a periodic reinstall from a
+    /// watchdog restores hold-to-talk without a restart. Default: no-op.
+    fn reinstall(&mut self) {}
 }
 
 #[cfg(target_os = "windows")]
