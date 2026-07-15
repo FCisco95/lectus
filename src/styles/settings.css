@@ -106,7 +106,7 @@ html, body, #root { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 28px 32px 90px;
+  padding: 28px 32px 36px;
   position: relative;
   scrollbar-width: thin;
   scrollbar-color: #d9d9e0 transparent;
@@ -116,6 +116,21 @@ html, body, #root { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 .settings-content::-webkit-scrollbar-track { background: transparent; }
 .settings-content::-webkit-scrollbar-thumb { background: #d9d9e0; border-radius: 999px; }
 .settings-content::-webkit-scrollbar-thumb:hover { background: #c5c5cf; }
+
+/* Transient auto-save indicator (settings persist on every change). */
+.settings-autosave-status {
+  position: fixed;
+  right: 18px;
+  bottom: 14px;
+  font-size: 12.5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #ffffffee;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  color: #55555f;
+}
+.settings-autosave-status.ok { color: var(--lectus-green); }
+.settings-autosave-status.err { color: #d33; }
 
 .settings-panel-title {
   margin: 0 0 4px;

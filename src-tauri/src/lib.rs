@@ -35,23 +35,22 @@ fn now_millis() -> i64 {
 
 /// Safety cap for the capture loop, by trigger mode.
 fn safety_cap_secs(trigger_mode: &str) -> u64 {
-    if trigger_mode.eq_ignore_ascii_case("toggle") {
-        300
-    } else {
-        30
-    }
+    // Generous runaway guard only — long dictations are normal (WhisperFlow
+    // parity). Hold mode ends on key release anyway.
+    let _ = trigger_mode;
+    300
 }
 
-/// The key the hook should watch given the active trigger mode: the toggle key
-/// in toggle mode, otherwise the hold key. Falls back to Right Ctrl if the
-/// configured value isn't a supported single key (e.g. a legacy combo).
+/// The key (or two-key chord) the hook should watch given the active trigger
+/// mode: the toggle key in toggle mode, otherwise the hold key. Falls back to
+/// Right Ctrl if the configured value isn't supported.
 fn active_trigger_key(cfg: &config::Config) -> String {
     let key = if cfg.trigger_mode.eq_ignore_ascii_case("toggle") {
         &cfg.toggle_hotkey
     } else {
         &cfg.hold_hotkey
     };
-    if hook::config_key_to_vk(key).is_some() {
+    if hook::is_supported_hold_key(key) {
         key.clone()
     } else {
         "RControl".to_string()

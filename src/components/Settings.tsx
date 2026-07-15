@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import '../styles/settings.css';
 import type { Config } from './settings/types';
@@ -29,6 +29,8 @@ export function Settings() {
   const [tab, setTab] = useState<TabId>('general');
   const [status, setStatus] = useState('');
   const [statusKind, setStatusKind] = useState<'' | 'ok' | 'err'>('');
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     invoke<Config>('get_config')
@@ -40,19 +42,23 @@ export function Settings() {
     return <div style={{ padding: 24, fontFamily: 'system-ui' }}>{status || 'Loading…'}</div>;
   }
 
-  const update = (patch: Partial<Config>) => setConfig({ ...config, ...patch });
-
-  const save = async () => {
-    setStatus('Saving…');
-    setStatusKind('');
-    try {
-      await invoke('save_config', { newConfig: config });
-      setStatus('Saved ✓');
-      setStatusKind('ok');
-    } catch (e) {
-      setStatus(`${e}`);
-      setStatusKind('err');
-    }
+  // Auto-save: every change persists after a short debounce (no Save button).
+  const update = (patch: Partial<Config>) => {
+    const next = { ...config, ...patch };
+    setConfig(next);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        await invoke('save_config', { newConfig: next });
+        setStatus('Saved ✓');
+        setStatusKind('ok');
+        if (statusTimer.current) clearTimeout(statusTimer.current);
+        statusTimer.current = setTimeout(() => setStatus(''), 1500);
+      } catch (e) {
+        setStatus(`${e}`);
+        setStatusKind('err');
+      }
+    }, 500);
   };
 
   return (
@@ -84,10 +90,7 @@ export function Settings() {
         {tab === 'models' && <ModelsPanel config={config} update={update} />}
         {tab === 'about' && <AboutPanel />}
 
-        <div className="settings-savebar">
-          <button className="btn btn-primary" onClick={save}>Save changes</button>
-          <span className={`settings-status ${statusKind}`}>{status}</span>
-        </div>
+        {status && <div className={`settings-autosave-status ${statusKind}`}>{status}</div>}
       </main>
     </div>
   );
