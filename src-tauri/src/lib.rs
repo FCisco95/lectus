@@ -248,16 +248,18 @@ fn save_config(
         &new_config.cloud_api_key,
     ));
 
-    let device_changed = {
+    let (device_changed, local_cleanup_enabled) = {
         let mut guard = app_state.config.lock().unwrap();
         let changed = guard.input_device != new_config.input_device;
+        let was_local = guard.ai_cleanup_enabled && guard.ai_cleanup_engine == "local";
+        let now_local = new_config.ai_cleanup_enabled && new_config.ai_cleanup_engine == "local";
         let resolved_model = guard.model_path.clone();
         let (px, py) = (guard.pill_x, guard.pill_y);
         *guard = new_config;
         guard.model_path = resolved_model;
         guard.pill_x = px;
         guard.pill_y = py;
-        changed
+        (changed, !was_local && now_local)
     };
 
     // Move the always-on pre-roll stream to the new mic. Done off-thread: the
@@ -267,6 +269,23 @@ fn save_config(
         let handle = app_handle.clone();
         let device = app_state.config.lock().unwrap().input_device.clone();
         std::thread::spawn(move || restart_preroll(&handle, &device));
+    }
+
+    // Local cleanup was just switched on: warm the LLM now so the next
+    // dictation doesn't pay the Vulkan pipeline compile (~20 s cold).
+    if local_cleanup_enabled {
+        let handle = app_handle.clone();
+        std::thread::spawn(move || {
+            if let Ok(path) =
+                transcription::model::model_path(&handle, ai::local_llm::CLEANUP_MODEL_NAME)
+            {
+                if path.exists() {
+                    if let Err(e) = ai::local_llm::warmup(&path) {
+                        log::warn!("cleanup LLM warmup failed: {e}");
+                    }
+                }
+            }
+        });
     }
 
     {

@@ -114,14 +114,25 @@ fn cleanup_claude(text: &str, system: &str) -> Result<String> {
     })?;
     let prompt = format!("{system}\n\nTranscript:\n{text}\n\nCleaned text:");
 
+    // The prompt goes through stdin, not argv: on Windows the CLI resolves to a
+    // .cmd shim, and Rust refuses to spawn batch files with argv containing
+    // quotes or newlines ("batch file arguments are invalid", CVE-2024-24576).
     let mut child = Command::new(&bin)
         .arg("-p")
-        .arg(&prompt)
-        .stdin(Stdio::null())
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| anyhow!("failed to launch claude: {e}"))?;
+    {
+        use std::io::Write;
+        let mut stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| anyhow!("claude stdin unavailable"))?;
+        stdin.write_all(prompt.as_bytes())?;
+        // Dropping stdin closes the pipe so the CLI sees EOF and runs.
+    }
 
     // Bounded wait so a stuck CLI can't freeze the pipeline.
     let start = Instant::now();
