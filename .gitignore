@@ -15,6 +15,9 @@ dist-ssr
 # Whisper model files (large binaries — download via scripts/download_model.ps1)
 models/*.bin
 
+# Crash dumps (e.g. from bash/cygwin tooling)
+*.stackdump
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

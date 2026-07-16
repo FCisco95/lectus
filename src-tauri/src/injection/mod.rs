@@ -1,4 +1,6 @@
 pub mod clipboard;
+#[cfg(target_os = "windows")]
+pub mod sendinput;
 
 use anyhow::Result;
 
@@ -7,12 +9,35 @@ fn clipboard_matches(expected: &str, readback: Option<String>) -> bool {
     readback.as_deref() == Some(expected)
 }
 
-/// Inject text into the currently focused field.
+/// Inject text into the focused field using the configured mode.
+/// "sendinput" types native keystrokes (Windows; works in terminals/CLIs and
+/// never touches the clipboard); "clipboard" pastes; "auto" (default) tries
+/// SendInput first and falls back to clipboard on failure (e.g. UIPI block).
+pub fn inject_text(text: &str, mode: &str) -> Result<()> {
+    #[cfg(target_os = "windows")]
+    {
+        match mode {
+            "clipboard" => inject_via_clipboard(text),
+            "sendinput" => sendinput::inject_via_sendinput(text),
+            _ => sendinput::inject_via_sendinput(text).or_else(|e| {
+                log::warn!("SendInput failed ({e}); falling back to clipboard paste");
+                inject_via_clipboard(text)
+            }),
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = mode;
+        inject_via_clipboard(text)
+    }
+}
+
+/// Clipboard-paste injection.
 /// Strategy: save prior clipboard → set ours → confirm the OS accepted it via
 /// read-back (bounded retry) → simulate paste → restore the prior clipboard.
 /// Confirming the write before pasting fixes slow/deferred-read apps (Electron),
 /// replacing the old fixed 50 ms guess.
-pub fn inject_text(text: &str) -> Result<()> {
+pub fn inject_via_clipboard(text: &str) -> Result<()> {
     let previous = {
         let mut cb = arboard::Clipboard::new()?;
         cb.get_text().ok()

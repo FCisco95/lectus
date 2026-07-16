@@ -5,7 +5,7 @@
 //! per target keycode. F13-F15 arrive as ordinary `KeyDown`/`KeyUp`. Requires
 //! Accessibility permission (`AXIsProcessTrusted`).
 
-use super::{config_key_to_mackey, HookContext, KeyboardHook};
+use super::{config_combo_to_mackeys, mode_code, HookContext, KeyboardHook, MODE_TOGGLE};
 use core_foundation::runloop::{kCFRunLoopCommonModes, CFRunLoop};
 use core_graphics::event::{
     CGEventTap, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventType,
@@ -18,31 +18,56 @@ use tauri::Emitter;
 static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
 static RECORDING_ACTIVE: OnceLock<Arc<AtomicBool>> = OnceLock::new();
 static TARGET_KEY: AtomicU32 = AtomicU32::new(62); // kVK_RightControl default
-static KEY_DOWN: AtomicBool = AtomicBool::new(false);
+static TARGET_KEY2: AtomicU32 = AtomicU32::new(u32::MAX); // second chord key; MAX = single-key mode
+static K1_DOWN: AtomicBool = AtomicBool::new(false);
+static K2_DOWN: AtomicBool = AtomicBool::new(false);
+static CHORD_ACTIVE: AtomicBool = AtomicBool::new(false); // all target keys currently held
+static TRIGGER_MODE: AtomicU32 = AtomicU32::new(0); // 0 = hold, 1 = toggle
+static TOGGLE_ON: AtomicBool = AtomicBool::new(false); // latched state in toggle mode
 
 #[link(name = "ApplicationServices", kind = "framework")]
 extern "C" {
     fn AXIsProcessTrusted() -> bool;
 }
 
-fn fire_start() {
-    if !KEY_DOWN.swap(true, Ordering::SeqCst) {
-        if let Some(active) = RECORDING_ACTIVE.get() {
-            active.store(true, Ordering::SeqCst);
-        }
-        if let Some(app) = APP_HANDLE.get() {
-            let _ = app.emit("hold-start", ());
-        }
+/// Set recording active/inactive and emit the matching start/stop event.
+fn signal(start: bool) {
+    if let Some(active) = RECORDING_ACTIVE.get() {
+        active.store(start, Ordering::SeqCst);
+    }
+    if let Some(app) = APP_HANDLE.get() {
+        let _ = app.emit(if start { "hold-start" } else { "hold-stop" }, ());
     }
 }
 
-fn fire_stop() {
-    KEY_DOWN.store(false, Ordering::SeqCst);
+/// Re-evaluate the chord after a target key changed state. Auto-repeat
+/// produces no edge because CHORD_ACTIVE is already latched.
+fn evaluate_chord() {
+    let t2 = TARGET_KEY2.load(Ordering::Relaxed);
+    let all_down =
+        K1_DOWN.load(Ordering::SeqCst) && (t2 == u32::MAX || K2_DOWN.load(Ordering::SeqCst));
+    let toggle = TRIGGER_MODE.load(Ordering::Relaxed) == MODE_TOGGLE;
+    if all_down {
+        if !CHORD_ACTIVE.swap(true, Ordering::SeqCst) {
+            if toggle {
+                let now_on = !TOGGLE_ON.fetch_xor(true, Ordering::SeqCst);
+                signal(now_on);
+            } else {
+                signal(true);
+            }
+        }
+    } else if CHORD_ACTIVE.swap(false, Ordering::SeqCst) && !toggle {
+        signal(false);
+    }
+}
+
+/// Reset per-key and chord state plus the recording flag.
+fn clear_press_state() {
+    K1_DOWN.store(false, Ordering::SeqCst);
+    K2_DOWN.store(false, Ordering::SeqCst);
+    CHORD_ACTIVE.store(false, Ordering::SeqCst);
     if let Some(active) = RECORDING_ACTIVE.get() {
         active.store(false, Ordering::SeqCst);
-    }
-    if let Some(app) = APP_HANDLE.get() {
-        let _ = app.emit("hold-stop", ());
     }
 }
 
@@ -61,9 +86,11 @@ impl KeyboardHook for MacosHook {
 
         let _ = APP_HANDLE.set(ctx.app);
         let _ = RECORDING_ACTIVE.set(ctx.recording_active);
-        let keycode = config_key_to_mackey(&ctx.target_key)
+        let (k1, k2) = config_combo_to_mackeys(&ctx.target_key)
             .ok_or_else(|| anyhow::anyhow!("unsupported hold key: {}", ctx.target_key))?;
-        TARGET_KEY.store(keycode as u32, Ordering::Relaxed);
+        TARGET_KEY.store(k1 as u32, Ordering::Relaxed);
+        TARGET_KEY2.store(k2.map(|k| k as u32).unwrap_or(u32::MAX), Ordering::Relaxed);
+        TRIGGER_MODE.store(mode_code(&ctx.trigger_mode), Ordering::Relaxed);
 
         let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
         std::thread::spawn(move || {
@@ -79,20 +106,24 @@ impl KeyboardHook for MacosHook {
                 |_proxy, event_type, event| {
                     let keycode =
                         event.get_integer_value_field(EventField::KEYBOARD_EVENT_KEYCODE) as u32;
-                    if keycode == TARGET_KEY.load(Ordering::Relaxed) {
-                        match event_type {
-                            CGEventType::KeyDown => fire_start(),
-                            CGEventType::KeyUp => fire_stop(),
-                            CGEventType::FlagsChanged => {
-                                // Modifier: down-edge if not already tracked as down.
-                                if KEY_DOWN.load(Ordering::SeqCst) {
-                                    fire_stop();
-                                } else {
-                                    fire_start();
-                                }
-                            }
-                            _ => {}
-                        }
+                    let down_flag = if keycode == TARGET_KEY.load(Ordering::Relaxed) {
+                        Some(&K1_DOWN)
+                    } else if keycode == TARGET_KEY2.load(Ordering::Relaxed) {
+                        Some(&K2_DOWN)
+                    } else {
+                        None
+                    };
+                    if let Some(flag) = down_flag {
+                        let is_down = match event_type {
+                            CGEventType::KeyDown => true,
+                            CGEventType::KeyUp => false,
+                            // Modifier toggled: if currently tracked down it's
+                            // a release edge, otherwise a press edge.
+                            CGEventType::FlagsChanged => !flag.load(Ordering::SeqCst),
+                            _ => return None,
+                        };
+                        flag.store(is_down, Ordering::SeqCst);
+                        evaluate_chord();
                     }
                     None
                 },
@@ -129,14 +160,22 @@ impl KeyboardHook for MacosHook {
     }
 
     fn rearm(&self, target_key: &str) {
-        if let Some(keycode) = config_key_to_mackey(target_key) {
-            TARGET_KEY.store(keycode as u32, Ordering::Relaxed);
+        if let Some((k1, k2)) = config_combo_to_mackeys(target_key) {
+            TARGET_KEY.store(k1 as u32, Ordering::Relaxed);
+            TARGET_KEY2.store(k2.map(|k| k as u32).unwrap_or(u32::MAX), Ordering::Relaxed);
             // Clear stale press-state: the old key may still be physically held
             // during the swap, so the new key starts from a clean slate.
-            KEY_DOWN.store(false, Ordering::SeqCst);
-            if let Some(active) = RECORDING_ACTIVE.get() {
-                active.store(false, Ordering::SeqCst);
-            }
+            clear_press_state();
         }
+    }
+
+    fn set_mode(&self, mode: &str) {
+        TRIGGER_MODE.store(mode_code(mode), Ordering::Relaxed);
+        TOGGLE_ON.store(false, Ordering::SeqCst);
+        clear_press_state();
+    }
+
+    fn set_toggle_state(&self, on: bool) {
+        TOGGLE_ON.store(on, Ordering::SeqCst);
     }
 }

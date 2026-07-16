@@ -13,6 +13,21 @@ pub struct HookContext {
     pub app: tauri::AppHandle,
     pub recording_active: Arc<AtomicBool>,
     pub target_key: String,
+    /// "hold" (push-to-talk) or "toggle" (tap on / tap off).
+    pub trigger_mode: String,
+}
+
+/// Numeric trigger-mode code shared with the platform hooks (which keep it in an
+/// atomic). 1 = toggle, 0 = hold.
+pub const MODE_HOLD: u32 = 0;
+pub const MODE_TOGGLE: u32 = 1;
+
+pub fn mode_code(s: &str) -> u32 {
+    if s.eq_ignore_ascii_case("toggle") {
+        MODE_TOGGLE
+    } else {
+        MODE_HOLD
+    }
 }
 
 /// A platform keyboard hook. Installed once at startup; `rearm` swaps the
@@ -20,6 +35,16 @@ pub struct HookContext {
 pub trait KeyboardHook: Sized {
     fn install(ctx: HookContext) -> anyhow::Result<Self>;
     fn rearm(&self, target_key: &str);
+    /// Live-swap the trigger mode ("hold"/"toggle") without reinstalling.
+    fn set_mode(&self, mode: &str);
+    /// Force the internal toggle latch (so click-to-toggle and the physical
+    /// toggle key stay in sync). No-op in hold mode.
+    fn set_toggle_state(&self, on: bool);
+    /// Tear down and re-install the OS-level hook. Windows silently removes a
+    /// low-level keyboard hook whose callback times out (common after sleep,
+    /// RDP sessions, or system load spikes) — a periodic reinstall from a
+    /// watchdog restores hold-to-talk without a restart. Default: no-op.
+    fn reinstall(&mut self) {}
 }
 
 #[cfg(target_os = "windows")]
@@ -41,6 +66,8 @@ impl KeyboardHook for PlatformHook {
         anyhow::bail!("keyboard hook not supported on this platform")
     }
     fn rearm(&self, _target_key: &str) {}
+    fn set_mode(&self, _mode: &str) {}
+    fn set_toggle_state(&self, _on: bool) {}
 }
 
 /// Map a Lectus config key string to a Windows virtual-key code (`VK_*`).
@@ -55,10 +82,46 @@ pub fn config_key_to_vk(s: &str) -> Option<u32> {
         "LShift" => Some(0xA0),   // VK_LSHIFT
         "RAlt" => Some(0xA5),     // VK_RMENU
         "LAlt" => Some(0xA4),     // VK_LMENU
+        "LWin" => Some(0x5B),     // VK_LWIN
+        "RWin" => Some(0x5C),     // VK_RWIN
         "F13" => Some(0x7C),
         "F14" => Some(0x7D),
         "F15" => Some(0x7E),
         _ => None,
+    }
+}
+
+/// Parse a hold-key config string into one or two VKs. Accepts a single key
+/// ("LControl") or a two-key chord ("LControl+LWin"). Duplicate keys and
+/// chords of 3+ are rejected.
+pub fn config_combo_to_vks(s: &str) -> Option<(u32, Option<u32>)> {
+    let mut parts = s.split('+');
+    let first = config_key_to_vk(parts.next()?.trim())?;
+    match parts.next() {
+        None => Some((first, None)),
+        Some(second) => {
+            let second = config_key_to_vk(second.trim())?;
+            if parts.next().is_some() || second == first {
+                return None;
+            }
+            Some((first, Some(second)))
+        }
+    }
+}
+
+/// macOS twin of [`config_combo_to_vks`].
+pub fn config_combo_to_mackeys(s: &str) -> Option<(u16, Option<u16>)> {
+    let mut parts = s.split('+');
+    let first = config_key_to_mackey(parts.next()?.trim())?;
+    match parts.next() {
+        None => Some((first, None)),
+        Some(second) => {
+            let second = config_key_to_mackey(second.trim())?;
+            if parts.next().is_some() || second == first {
+                return None;
+            }
+            Some((first, Some(second)))
+        }
     }
 }
 
@@ -71,6 +134,8 @@ pub fn config_key_to_mackey(s: &str) -> Option<u16> {
         "LShift" => Some(56),
         "RAlt" => Some(61),
         "LAlt" => Some(58),
+        "LWin" => Some(55),  // kVK_Command (Win ≡ Cmd on macOS)
+        "RWin" => Some(54),  // kVK_RightCommand
         "F13" => Some(105),
         "F14" => Some(107),
         "F15" => Some(113),
@@ -79,8 +144,9 @@ pub fn config_key_to_mackey(s: &str) -> Option<u16> {
 }
 
 /// Whether a config string is a valid hold-to-talk target on any platform.
+/// Single keys and two-key chords are both valid.
 pub fn is_supported_hold_key(s: &str) -> bool {
-    config_key_to_vk(s).is_some()
+    config_combo_to_vks(s).is_some()
 }
 
 #[cfg(test)]
@@ -129,5 +195,30 @@ mod tests {
     fn is_supported_matches_vk_map() {
         assert!(is_supported_hold_key("RControl"));
         assert!(!is_supported_hold_key("Ctrl+Shift+Space"));
+    }
+
+    #[test]
+    fn combo_parse_single_and_chord() {
+        assert_eq!(config_combo_to_vks("LControl"), Some((0xA2, None)));
+        assert_eq!(config_combo_to_vks("LControl+LWin"), Some((0xA2, Some(0x5B))));
+        assert_eq!(config_combo_to_vks("LWin+LControl"), Some((0x5B, Some(0xA2))));
+        assert_eq!(config_combo_to_mackeys("LControl+LWin"), Some((59, Some(55))));
+    }
+
+    #[test]
+    fn combo_parse_rejects_bad_chords() {
+        assert_eq!(config_combo_to_vks("LControl+LControl"), None); // dup
+        assert_eq!(config_combo_to_vks("LControl+LWin+LShift"), None); // 3 keys
+        assert_eq!(config_combo_to_vks("LControl+Space"), None); // unsupported second
+        assert_eq!(config_combo_to_vks(""), None);
+        assert!(is_supported_hold_key("LControl+LWin"));
+    }
+
+    #[test]
+    fn mode_code_maps_toggle_and_hold() {
+        assert_eq!(mode_code("toggle"), MODE_TOGGLE);
+        assert_eq!(mode_code("Toggle"), MODE_TOGGLE);
+        assert_eq!(mode_code("hold"), MODE_HOLD);
+        assert_eq!(mode_code("anything-else"), MODE_HOLD);
     }
 }

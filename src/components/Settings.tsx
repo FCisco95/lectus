@@ -1,127 +1,100 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import '../styles/settings.css';
+import type { Config } from './settings/types';
+import { GeneralPanel } from './settings/GeneralPanel';
+import { DictationPanel } from './settings/DictationPanel';
+import { LanguagePanel } from './settings/LanguagePanel';
+import { DictionaryPanel } from './settings/DictionaryPanel';
+import { HistoryPanel } from './settings/HistoryPanel';
+import { AIPanel } from './settings/AIPanel';
+import { AppsPanel } from './settings/AppsPanel';
+import { ModelsPanel } from './settings/ModelsPanel';
+import { AboutPanel } from './settings/AboutPanel';
 
-// KeyboardEvent.code → Lectus config key string.
-// MUST stay in sync with config_key_to_vk in src-tauri/src/hook/mod.rs.
-const CODE_TO_KEY: Record<string, string> = {
-  ControlRight: 'RControl',
-  ControlLeft: 'LControl',
-  ShiftRight: 'RShift',
-  ShiftLeft: 'LShift',
-  AltRight: 'RAlt',
-  AltLeft: 'LAlt',
-  F13: 'F13',
-  F14: 'F14',
-  F15: 'F15',
-};
+type TabId = 'general' | 'dictation' | 'language' | 'dictionary' | 'history' | 'ai' | 'apps' | 'models' | 'about';
 
-interface Config {
-  model_path: string;
-  use_cloud: boolean;
-  cloud_base_url: string;
-  cloud_api_key: string;
-  hold_hotkey: string;
-  toggle_hotkey: string;
-}
+const TABS: Array<{ id: TabId; label: string; icon: string }> = [
+  { id: 'general', label: 'General', icon: '⚙️' },
+  { id: 'dictation', label: 'Dictation', icon: '🎙️' },
+  { id: 'language', label: 'Language', icon: '🌐' },
+  { id: 'dictionary', label: 'Dictionary', icon: '📖' },
+  { id: 'history', label: 'History', icon: '🕘' },
+  { id: 'ai', label: 'AI cleanup', icon: '✨' },
+  { id: 'apps', label: 'Apps', icon: '🪟' },
+  { id: 'models', label: 'Models', icon: '🧠' },
+  { id: 'about', label: 'About', icon: '🦜' },
+];
 
 export function Settings() {
   const [config, setConfig] = useState<Config | null>(null);
+  const [tab, setTab] = useState<TabId>('general');
   const [status, setStatus] = useState('');
-  const [capturing, setCapturing] = useState(false);
+  const [statusKind, setStatusKind] = useState<'' | 'ok' | 'err'>('');
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     invoke<Config>('get_config')
       .then(setConfig)
-      .catch((e) => setStatus(`Load error: ${e}`));
+      .catch((e) => { setStatus(`Load error: ${e}`); setStatusKind('err'); });
   }, []);
 
   if (!config) {
     return <div style={{ padding: 24, fontFamily: 'system-ui' }}>{status || 'Loading…'}</div>;
   }
 
-  const update = (patch: Partial<Config>) => setConfig({ ...config, ...patch });
-
-  const save = async () => {
-    setStatus('Saving…');
-    try {
-      await invoke('save_config', { newConfig: config });
-      setStatus('Saved ✓');
-    } catch (e) {
-      setStatus(`Save error: ${e}`);
-    }
+  // Auto-save: every change persists after a short debounce (no Save button).
+  const update = (patch: Partial<Config>) => {
+    const next = { ...config, ...patch };
+    setConfig(next);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        await invoke('save_config', { newConfig: next });
+        setStatus('Saved ✓');
+        setStatusKind('ok');
+        if (statusTimer.current) clearTimeout(statusTimer.current);
+        statusTimer.current = setTimeout(() => setStatus(''), 1500);
+      } catch (e) {
+        setStatus(`${e}`);
+        setStatusKind('err');
+      }
+    }, 500);
   };
 
   return (
-    <div style={{ padding: 24, fontFamily: 'system-ui', maxWidth: 432 }}>
-      <h2 style={{ marginTop: 0 }}>Lectus Settings</h2>
+    <div className="settings-app">
+      <nav className="settings-sidebar">
+        <div className="settings-brand">
+          <div className="settings-brand-orb" />
+          <span className="settings-brand-name">Lectus</span>
+        </div>
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            className={`settings-nav-item${tab === t.id ? ' active' : ''}`}
+            onClick={() => setTab(t.id)}
+          >
+            <span className="settings-nav-icon">{t.icon}</span>
+            {t.label}
+          </button>
+        ))}
+      </nav>
 
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <input
-          type="checkbox"
-          checked={config.use_cloud}
-          onChange={(e) => update({ use_cloud: e.target.checked })}
-        />
-        Use cloud transcription (Groq Whisper-large-v3-turbo)
-      </label>
+      <main className="settings-content">
+        {tab === 'general' && <GeneralPanel config={config} update={update} />}
+        {tab === 'dictation' && <DictationPanel config={config} update={update} />}
+        {tab === 'language' && <LanguagePanel config={config} update={update} />}
+        {tab === 'dictionary' && <DictionaryPanel config={config} update={update} />}
+        {tab === 'history' && <HistoryPanel />}
+        {tab === 'ai' && <AIPanel config={config} update={update} />}
+        {tab === 'apps' && <AppsPanel config={config} update={update} />}
+        {tab === 'models' && <ModelsPanel config={config} update={update} />}
+        {tab === 'about' && <AboutPanel />}
 
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Cloud base URL</label>
-        <input
-          type="text"
-          value={config.cloud_base_url}
-          onChange={(e) => update({ cloud_base_url: e.target.value })}
-          style={{ width: '100%', padding: 6 }}
-        />
-      </div>
-
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Cloud API key</label>
-        <input
-          type="password"
-          value={config.cloud_api_key}
-          placeholder="gsk_…"
-          onChange={(e) => update({ cloud_api_key: e.target.value })}
-          style={{ width: '100%', padding: 6 }}
-        />
-      </div>
-
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>Dictation hotkey</label>
-        <button
-          type="button"
-          onClick={() => { setCapturing(true); setStatus('Press a key…'); }}
-          onKeyDown={(e) => {
-            if (!capturing) return;
-            e.preventDefault();
-            const mapped = CODE_TO_KEY[e.code];
-            setCapturing(false);
-            if (!mapped) {
-              setStatus(`Unsupported key (${e.code}). Try Right Ctrl, Shift, Alt, or F13-F15.`);
-              return;
-            }
-            update({ hold_hotkey: mapped });
-            setStatus(`Captured: ${mapped} — click Save`);
-          }}
-          style={{
-            width: '100%',
-            padding: 6,
-            textAlign: 'left',
-            background: capturing ? '#fffbe6' : '#fff',
-            border: '1px solid #ccc',
-            cursor: 'pointer',
-          }}
-        >
-          {capturing ? 'Press a key…' : config.hold_hotkey}
-        </button>
-        <small style={{ color: '#888' }}>
-          Click, then press your hold-to-talk key (hold to talk, release to stop).
-        </small>
-      </div>
-
-      <button onClick={save} style={{ padding: '8px 16px' }}>
-        Save
-      </button>
-      <span style={{ marginLeft: 12, fontSize: 13 }}>{status}</span>
+        {status && <div className={`settings-autosave-status ${statusKind}`}>{status}</div>}
+      </main>
     </div>
   );
 }
