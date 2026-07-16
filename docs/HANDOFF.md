@@ -1,6 +1,10 @@
 # Lectus — HANDOFF
 
-_Last updated: 2026-07-16 00:40 • Branch: `feat/phase3-whisperflow-ux` • Version: 0.4.0_
+_Last updated: 2026-07-16 00:50 • Branch: `master` (Phase 3 MERGED: `415c40c`, pushed) • Version: 0.4.0_
+
+> **Repo state:** everything merged to `master` and pushed to origin; feature branches
+> (`feat/phase3-whisperflow-ux`, `feat/phase2.5-hold-to-talk`) deleted local+remote; working tree clean.
+> App running from the merged build (`C:\lt\release\chirp.exe` via junction → `src-tauri\target`).
 
 ## TL;DR
 
@@ -26,7 +30,8 @@ Measurement-first session that executed the surviving plan from `docs/LECTUS-NEX
    injection; new Settings → Apps panel with "Detect" helper.
 
 All builds green; **47 unit tests passing**.
-Commits: `3884ab6` (A1) → `4ccdbd8` (B1/A3/A7/B5) → `1ad3e13` (A6) → `491f31a` (B2) → `382a1a3` (B4).
+Commits (now on master via merge `415c40c`): `3884ab6` (A1) → `4ccdbd8` (B1/A3/A7/B5) → `1ad3e13` (A6)
+→ `491f31a` (B2) → `382a1a3` (B4) → `812041d` (docs) → `9901b12` (deep-research workflow).
 
 ## Product framing (user decision 2026-07-15)
 
@@ -72,6 +77,7 @@ Dev builds find backends via the compile-time path; **bundled builds must ship t
 
 ## Suggested skills (next session)
 
-- `run` / `verify` — launch and drive the app for live verification
-- `superpowers:finishing-a-development-branch` — branch has 6 feature commits; consider PR to master
-- `commit-push-pr` — one-shot when ready
+- `run` / `verify` — launch and drive the app for live end-to-end verification (top next step)
+- `superpowers:systematic-debugging` — if live dictation shows pre-roll/cleanup/injection misbehavior
+- `commit` / `commit-push-pr` — small fixes go straight to master now (branch first for features)
+- `superpowers:writing-plans` — before starting B6 context-awareness (~5-8d scope)

@@ -4,6 +4,8 @@
 
 Keep this file short and execution-focused.
 
+**Session state lives in `docs/HANDOFF.md`** (canonical, refreshed each session; dated snapshots in `docs/handoffs/`). Read it before acting.
+
 ## Non-negotiables
 - API keys live in env/config only — never paste into chat or commit.
 - `tauri-plugin-global-shortcut`/muda CANNOT register a bare modifier (e.g. Right Ctrl) — it panics. Default hotkey is `Ctrl+Shift+Space`.
