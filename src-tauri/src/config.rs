@@ -55,6 +55,11 @@ pub struct Config {
     /// Per-app overrides, matched (first hit wins) against the focused app's
     /// executable name at the moment the hotkey lands.
     pub app_profiles: Vec<AppProfile>,
+    /// First-run onboarding finished; false shows the setup flow instead of
+    /// Settings. Configs saved before this field existed deserialize to false
+    /// (container-level serde(default)) — those users see onboarding once,
+    /// which doubles as a permissions health-check after the update.
+    pub onboarding_completed: bool,
 }
 
 /// Overrides applied when dictating into a matching app. `None` = keep the
@@ -136,6 +141,7 @@ impl Default for Config {
             injection_mode: "auto".into(),
             vad_enabled: true,
             app_profiles: Vec::new(),
+            onboarding_completed: false,
         }
     }
 }

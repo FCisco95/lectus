@@ -331,6 +331,74 @@ fn get_foreground_app() -> Option<String> {
     context::foreground_app()
 }
 
+/// Whether the OS trusts this process for Accessibility (macOS). Non-prompting,
+/// safe to poll from onboarding / the settings banner. Always true elsewhere.
+#[tauri::command]
+fn accessibility_status() -> bool {
+    #[cfg(target_os = "macos")]
+    return hook::accessibility_trusted();
+    #[cfg(not(target_os = "macos"))]
+    true
+}
+
+/// Coarse microphone permission state: "granted" | "denied" | "undetermined" |
+/// "unknown". macOS asks TCC via AVFoundation; elsewhere we probe whether the
+/// default input device is usable.
+#[tauri::command]
+fn microphone_status() -> String {
+    #[cfg(target_os = "macos")]
+    {
+        use objc::{class, msg_send, sel, sel_impl};
+        #[link(name = "AVFoundation", kind = "framework")]
+        extern "C" {
+            static AVMediaTypeAudio: *mut objc::runtime::Object;
+        }
+        // AVAuthorizationStatus: 0 notDetermined, 1 restricted, 2 denied, 3 authorized
+        let status: i64 = unsafe {
+            msg_send![class!(AVCaptureDevice), authorizationStatusForMediaType: AVMediaTypeAudio]
+        };
+        match status {
+            3 => "granted",
+            1 | 2 => "denied",
+            0 => "undetermined",
+            _ => "unknown",
+        }
+        .to_string()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        use cpal::traits::{DeviceTrait, HostTrait};
+        match cpal::default_host()
+            .default_input_device()
+            .and_then(|d| d.default_input_config().ok())
+        {
+            Some(_) => "granted".to_string(),
+            None => "unknown".to_string(),
+        }
+    }
+}
+
+/// Trigger the OS microphone permission prompt by briefly opening an input
+/// stream (on macOS the first open raises the TCC dialog; the app's pre-roll
+/// stream may already have done so at launch). Fire-and-forget.
+#[tauri::command]
+fn request_microphone_access() {
+    std::thread::spawn(|| {
+        use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+        let Some(device) = cpal::default_host().default_input_device() else { return };
+        let Ok(config) = device.default_input_config() else { return };
+        if let Ok(stream) = device.build_input_stream(
+            &config.into(),
+            |_: &[f32], _| {},
+            |_| {},
+            None,
+        ) {
+            let _ = stream.play();
+            std::thread::sleep(std::time::Duration::from_millis(200));
+        }
+    });
+}
+
 /// Status of the local cleanup LLM, for the AI settings panel.
 #[derive(serde::Serialize)]
 struct CleanupModelStatus {
@@ -710,6 +778,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_process::init())
         .manage(AppState::new())
         .manage(WhisperState {
             local: Arc::new(Mutex::new(None)),
@@ -739,6 +808,9 @@ pub fn run() {
             get_cleanup_model_status,
             download_cleanup_model,
             get_foreground_app,
+            accessibility_status,
+            microphone_status,
+            request_microphone_access,
         ])
         .setup(|app| {
             // Menu-bar app: no Dock icon, no app switcher entry. The settings
@@ -833,6 +905,17 @@ pub fn run() {
                 let cfg_path = cfg_dir.join("config.json");
                 if let Ok(loaded) = config::Config::load_from(&cfg_path) {
                     *app.state::<AppState>().config.lock().unwrap() = loaded;
+                }
+            }
+
+            // First run: surface the (normally hidden) settings window so the
+            // onboarding flow can walk through permissions and the hotkey.
+            let needs_onboarding =
+                !app.state::<AppState>().config.lock().unwrap().onboarding_completed;
+            if needs_onboarding {
+                if let Some(w) = app.get_webview_window("settings") {
+                    let _ = w.show();
+                    let _ = w.set_focus();
                 }
             }
 

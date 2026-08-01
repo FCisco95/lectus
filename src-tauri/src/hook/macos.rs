@@ -55,6 +55,13 @@ fn ensure_accessibility_trusted() -> bool {
     unsafe { AXIsProcessTrustedWithOptions(opts.as_concrete_TypeRef()) }
 }
 
+/// Non-prompting Accessibility check for status UIs (onboarding, settings
+/// banner). Unlike `ensure_accessibility_trusted` this never raises the
+/// system dialog, so it is safe to poll.
+pub fn accessibility_trusted() -> bool {
+    unsafe { AXIsProcessTrusted() }
+}
+
 /// Set recording active/inactive and emit the matching start/stop event.
 fn signal(start: bool) {
     if let Some(active) = RECORDING_ACTIVE.get() {

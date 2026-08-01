@@ -36,6 +36,7 @@ export interface Config {
   injection_mode: string;
   vad_enabled: boolean;
   app_profiles: AppProfile[];
+  onboarding_completed: boolean;
 }
 
 export interface PanelProps {
