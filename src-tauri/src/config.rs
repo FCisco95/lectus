@@ -130,7 +130,10 @@ impl Default for Config {
             pill_x: 100,
             pill_y: 100,
             language: "auto".into(),
-            model_name: "ggml-tiny.bin".into(),
+            // base, not tiny: cheapest model with correct PT on the M4 bench
+            // (tiny mis-hears "quinta-feira"; base fixes it at +60–120 ms).
+            // See docs/benchmarks/2026-08-01-model-bench-m4.md.
+            model_name: "ggml-base.bin".into(),
             trigger_mode: "hold".into(),
             dictionary_words: Vec::new(),
             replacement_rules: Vec::new(),
