@@ -60,6 +60,8 @@ pub struct Config {
     /// (container-level serde(default)) — those users see onboarding once,
     /// which doubles as a permissions health-check after the update.
     pub onboarding_completed: bool,
+    /// UI theme: "system" (follow OS), "light", or "dark".
+    pub theme: String,
 }
 
 /// Overrides applied when dictating into a matching app. `None` = keep the
@@ -145,6 +147,7 @@ impl Default for Config {
             vad_enabled: true,
             app_profiles: Vec::new(),
             onboarding_completed: false,
+            theme: "system".into(),
         }
     }
 }

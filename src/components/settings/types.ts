@@ -37,6 +37,7 @@ export interface Config {
   vad_enabled: boolean;
   app_profiles: AppProfile[];
   onboarding_completed: boolean;
+  theme: 'system' | 'light' | 'dark';
 }
 
 export interface PanelProps {

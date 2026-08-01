@@ -265,19 +265,27 @@ fn save_config(
         &new_config.cloud_api_key,
     ));
 
-    let (device_changed, local_cleanup_enabled) = {
+    let (device_changed, local_cleanup_enabled, theme_changed) = {
         let mut guard = app_state.config.lock().unwrap();
         let changed = guard.input_device != new_config.input_device;
         let was_local = guard.ai_cleanup_enabled && guard.ai_cleanup_engine == "local";
         let now_local = new_config.ai_cleanup_enabled && new_config.ai_cleanup_engine == "local";
+        let theme_changed = guard.theme != new_config.theme;
         let resolved_model = guard.model_path.clone();
         let (px, py) = (guard.pill_x, guard.pill_y);
         *guard = new_config;
         guard.model_path = resolved_model;
         guard.pill_x = px;
         guard.pill_y = py;
-        (changed, !was_local && now_local)
+        (changed, !was_local && now_local, theme_changed)
     };
+
+    // Every webview (settings + pill) resolves `data-theme` itself on load;
+    // broadcast so an already-open window updates without a reload.
+    if theme_changed {
+        let theme = app_state.config.lock().unwrap().theme.clone();
+        let _ = app_handle.emit("theme-changed", theme);
+    }
 
     // Move the always-on pre-roll stream to the new mic. Done off-thread: the
     // pipeline holds the PreRoll lock for the whole dictation, and save fires

@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { Pill } from './components/Pill';
 import { Settings } from './components/Settings';
 import { IS_MAC } from './components/settings/types';
+import type { Config } from './components/settings/types';
+import './styles/tokens.css';
 
 type AppState = 'idle' | 'recording' | 'transcribing';
 
@@ -27,6 +30,34 @@ export default function App() {
     }
     document.documentElement.classList.add(IS_MAC ? 'platform-mac' : 'platform-win');
   }, [windowLabel]);
+
+  // Theme: "system" resolves live against the OS media query; "light"/"dark"
+  // pin the attribute regardless of OS. Settings persists `theme` in Config —
+  // read it directly here (rather than threading through Settings' own
+  // fetch) so the pill window also gets the right attribute.
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    let theme: Config['theme'] = 'system';
+
+    const apply = () => {
+      const resolved = theme === 'system' ? (media.matches ? 'dark' : 'light') : theme;
+      document.documentElement.setAttribute('data-theme', resolved);
+    };
+
+    invoke<Config>('get_config')
+      .then((c) => { theme = c.theme ?? 'system'; apply(); })
+      .catch(() => apply());
+
+    media.addEventListener('change', apply);
+    const unlisten = listen<string>('theme-changed', (e) => {
+      theme = (e.payload as Config['theme']) ?? 'system';
+      apply();
+    });
+    return () => {
+      media.removeEventListener('change', apply);
+      unlisten.then((f) => f());
+    };
+  }, []);
 
   if (windowLabel === 'pill') return <Pill state={appState} />;
   return <Settings />;
