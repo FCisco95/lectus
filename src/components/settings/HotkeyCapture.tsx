@@ -23,7 +23,12 @@ export function HotkeyCapture({ value, onCapture }: HotkeyCaptureProps) {
       <button
         type="button"
         className={`btn btn-key${capturing ? ' capturing' : ''}`}
-        onClick={() => { setCapturing(true); setHeld([]); setHint('Press a key or combo…'); }}
+        onClick={(e) => {
+          // macOS WebKit does not focus a <button> on click, so the key
+          // listeners below would never fire without an explicit focus().
+          e.currentTarget.focus();
+          setCapturing(true); setHeld([]); setHint('Press a key or combo…');
+        }}
         onBlur={reset}
         onKeyDown={(e) => {
           if (!capturing) return;

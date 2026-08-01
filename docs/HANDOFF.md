@@ -60,18 +60,42 @@ release `.app` bundle):
 binary, `npm run tauri build` (.app + .dmg), bundled .app standalone launch, model auto-downloads
 into `~/Library/Application Support/ai.organic.lectus/models/`, VAD model fetch, `bench_cleanup`.
 
+## Live human debug session (2026-08-01, same day, after the audit)
+
+The audit's headless checks all passed but live use was broken in two ways the audit could not see.
+Both were root-caused with Cisco at the keyboard, fixed, and **re-verified live** (5 complete
+dictation cycles in the log, text landing in real apps, history populated):
+
+1. **Every dictation crashed the app at the paste step** (`EXC_BREAKPOINT` / SIGTRAP,
+   `dispatch_assert_queue_fail` inside `TSMGetInputSourceProperty`). enigo resolves the
+   layout-dependent 'v' keycode via TIS/TSM, which macOS asserts must run on the main thread —
+   the pipeline runs on a tokio worker. Capture and transcription worked; the process died mid
+   Cmd+V. Four identical crash reports in `~/Library/Logs/DiagnosticReports/chirp-*.ips`.
+   **Fix:** `injection/clipboard.rs` — `simulate_paste()` hops to the main queue via `dispatch2`
+   (new direct macOS dep, was already in the lockfile) with a `pthread_main_np` guard; the
+   clipboard save/confirm/restore stays off-main. Windows path untouched.
+2. **Hotkey capture in Settings was dead** — `HotkeyCapture.tsx` listens for `onKeyDown` on the
+   button, but macOS WebKit does not focus a `<button>` on click, so key events never reached it
+   (works on Windows/Chrome — hence the platform split). **Fix:** explicit
+   `e.currentTarget.focus()` in the click handler. Capture + save + hook rearm verified live.
+
+**Why the audit missed both:** neither is reachable headless — the crash needs a real dictation
+reaching injection, and the focus quirk needs a real click + keypress in the webview.
+Measured on the M4 (debug build): transcription 111–186 ms, injection ~290 ms per dictation.
+
 ## What still needs a HUMAN test on macOS (not verifiable headless)
 
-1. **Grant permissions + hold-to-talk**: launch Lectus → expect the mic prompt AND the
-   Accessibility prompt → grant both in System Settings → Privacy & Security (Accessibility;
-   if hold-to-talk still dead, also Input Monitoring) → **restart Lectus** → hold Right Ctrl,
-   speak, release. Check log for `pre-roll contributed … ms` and text landing in the focused field.
-2. **Clipboard-paste injection into real apps** (Notes, VS Code, Terminal, Slack): text appears,
-   prior clipboard restored ~200 ms later. Terminals receive a *paste* on macOS (no typed-key path),
-   so bracketed-paste behavior in iTerm/Terminal is worth one explicit check.
-3. **Pill overlay renders transparent** (not a white square), draggable, click toggles recording;
-   tray icon visible + switches idle/recording/transcribing. Colored tray PNGs may look off against
-   the mac menu bar (template icons are the idiomatic fix — polish item).
+_Updated after the 2026-08-01 live debug session:_
+
+1. ~~Grant permissions + dictation cycle~~ **DONE live** — mic + Accessibility granted, pill-click
+   dictation works end-to-end (pre-roll 500 ms → capture → transcribe → inject → history), and
+   hotkey capture in Settings now saves a key (see live-debug section above). Remaining sub-check:
+   a full **hold-to-talk** run with the physical key across sleep/wake (CGEventTap timeout gap below).
+2. **Clipboard-paste injection breadth** — verified into the dictation test targets; still worth one
+   explicit pass in iTerm/Terminal (bracketed paste) and Slack, plus confirming the prior clipboard
+   restores ~200 ms later.
+3. **Pill overlay polish** — transparency/drag confirmed in use; tray icon idle/recording/transcribing
+   switching and template-icon polish still to eyeball.
 4. **Apps panel on macOS**: add a profile matching e.g. "code", dictate into VS Code, check
    `app profile matched` log line.
 5. **PT dictation quality + cleanup latency feel** on the M4 (A5 twin for the Mac).
