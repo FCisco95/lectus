@@ -4,6 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { Pill } from './components/Pill';
 import { Settings } from './components/Settings';
+import { Onboarding } from './components/Onboarding';
 import { IS_MAC } from './components/settings/types';
 import type { Config } from './components/settings/types';
 import './styles/tokens.css';
@@ -13,6 +14,14 @@ type AppState = 'idle' | 'recording' | 'transcribing';
 export default function App() {
   const [appState, setAppState] = useState<AppState>('idle');
   const [windowLabel] = useState(() => getCurrentWebviewWindow().label);
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (windowLabel === 'pill') return;
+    invoke<Config>('get_config')
+      .then((c) => setOnboardingDone(c.onboarding_completed))
+      .catch(() => setOnboardingDone(true));
+  }, [windowLabel]);
 
   useEffect(() => {
     const unlisten = listen<string>('state-changed', (e) => {
@@ -60,5 +69,7 @@ export default function App() {
   }, []);
 
   if (windowLabel === 'pill') return <Pill state={appState} />;
+  if (onboardingDone === null) return null;
+  if (!onboardingDone) return <Onboarding onComplete={() => setOnboardingDone(true)} />;
   return <Settings />;
 }
