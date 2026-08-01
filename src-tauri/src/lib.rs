@@ -407,6 +407,19 @@ fn request_microphone_access() {
     });
 }
 
+/// Deep-link into System Settings' Accessibility pane (macOS only — the
+/// onboarding step and the General-tab banner both need this, so it lives
+/// here rather than duplicated in the frontend).
+#[tauri::command]
+fn open_accessibility_settings() {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open")
+            .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+            .spawn();
+    }
+}
+
 /// Status of the local cleanup LLM, for the AI settings panel.
 #[derive(serde::Serialize)]
 struct CleanupModelStatus {
@@ -787,6 +800,10 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .manage(AppState::new())
         .manage(WhisperState {
             local: Arc::new(Mutex::new(None)),
@@ -819,6 +836,7 @@ pub fn run() {
             accessibility_status,
             microphone_status,
             request_microphone_access,
+            open_accessibility_settings,
         ])
         .setup(|app| {
             // Menu-bar app: no Dock icon, no app switcher entry. The settings
