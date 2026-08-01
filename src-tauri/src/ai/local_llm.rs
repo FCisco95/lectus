@@ -84,14 +84,50 @@ pub fn ensure_loaded(model_path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Gemma 3 instruction-tuned chat template around our cleanup instruction.
+/// Chat template selected from the model filename so cleanup candidates can be
+/// A/B-ed fairly (each instruct model only follows its own format).
 /// Instruction-only, no few-shot: cross-language examples made small models
 /// TRANSLATE the transcript into the example's language (measured in the B2
 /// bench) — worse than under-cleaning.
-fn build_prompt(text: &str, system: &str) -> String {
-    format!(
-        "<start_of_turn>user\n{system}\nNever translate — keep the transcript's own language.\n\nTranscript:\n{text}<end_of_turn>\n<start_of_turn>model\n"
-    )
+fn build_prompt(text: &str, system: &str, model_file: &str) -> String {
+    let f = model_file.to_ascii_lowercase();
+    let instruction =
+        format!("{system}\nNever translate — keep the transcript's own language.");
+    if f.contains("qwen") {
+        // ChatML (Qwen3). ` /no_think` in the user turn plus an empty-<think>
+        // assistant prefill disables Qwen3's thinking mode (llama.cpp-friendly;
+        // any stray <think> block is stripped from the output as safety).
+        format!(
+            "<|im_start|>system\n{instruction}<|im_end|>\n<|im_start|>user\nTranscript:\n{text} /no_think<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+        )
+    } else if f.contains("granite") {
+        // Granite 4.0 chat template.
+        format!(
+            "<|start_of_role|>system<|end_of_role|>{instruction}<|end_of_text|>\n<|start_of_role|>user<|end_of_role|>Transcript:\n{text}<|end_of_text|>\n<|start_of_role|>assistant<|end_of_role|>"
+        )
+    } else {
+        if !f.contains("gemma") {
+            log::warn!("build_prompt: unknown model family for {model_file:?}, falling back to Gemma template");
+        }
+        // Gemma 3 has no system role — instruction rides in the user turn.
+        format!(
+            "<start_of_turn>user\n{instruction}\n\nTranscript:\n{text}<end_of_turn>\n<start_of_turn>model\n"
+        )
+    }
+}
+
+/// Strip trailing end-of-turn/special tokens and any `<think>...</think>`
+/// block a reasoning model may emit despite thinking being disabled.
+fn clean_output(raw: &str) -> String {
+    let mut s = raw.trim().to_string();
+    if let Some(end) = s.find("</think>") {
+        // Drop everything through the closing tag (covers a missing opening tag too).
+        s = s[end + "</think>".len()..].trim().to_string();
+    }
+    for tok in ["<end_of_turn>", "<|im_end|>", "<|end_of_text|>", "<|endoftext|>"] {
+        s = s.trim_end_matches(tok).trim().to_string();
+    }
+    s
 }
 
 /// Load the model AND run a one-token generation so the Vulkan pipelines
@@ -109,7 +145,11 @@ pub fn cleanup_local(text: &str, system: &str, model_path: &Path) -> Result<Stri
     let guard = MODEL.lock().unwrap();
     let (_, model) = guard.as_ref().ok_or_else(|| anyhow!("cleanup model not loaded"))?;
 
-    let prompt = build_prompt(text, system);
+    let model_file = model_path
+        .file_name()
+        .and_then(|f| f.to_str())
+        .unwrap_or(CLEANUP_MODEL_NAME);
+    let prompt = build_prompt(text, system, model_file);
     let tokens = model
         .str_to_token(&prompt, AddBos::Always)
         .map_err(|e| anyhow!("tokenize failed: {e}"))?;
@@ -170,7 +210,7 @@ pub fn cleanup_local(text: &str, system: &str, model_path: &Path) -> Result<Stri
         tokens.len()
     );
 
-    let cleaned = out.trim().trim_end_matches("<end_of_turn>").trim().to_string();
+    let cleaned = clean_output(&out);
     if cleaned.is_empty() {
         return Err(anyhow!("local cleanup returned empty output"));
     }
@@ -186,12 +226,17 @@ mod tests {
     #[test]
     #[ignore = "benchmark — requires the downloaded cleanup model"]
     fn bench_cleanup() {
+        // Show the `cleanup LLM: ttft ...` log lines in the bench output.
+        let _ = env_logger::builder()
+            .is_test(false)
+            .filter_level(log::LevelFilter::Info)
+            .try_init();
         // LECTUS_CLEANUP_MODEL overrides the file name for A/B-ing candidates.
         let file = std::env::var("LECTUS_CLEANUP_MODEL")
             .unwrap_or_else(|_| CLEANUP_MODEL_NAME.to_string());
         let model_path = crate::transcription::model::bench_app_data_dir()
             .join("models")
-            .join(file);
+            .join(&file);
         assert!(model_path.exists(), "cleanup model not downloaded at {model_path:?}");
 
         // Same system prompt the pipeline builds, incl. the language pin that
@@ -201,22 +246,61 @@ mod tests {
             ("ok testing one two three this is a short dictation latency benchmark", "en"),
             ("então tipo eu acho que a gente devia mudar a reunião pra quinta porque o cliente não tá disponível na quarta", "pt"),
         ];
+        println!("\n=== cleanup bench: {file} ===");
         for (i, (text, lang)) in cases.iter().enumerate() {
             let system = crate::ai::system_prompt("neutral", Some(lang));
-            let t = std::time::Instant::now();
-            let out = cleanup_local(text, &system, &model_path).expect("cleanup failed");
+            // Untimed warmup (loads model on first case, compiles GPU pipelines).
+            let _ = cleanup_local(text, &system, &model_path).expect("warmup failed");
+            let mut times = Vec::new();
+            let mut out = String::new();
+            for _ in 0..3 {
+                let t = std::time::Instant::now();
+                out = cleanup_local(text, &system, &model_path).expect("cleanup failed");
+                times.push(t.elapsed().as_millis());
+            }
+            let best = *times.iter().min().unwrap();
             println!(
-                "case {i} ({lang}): {} ms\n  in:  {text}\n  out: {out}\n",
-                t.elapsed().as_millis()
+                "case {i} ({lang}): runs {times:?} ms | best {best} ms\n  in:  {text}\n  out: {out}\n"
             );
         }
     }
 
     #[test]
     fn prompt_uses_gemma_chat_template() {
-        let p = build_prompt("hello world", "clean this up");
+        let p = build_prompt("hello world", "clean this up", "gemma-3-1b-it-Q4_K_M.gguf");
         assert!(p.starts_with("<start_of_turn>user\n"));
         assert!(p.ends_with("<start_of_turn>model\n"));
         assert!(p.contains("hello world"));
+    }
+
+    #[test]
+    fn prompt_uses_chatml_for_qwen_with_no_think() {
+        let p = build_prompt("hello world", "clean this up", "Qwen_Qwen3-1.7B-Q4_K_M.gguf");
+        assert!(p.starts_with("<|im_start|>system\n"));
+        assert!(p.contains(" /no_think<|im_end|>"));
+        assert!(p.ends_with("<|im_start|>assistant\n<think>\n\n</think>\n\n"));
+        assert!(p.contains("hello world"));
+    }
+
+    #[test]
+    fn prompt_uses_granite_template() {
+        let p = build_prompt("hello world", "clean this up", "granite-4.0-1b-Q4_K_M.gguf");
+        assert!(p.starts_with("<|start_of_role|>system<|end_of_role|>"));
+        assert!(p.ends_with("<|start_of_role|>assistant<|end_of_role|>"));
+        assert!(p.contains("hello world"));
+    }
+
+    #[test]
+    fn unknown_model_falls_back_to_gemma_template() {
+        let p = build_prompt("hi", "sys", "mystery-model.gguf");
+        assert!(p.starts_with("<start_of_turn>user\n"));
+    }
+
+    #[test]
+    fn clean_output_strips_think_and_special_tokens() {
+        assert_eq!(clean_output("<think>\nreasoning\n</think>\n\nHello.<|im_end|>"), "Hello.");
+        assert_eq!(clean_output("Hello.<end_of_turn>"), "Hello.");
+        assert_eq!(clean_output("Olá.<|end_of_text|>"), "Olá.");
+        assert_eq!(clean_output("  plain  "), "plain");
     }
 }

@@ -126,14 +126,22 @@ mod tests {
         let model_dir = crate::transcription::model::bench_app_data_dir().join("models");
         let sample_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/audio_samples");
 
-        let models = ["ggml-tiny.bin", "ggml-base.bin", "ggml-small.bin"];
-        let clips = ["tts_en_4s.wav", "jfk_en_11s.wav"];
+        let models = [
+            "ggml-tiny.bin",
+            "ggml-base.bin",
+            "ggml-small.bin",
+            "ggml-medium.bin",
+            "ggml-large-v3-turbo.bin",
+            "ggml-large-v3-turbo-q8_0.bin",
+            "ggml-large-v3-turbo-q5_0.bin",
+        ];
+        let clips = ["tts_en_4s.wav", "jfk_en_11s.wav", "tts_pt_6s.wav"];
 
         println!("\n=== Lectus A1 latency bench ===");
         for model in models {
             let model_path = model_dir.join(model);
             if !model_path.exists() {
-                println!("{model}: NOT DOWNLOADED, skipping");
+                println!("{model}: SKIP (not downloaded)");
                 continue;
             }
             let t_load = std::time::Instant::now();
@@ -175,7 +183,7 @@ mod tests {
                         times,
                         best,
                         best as f32 / 1000.0 / audio_secs,
-                        text.chars().take(60).collect::<String>()
+                        text
                     );
                 }
             }
