@@ -3,6 +3,7 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { listen } from '@tauri-apps/api/event';
 import { Pill } from './components/Pill';
 import { Settings } from './components/Settings';
+import { IS_MAC } from './components/settings/types';
 
 type AppState = 'idle' | 'recording' | 'transcribing';
 
@@ -18,11 +19,13 @@ export default function App() {
   }, []);
 
   // The pill window is transparent; tag <html> so pill.css can neutralise the
-  // global opaque background for this window only.
+  // global opaque background for this window only. The platform class lets the
+  // stylesheets pick native tokens (SF/mac radii vs Segoe/Fluent).
   useEffect(() => {
     if (windowLabel === 'pill') {
       document.documentElement.classList.add('pill-window');
     }
+    document.documentElement.classList.add(IS_MAC ? 'platform-mac' : 'platform-win');
   }, [windowLabel]);
 
   if (windowLabel === 'pill') return <Pill state={appState} />;

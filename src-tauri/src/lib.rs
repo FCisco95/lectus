@@ -709,6 +709,7 @@ pub fn run() {
         .try_init();
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_os::init())
         .manage(AppState::new())
         .manage(WhisperState {
             local: Arc::new(Mutex::new(None)),
@@ -740,6 +741,26 @@ pub fn run() {
             get_foreground_app,
         ])
         .setup(|app| {
+            // Menu-bar app: no Dock icon, no app switcher entry. The settings
+            // window is reached via the tray (its handlers show()+set_focus()).
+            // If keyboard focus ever proves unreliable under Accessory, the
+            // fallback is flipping Regular↔Accessory on settings show/hide.
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+            // Finder-style sidebar vibrancy behind the settings webview. The
+            // window + sidebar CSS are transparent on macOS so the material
+            // shows through; the content pane stays opaque.
+            #[cfg(target_os = "macos")]
+            if let Some(w) = app.get_webview_window("settings") {
+                let _ = window_vibrancy::apply_vibrancy(
+                    &w,
+                    window_vibrancy::NSVisualEffectMaterial::Sidebar,
+                    None,
+                    None,
+                );
+            }
+
             let settings_item = MenuItem::with_id(
                 app,
                 "settings",

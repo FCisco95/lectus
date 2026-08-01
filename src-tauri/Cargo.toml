@@ -38,6 +38,8 @@ arboard = "3"
 # Windows: injecting into elevated windows needs uiAccess manifest entry
 enigo = "=0.2.1"
 tauri-plugin-global-shortcut = "2"
+# Frontend platform detection (navigator.platform is deprecated).
+tauri-plugin-os = "2"
 reqwest = { version = "0.12", features = ["json", "blocking", "multipart"] }
 anyhow = "1"
 log = "0.4"
@@ -52,6 +54,8 @@ core-graphics = "0.24"
 core-foundation = "0.10"
 # Main-queue dispatch for the paste keystroke (TIS/TSM main-thread assert).
 dispatch2 = "0.3"
+# NSVisualEffectView sidebar vibrancy for the settings window.
+window-vibrancy = "0.6"
 # metal: native GPU inference via ggml Metal backend on Apple Silicon (no SDK install needed).
 whisper-rs = { version = "0.16", features = ["metal"] }
 # MUST stay dynamic-link: whisper-rs links ggml statically, and a second static
