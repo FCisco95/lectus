@@ -129,9 +129,9 @@ fn do_set_state(
     if let Some(pill) = app_handle.get_webview_window("pill") {
         let size = match &next {
             RecordingState::Recording | RecordingState::Transcribing => {
-                tauri::LogicalSize::new(240.0, 72.0)
+                tauri::LogicalSize::new(240.0, 64.0)
             }
-            _ => tauri::LogicalSize::new(72.0, 72.0),
+            _ => tauri::LogicalSize::new(64.0, 64.0),
         };
         let _ = pill.set_size(size);
         let _ = pill.show();
