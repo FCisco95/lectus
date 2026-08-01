@@ -55,6 +55,13 @@ pub struct Config {
     /// Per-app overrides, matched (first hit wins) against the focused app's
     /// executable name at the moment the hotkey lands.
     pub app_profiles: Vec<AppProfile>,
+    /// First-run onboarding finished; false shows the setup flow instead of
+    /// Settings. Configs saved before this field existed deserialize to false
+    /// (container-level serde(default)) — those users see onboarding once,
+    /// which doubles as a permissions health-check after the update.
+    pub onboarding_completed: bool,
+    /// UI theme: "system" (follow OS), "light", or "dark".
+    pub theme: String,
 }
 
 /// Overrides applied when dictating into a matching app. `None` = keep the
@@ -125,7 +132,10 @@ impl Default for Config {
             pill_x: 100,
             pill_y: 100,
             language: "auto".into(),
-            model_name: "ggml-tiny.bin".into(),
+            // base, not tiny: cheapest model with correct PT on the M4 bench
+            // (tiny mis-hears "quinta-feira"; base fixes it at +60–120 ms).
+            // See docs/benchmarks/2026-08-01-model-bench-m4.md.
+            model_name: "ggml-base.bin".into(),
             trigger_mode: "hold".into(),
             dictionary_words: Vec::new(),
             replacement_rules: Vec::new(),
@@ -136,6 +146,8 @@ impl Default for Config {
             injection_mode: "auto".into(),
             vad_enabled: true,
             app_profiles: Vec::new(),
+            onboarding_completed: false,
+            theme: "system".into(),
         }
     }
 }

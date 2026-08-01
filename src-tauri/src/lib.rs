@@ -114,30 +114,47 @@ fn do_set_state(
     app_state.set_state(next.clone());
     app_handle.emit("state-changed", state_str).map_err(|e| e.to_string())?;
 
-    let icon_path = match next {
-        RecordingState::Recording => "icons/tray-recording.png",
-        RecordingState::Transcribing => "icons/tray-transcribing.png",
-        _ => "icons/tray-idle.png",
-    };
     if let Some(tray) = app_handle.tray_by_id("main") {
         if let Ok(res_dir) = app_handle.path().resource_dir() {
-            if let Ok(icon) = tauri::image::Image::from_path(res_dir.join(icon_path)) {
+            if let Ok(icon) = tauri::image::Image::from_path(res_dir.join(tray_icon_path(&next))) {
                 tray.set_icon(Some(icon)).ok();
+                // set_icon clears the template flag on macOS; re-assert it so the
+                // menu bar keeps adapting the glyph to light/dark appearance.
+                #[cfg(target_os = "macos")]
+                tray.set_icon_as_template(true).ok();
             }
         }
     }
 
     if let Some(pill) = app_handle.get_webview_window("pill") {
-        let size = match next {
+        let size = match &next {
             RecordingState::Recording | RecordingState::Transcribing => {
-                tauri::LogicalSize::new(240.0, 72.0)
+                tauri::LogicalSize::new(240.0, 64.0)
             }
-            _ => tauri::LogicalSize::new(72.0, 72.0),
+            _ => tauri::LogicalSize::new(64.0, 64.0),
         };
         let _ = pill.set_size(size);
         let _ = pill.show();
     }
     Ok(())
+}
+
+/// Tray icon for a state. Windows/Linux use the colored PNGs; macOS uses
+/// monochrome template PNGs (36 px = 18 pt @2x) so the menu bar can adapt
+/// them to light/dark appearance and highlight states.
+fn tray_icon_path(state: &RecordingState) -> &'static str {
+    #[cfg(target_os = "macos")]
+    return match state {
+        RecordingState::Recording => "icons/tray-template-recording.png",
+        RecordingState::Transcribing => "icons/tray-template-transcribing.png",
+        _ => "icons/tray-template-idle.png",
+    };
+    #[cfg(not(target_os = "macos"))]
+    match state {
+        RecordingState::Recording => "icons/tray-recording.png",
+        RecordingState::Transcribing => "icons/tray-transcribing.png",
+        _ => "icons/tray-idle.png",
+    }
 }
 
 #[tauri::command]
@@ -248,19 +265,27 @@ fn save_config(
         &new_config.cloud_api_key,
     ));
 
-    let (device_changed, local_cleanup_enabled) = {
+    let (device_changed, local_cleanup_enabled, theme_changed) = {
         let mut guard = app_state.config.lock().unwrap();
         let changed = guard.input_device != new_config.input_device;
         let was_local = guard.ai_cleanup_enabled && guard.ai_cleanup_engine == "local";
         let now_local = new_config.ai_cleanup_enabled && new_config.ai_cleanup_engine == "local";
+        let theme_changed = guard.theme != new_config.theme;
         let resolved_model = guard.model_path.clone();
         let (px, py) = (guard.pill_x, guard.pill_y);
         *guard = new_config;
         guard.model_path = resolved_model;
         guard.pill_x = px;
         guard.pill_y = py;
-        (changed, !was_local && now_local)
+        (changed, !was_local && now_local, theme_changed)
     };
+
+    // Every webview (settings + pill) resolves `data-theme` itself on load;
+    // broadcast so an already-open window updates without a reload.
+    if theme_changed {
+        let theme = app_state.config.lock().unwrap().theme.clone();
+        let _ = app_handle.emit("theme-changed", theme);
+    }
 
     // Move the always-on pre-roll stream to the new mic. Done off-thread: the
     // pipeline holds the PreRoll lock for the whole dictation, and save fires
@@ -312,6 +337,110 @@ fn list_input_devices() -> Vec<String> {
 #[tauri::command]
 fn get_foreground_app() -> Option<String> {
     context::foreground_app()
+}
+
+/// Whether the OS trusts this process for Accessibility (macOS). Non-prompting,
+/// safe to poll from onboarding / the settings banner. Always true elsewhere.
+#[tauri::command]
+fn accessibility_status() -> bool {
+    #[cfg(target_os = "macos")]
+    return hook::accessibility_trusted();
+    #[cfg(not(target_os = "macos"))]
+    true
+}
+
+/// Coarse microphone permission state: "granted" | "denied" | "undetermined" |
+/// "unknown". macOS asks TCC via AVFoundation; elsewhere we probe whether the
+/// default input device is usable.
+#[tauri::command]
+fn microphone_status() -> String {
+    #[cfg(target_os = "macos")]
+    {
+        use objc::{class, msg_send, sel, sel_impl};
+        #[link(name = "AVFoundation", kind = "framework")]
+        extern "C" {
+            static AVMediaTypeAudio: *mut objc::runtime::Object;
+        }
+        // AVAuthorizationStatus: 0 notDetermined, 1 restricted, 2 denied, 3 authorized
+        let status: i64 = unsafe {
+            msg_send![class!(AVCaptureDevice), authorizationStatusForMediaType: AVMediaTypeAudio]
+        };
+        match status {
+            3 => "granted",
+            1 | 2 => "denied",
+            0 => "undetermined",
+            _ => "unknown",
+        }
+        .to_string()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        use cpal::traits::{DeviceTrait, HostTrait};
+        match cpal::default_host()
+            .default_input_device()
+            .and_then(|d| d.default_input_config().ok())
+        {
+            Some(_) => "granted".to_string(),
+            None => "unknown".to_string(),
+        }
+    }
+}
+
+/// Trigger the OS microphone permission prompt by briefly opening an input
+/// stream (on macOS the first open raises the TCC dialog; the app's pre-roll
+/// stream may already have done so at launch). Fire-and-forget.
+#[tauri::command]
+fn request_microphone_access() {
+    std::thread::spawn(|| {
+        use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+        let Some(device) = cpal::default_host().default_input_device() else { return };
+        let Ok(config) = device.default_input_config() else { return };
+        if let Ok(stream) = device.build_input_stream(
+            &config.into(),
+            |_: &[f32], _| {},
+            |_| {},
+            None,
+        ) {
+            let _ = stream.play();
+            std::thread::sleep(std::time::Duration::from_millis(200));
+        }
+    });
+}
+
+/// Terminate the current process without running libc `atexit`/C++ static
+/// destructors. `std::process::exit` (and therefore `app_handle.exit`/
+/// `app_handle.restart`) runs those on the way out, which crashes here: once
+/// whisper's Metal backend has been initialized (it warms up at every
+/// startup — see `warmup_engine`), ggml-metal's own static device-registry
+/// destructor hits `GGML_ASSERT([rsets->data count] == 0)` during teardown —
+/// a known upstream bug (ggml-org/llama.cpp#17869), not anything in our
+/// state. Skipping straight to the `_exit` syscall sidesteps it entirely;
+/// there's nothing on our side left to flush (config saves are synchronous).
+fn force_exit(code: i32) -> ! {
+    unsafe { libc::_exit(code) }
+}
+
+/// Spawn a fresh instance of this binary, then hand off via `force_exit`
+/// instead of the normal exit path (see its doc comment for why).
+#[tauri::command]
+fn relaunch_app() {
+    if let Ok(exe) = std::env::current_exe() {
+        let _ = std::process::Command::new(exe).spawn();
+    }
+    force_exit(0);
+}
+
+/// Deep-link into System Settings' Accessibility pane (macOS only — the
+/// onboarding step and the General-tab banner both need this, so it lives
+/// here rather than duplicated in the frontend).
+#[tauri::command]
+fn open_accessibility_settings() {
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open")
+            .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+            .spawn();
+    }
 }
 
 /// Status of the local cleanup LLM, for the AI settings panel.
@@ -554,7 +683,7 @@ async fn do_pipeline(
                 match guard.as_mut() {
                     Some(engine) => engine.transcribe(&accumulated, &opts).map_err(|e| e.to_string()),
                     None => Err(
-                        "Whisper model not loaded — run scripts/download_model.ps1 first".to_string(),
+                        "Whisper model not loaded — download one in Settings → Models".to_string(),
                     ),
                 }
             }
@@ -692,6 +821,11 @@ pub fn run() {
         .try_init();
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .manage(AppState::new())
         .manage(WhisperState {
             local: Arc::new(Mutex::new(None)),
@@ -721,16 +855,66 @@ pub fn run() {
             get_cleanup_model_status,
             download_cleanup_model,
             get_foreground_app,
+            accessibility_status,
+            microphone_status,
+            request_microphone_access,
+            open_accessibility_settings,
+            relaunch_app,
         ])
         .setup(|app| {
-            let settings_item =
-                MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            // Menu-bar app: no Dock icon, no app switcher entry. The settings
+            // window is reached via the tray (its handlers show()+set_focus()).
+            // If keyboard focus ever proves unreliable under Accessory, the
+            // fallback is flipping Regular↔Accessory on settings show/hide.
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+            // Finder-style sidebar vibrancy behind the settings webview. The
+            // window + sidebar CSS are transparent on macOS so the material
+            // shows through; the content pane stays opaque.
+            #[cfg(target_os = "macos")]
+            if let Some(w) = app.get_webview_window("settings") {
+                let _ = window_vibrancy::apply_vibrancy(
+                    &w,
+                    window_vibrancy::NSVisualEffectMaterial::Sidebar,
+                    None,
+                    None,
+                );
+            }
+
+            let settings_item = MenuItem::with_id(
+                app,
+                "settings",
+                if cfg!(target_os = "macos") { "Settings…" } else { "Settings" },
+                true,
+                None::<&str>,
+            )?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit Lectus", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
-            TrayIconBuilder::with_id("main")
-                .icon(app.default_window_icon().unwrap().clone())
+            // Start on the real idle tray asset (the app icon looked wrong in the
+            // tray until the first state change) and keep the platform's tray
+            // conventions: macOS = template glyph + menu on any click; Windows =
+            // colored icon, left-click opens Settings, right-click shows the menu.
+            let idle_icon = app
+                .path()
+                .resource_dir()
+                .ok()
+                .and_then(|d| {
+                    tauri::image::Image::from_path(
+                        d.join(tray_icon_path(&RecordingState::Idle)),
+                    )
+                    .ok()
+                })
+                .unwrap_or_else(|| app.default_window_icon().unwrap().clone());
+            let tray = TrayIconBuilder::with_id("main")
+                .icon(idle_icon)
+                .tooltip("Lectus")
                 .menu(&menu)
-                .show_menu_on_left_click(true)
+                // Left click opens Settings directly on both platforms (one
+                // click, not click-then-click-Settings-in-the-menu); the
+                // dropdown menu (Settings…/Quit) is right-click only, which
+                // is macOS's native convention for menu-bar extras anyway.
+                .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "settings" => {
                         if let Some(w) = app.get_webview_window("settings") {
@@ -738,10 +922,28 @@ pub fn run() {
                             let _ = w.set_focus();
                         }
                     }
-                    "quit" => app.exit(0),
+                    // Not app.exit(0): that runs the normal libc exit path,
+                    // which crashes on ggml-metal teardown — see force_exit.
+                    "quit" => force_exit(0),
                     _ => {}
-                })
-                .build(app)?;
+                });
+            #[cfg(target_os = "macos")]
+            let tray = tray.icon_as_template(true);
+            let tray = tray.on_tray_icon_event(|tray, event| {
+                use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
+                if let TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } = event
+                {
+                    if let Some(w) = tray.app_handle().get_webview_window("settings") {
+                        let _ = w.show();
+                        let _ = w.set_focus();
+                    }
+                }
+            });
+            tray.build(app)?;
 
             if let Some(w) = app.get_webview_window("settings") {
                 let w_for_event = w.clone();
@@ -757,6 +959,17 @@ pub fn run() {
                 let cfg_path = cfg_dir.join("config.json");
                 if let Ok(loaded) = config::Config::load_from(&cfg_path) {
                     *app.state::<AppState>().config.lock().unwrap() = loaded;
+                }
+            }
+
+            // First run: surface the (normally hidden) settings window so the
+            // onboarding flow can walk through permissions and the hotkey.
+            let needs_onboarding =
+                !app.state::<AppState>().config.lock().unwrap().onboarding_completed;
+            if needs_onboarding {
+                if let Some(w) = app.get_webview_window("settings") {
+                    let _ = w.show();
+                    let _ = w.set_focus();
                 }
             }
 
@@ -920,8 +1133,20 @@ pub fn run() {
             });
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error running Lectus");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            // No Dock icon (Accessory policy) means no automatic reopen
+            // behavior: without this, clicking the app again while it's
+            // already running does nothing visible, which reads as "it
+            // won't open" even though it's running.
+            if let tauri::RunEvent::Reopen { .. } = event {
+                if let Some(w) = app_handle.get_webview_window("settings") {
+                    let _ = w.show();
+                    let _ = w.set_focus();
+                }
+            }
+        });
 }
 
 #[cfg(test)]

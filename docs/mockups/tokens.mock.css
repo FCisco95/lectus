@@ -1,0 +1,104 @@
+/* ============================================================
+   Lectus design tokens — MOCKUP copy (docs/mockups)
+   This file is the reference for the real src/styles/tokens.css.
+   Platform:  html.platform-mac | html.platform-win
+   Theme:     html[data-theme="light" | "dark"]  (app default: system)
+   ============================================================ */
+
+:root {
+  /* ---- Brand (parrot palette — unchanged) ---- */
+  --lectus-green:   #1db584;
+  --lectus-cyan:    #17a2a2;
+  --lectus-blue:    #3b82f6;
+  --lectus-magenta: #e91e8c;
+  --lectus-coral:   #ff6b5a;
+  --lectus-gold:    #ffa500;
+  --brand-gradient: linear-gradient(120deg,
+    var(--lectus-green), var(--lectus-cyan), var(--lectus-blue),
+    var(--lectus-magenta), var(--lectus-coral), var(--lectus-gold));
+  --brand-conic: conic-gradient(from 210deg,
+    var(--lectus-green), var(--lectus-cyan), var(--lectus-blue),
+    var(--lectus-magenta), var(--lectus-coral), var(--lectus-gold),
+    var(--lectus-green));
+
+  /* ---- Semantic: light ---- */
+  --bg-window:     #f6f6f8;
+  --bg-content:    #f6f6f8;
+  --bg-sidebar:    #ececf1;      /* mac: becomes translucent over vibrancy */
+  --bg-card:       #ffffff;
+  --bg-inset:      #eaeaef;      /* input wells, code chips */
+  --bg-hover:      rgba(0, 0, 0, 0.05);
+  --bg-active:     rgba(0, 0, 0, 0.08);
+  --text-primary:  #1c1c1f;
+  --text-secondary:#5c5c66;
+  --text-tertiary: #8e8e99;
+  --border:        rgba(0, 0, 0, 0.10);
+  --border-strong: rgba(0, 0, 0, 0.16);
+  --accent:        var(--lectus-blue);
+  --accent-text:   #ffffff;
+  --danger:        #e5484d;
+  --success:       var(--lectus-green);
+  --focus-ring:    0 0 0 3px rgba(59, 130, 246, 0.35);
+  --shadow-1:      0 1px 2px rgba(0,0,0,0.06), 0 1px 1px rgba(0,0,0,0.04);
+  --shadow-2:      0 8px 24px rgba(0,0,0,0.14);
+
+  /* ---- Scale ---- */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 40px;
+  --radius-sm: 5px;   /* controls */
+  --radius-md: 8px;   /* cards */
+  --radius-lg: 12px;  /* surfaces */
+  --radius-pill: 999px;
+  --text-xs: 11px; --text-sm: 12px; --text-base: 13px;
+  --text-lg: 15px; --text-xl: 20px;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text",
+             "Segoe UI", Inter, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --duration-fast: 120ms; --duration-base: 200ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---- Dark theme ---- */
+html[data-theme="dark"] {
+  --bg-window:     #1e1e23;
+  --bg-content:    #1e1e23;
+  --bg-sidebar:    #26262d;
+  --bg-card:       #2a2a32;
+  --bg-inset:      #232329;
+  --bg-hover:      rgba(255, 255, 255, 0.06);
+  --bg-active:     rgba(255, 255, 255, 0.10);
+  --text-primary:  #f2f2f5;
+  --text-secondary:#b4b4c0;
+  --text-tertiary: #7c7c88;
+  --border:        rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --focus-ring:    0 0 0 3px rgba(59, 130, 246, 0.45);
+  --shadow-1:      0 1px 2px rgba(0,0,0,0.4);
+  --shadow-2:      0 12px 32px rgba(0,0,0,0.5);
+}
+
+/* ---- macOS ---- */
+html.platform-mac {
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  /* sidebar shows vibrancy through */
+  --bg-sidebar: rgba(236, 236, 241, 0.55);
+}
+html.platform-mac[data-theme="dark"] {
+  --bg-sidebar: rgba(34, 34, 40, 0.55);
+}
+
+/* ---- Windows (Fluent-adjacent) ---- */
+html.platform-win {
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --shadow-1: none;                 /* Fluent favors 1px strokes over shadows */
+  --border: rgba(0, 0, 0, 0.14);
+}
+html.platform-win[data-theme="dark"] {
+  --border: rgba(255, 255, 255, 0.12);
+}

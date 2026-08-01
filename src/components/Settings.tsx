@@ -1,29 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { getVersion } from '@tauri-apps/api/app';
 import '../styles/settings.css';
 import type { Config } from './settings/types';
+import { Icon } from './Icon';
+import type { IconName } from './Icon';
 import { GeneralPanel } from './settings/GeneralPanel';
 import { DictationPanel } from './settings/DictationPanel';
-import { LanguagePanel } from './settings/LanguagePanel';
 import { DictionaryPanel } from './settings/DictionaryPanel';
 import { HistoryPanel } from './settings/HistoryPanel';
 import { AIPanel } from './settings/AIPanel';
-import { AppsPanel } from './settings/AppsPanel';
 import { ModelsPanel } from './settings/ModelsPanel';
-import { AboutPanel } from './settings/AboutPanel';
 
-type TabId = 'general' | 'dictation' | 'language' | 'dictionary' | 'history' | 'ai' | 'apps' | 'models' | 'about';
+type TabId = 'general' | 'dictation' | 'vocabulary' | 'ai' | 'history' | 'models';
 
-const TABS: Array<{ id: TabId; label: string; icon: string }> = [
-  { id: 'general', label: 'General', icon: '⚙️' },
-  { id: 'dictation', label: 'Dictation', icon: '🎙️' },
-  { id: 'language', label: 'Language', icon: '🌐' },
-  { id: 'dictionary', label: 'Dictionary', icon: '📖' },
-  { id: 'history', label: 'History', icon: '🕘' },
-  { id: 'ai', label: 'AI cleanup', icon: '✨' },
-  { id: 'apps', label: 'Apps', icon: '🪟' },
-  { id: 'models', label: 'Models', icon: '🧠' },
-  { id: 'about', label: 'About', icon: '🦜' },
+const TABS: Array<{ id: TabId; label: string; icon: IconName }> = [
+  { id: 'general', label: 'General', icon: 'general' },
+  { id: 'dictation', label: 'Dictation', icon: 'dictation' },
+  { id: 'vocabulary', label: 'Vocabulary', icon: 'vocabulary' },
+  { id: 'ai', label: 'AI Cleanup', icon: 'ai' },
+  { id: 'history', label: 'History', icon: 'history' },
+  { id: 'models', label: 'Models & About', icon: 'models' },
 ];
 
 export function Settings() {
@@ -31,6 +28,7 @@ export function Settings() {
   const [tab, setTab] = useState<TabId>('general');
   const [status, setStatus] = useState('');
   const [statusKind, setStatusKind] = useState<'' | 'ok' | 'err'>('');
+  const [version, setVersion] = useState('');
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -38,6 +36,7 @@ export function Settings() {
     invoke<Config>('get_config')
       .then(setConfig)
       .catch((e) => { setStatus(`Load error: ${e}`); setStatusKind('err'); });
+    getVersion().then(setVersion).catch(() => {});
   }, []);
 
   if (!config) {
@@ -52,7 +51,7 @@ export function Settings() {
     saveTimer.current = setTimeout(async () => {
       try {
         await invoke('save_config', { newConfig: next });
-        setStatus('Saved ✓');
+        setStatus('Saved');
         setStatusKind('ok');
         if (statusTimer.current) clearTimeout(statusTimer.current);
         statusTimer.current = setTimeout(() => setStatus(''), 1500);
@@ -65,33 +64,34 @@ export function Settings() {
 
   return (
     <div className="settings-app">
-      <nav className="settings-sidebar">
+      <div className="settings-topbar" data-tauri-drag-region>
         <div className="settings-brand">
           <div className="settings-brand-orb" />
           <span className="settings-brand-name">Lectus</span>
         </div>
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            className={`settings-nav-item${tab === t.id ? ' active' : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            <span className="settings-nav-icon">{t.icon}</span>
-            {t.label}
-          </button>
-        ))}
-      </nav>
+        <nav className="settings-nav">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              className={`settings-nav-item${tab === t.id ? ' active' : ''}`}
+              onClick={() => setTab(t.id)}
+            >
+              <span className="settings-nav-icon"><Icon name={t.icon} /></span>
+              {t.label}
+            </button>
+          ))}
+        </nav>
+        <div className="settings-sidebar-spacer" />
+        <span className="settings-version">v{version}</span>
+      </div>
 
       <main className="settings-content">
         {tab === 'general' && <GeneralPanel config={config} update={update} />}
         {tab === 'dictation' && <DictationPanel config={config} update={update} />}
-        {tab === 'language' && <LanguagePanel config={config} update={update} />}
-        {tab === 'dictionary' && <DictionaryPanel config={config} update={update} />}
-        {tab === 'history' && <HistoryPanel />}
+        {tab === 'vocabulary' && <DictionaryPanel config={config} update={update} />}
         {tab === 'ai' && <AIPanel config={config} update={update} />}
-        {tab === 'apps' && <AppsPanel config={config} update={update} />}
+        {tab === 'history' && <HistoryPanel />}
         {tab === 'models' && <ModelsPanel config={config} update={update} />}
-        {tab === 'about' && <AboutPanel />}
 
         {status && <div className={`settings-autosave-status ${statusKind}`}>{status}</div>}
       </main>

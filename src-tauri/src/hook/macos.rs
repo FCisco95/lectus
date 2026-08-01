@@ -28,6 +28,38 @@ static TOGGLE_ON: AtomicBool = AtomicBool::new(false); // latched state in toggl
 #[link(name = "ApplicationServices", kind = "framework")]
 extern "C" {
     fn AXIsProcessTrusted() -> bool;
+    fn AXIsProcessTrustedWithOptions(
+        options: core_foundation::dictionary::CFDictionaryRef,
+    ) -> bool;
+    static kAXTrustedCheckOptionPrompt: core_foundation::string::CFStringRef;
+}
+
+/// Check Accessibility trust, showing the system "Lectus wants to control this
+/// computer" dialog on the first denial so the app gets listed in
+/// System Settings → Privacy & Security → Accessibility. `AXIsProcessTrusted`
+/// alone never prompts, leaving the user with no discoverable path to grant it.
+fn ensure_accessibility_trusted() -> bool {
+    use core_foundation::base::TCFType;
+    use core_foundation::boolean::CFBoolean;
+    use core_foundation::dictionary::CFDictionary;
+    use core_foundation::string::CFString;
+
+    if unsafe { AXIsProcessTrusted() } {
+        return true;
+    }
+    let prompt_key = unsafe { CFString::wrap_under_get_rule(kAXTrustedCheckOptionPrompt) };
+    let opts = CFDictionary::from_CFType_pairs(&[(
+        prompt_key.as_CFType(),
+        CFBoolean::true_value().as_CFType(),
+    )]);
+    unsafe { AXIsProcessTrustedWithOptions(opts.as_concrete_TypeRef()) }
+}
+
+/// Non-prompting Accessibility check for status UIs (onboarding, settings
+/// banner). Unlike `ensure_accessibility_trusted` this never raises the
+/// system dialog, so it is safe to poll.
+pub fn accessibility_trusted() -> bool {
+    unsafe { AXIsProcessTrusted() }
 }
 
 /// Set recording active/inactive and emit the matching start/stop event.
@@ -76,10 +108,13 @@ pub struct MacosHook;
 impl KeyboardHook for MacosHook {
     fn install(ctx: HookContext) -> anyhow::Result<Self> {
         // Prompt + verify Accessibility (mandatory; cannot be auto-granted).
-        if !unsafe { AXIsProcessTrusted() } {
+        // The prompt shows once per TCC reset; a grant needs an app restart to
+        // take effect for the event tap.
+        if !ensure_accessibility_trusted() {
             eprintln!(
                 "Lectus needs Accessibility permission for hold-to-talk. \
-                 Grant it in System Settings → Privacy & Security → Accessibility, then restart."
+                 Grant it in System Settings → Privacy & Security → Accessibility, then restart. \
+                 (On newer macOS the event tap may additionally need Input Monitoring.)"
             );
             anyhow::bail!("accessibility permission not granted");
         }
@@ -147,7 +182,13 @@ impl KeyboardHook for MacosHook {
                     CFRunLoop::run_current();
                 }
                 Err(_) => {
-                    let _ = tx.send(Err("failed to create event tap".into()));
+                    // Happens even when AX-trusted if the keyboard tap is
+                    // blocked by TCC (Input Monitoring on recent macOS).
+                    let _ = tx.send(Err(
+                        "failed to create event tap — check Accessibility AND \
+                         Input Monitoring in System Settings → Privacy & Security"
+                            .into(),
+                    ));
                 }
             }
         });

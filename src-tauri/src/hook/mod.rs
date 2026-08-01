@@ -56,6 +56,8 @@ pub use windows::WindowsHook as PlatformHook;
 mod macos;
 #[cfg(target_os = "macos")]
 pub use macos::MacosHook as PlatformHook;
+#[cfg(target_os = "macos")]
+pub use macos::accessibility_trusted;
 
 // Fallback no-op so the crate still compiles on other targets (e.g. Linux CI).
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]

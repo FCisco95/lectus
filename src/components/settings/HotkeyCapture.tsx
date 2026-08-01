@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CODE_TO_KEY } from './types';
+import { CODE_TO_KEY, IS_MAC, formatHotkey } from './types';
 
 interface HotkeyCaptureProps {
   value: string;
@@ -23,7 +23,12 @@ export function HotkeyCapture({ value, onCapture }: HotkeyCaptureProps) {
       <button
         type="button"
         className={`btn btn-key${capturing ? ' capturing' : ''}`}
-        onClick={() => { setCapturing(true); setHeld([]); setHint('Press a key or combo…'); }}
+        onClick={(e) => {
+          // macOS WebKit does not focus a <button> on click, so the key
+          // listeners below would never fire without an explicit focus().
+          e.currentTarget.focus();
+          setCapturing(true); setHeld([]); setHint('Press a key or combo…');
+        }}
         onBlur={reset}
         onKeyDown={(e) => {
           if (!capturing) return;
@@ -31,7 +36,7 @@ export function HotkeyCapture({ value, onCapture }: HotkeyCaptureProps) {
           const mapped = CODE_TO_KEY[e.code];
           if (!mapped) {
             reset();
-            setHint(`Unsupported key (${e.code}). Try Ctrl/Shift/Alt/Win or F13–F15.`);
+            setHint(`Unsupported key (${e.code}). Try ${IS_MAC ? '⌃ ⇧ ⌥ ⌘' : 'Ctrl/Shift/Alt/Win'} or F13–F15.`);
             return;
           }
           if (!held.includes(mapped) && held.length < 2) {
@@ -46,7 +51,9 @@ export function HotkeyCapture({ value, onCapture }: HotkeyCaptureProps) {
           setHint('');
         }}
       >
-        {capturing ? (held.length ? `${held.join('+')}…` : 'Press a key or combo…') : value}
+        {capturing
+          ? (held.length ? `${formatHotkey(held.join('+'))}…` : 'Press a key or combo…')
+          : formatHotkey(value)}
       </button>
       {hint && <div className="field-hint">{hint}</div>}
     </>

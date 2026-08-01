@@ -1,4 +1,5 @@
 import type { PanelProps } from './types';
+import { IS_MAC, LANGUAGES } from './types';
 import { HotkeyCapture } from './HotkeyCapture';
 
 export function DictationPanel({ config, update }: PanelProps) {
@@ -7,6 +8,23 @@ export function DictationPanel({ config, update }: PanelProps) {
     <div>
       <h2 className="settings-panel-title">Dictation</h2>
       <p className="settings-panel-sub">How you start and stop talking.</p>
+
+      <div className="field">
+        <label className="field-label">Spoken language</label>
+        <select
+          className="select"
+          value={config.language || 'auto'}
+          onChange={(e) => update({ language: e.target.value })}
+        >
+          {LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>{l.label}</option>
+          ))}
+        </select>
+        <div className="field-hint">
+          Auto-detect handles mixed languages seamlessly. To change the Whisper model itself, see
+          the <strong>Models &amp; About</strong> tab.
+        </div>
+      </div>
 
       <div className="field">
         <label className="field-label">Trigger mode</label>
@@ -41,7 +59,11 @@ export function DictationPanel({ config, update }: PanelProps) {
       <div className="field">
         <label className="field-label">Hold-to-talk key</label>
         <HotkeyCapture value={config.hold_hotkey} onCapture={(k) => update({ hold_hotkey: k })} />
-        <div className="field-hint">Used in hold mode. A modifier (Ctrl/Shift/Alt/Win), a two-key combo (hold both, e.g. Ctrl+Win), or F13–F15.</div>
+        <div className="field-hint">
+          {IS_MAC
+            ? 'Used in hold mode. A modifier (⌃ ⇧ ⌥ ⌘), a two-key combo (hold both, e.g. ⌃⌘), or F13–F15.'
+            : 'Used in hold mode. A modifier (Ctrl/Shift/Alt/Win), a two-key combo (hold both, e.g. Ctrl+Win), or F13–F15.'}
+        </div>
       </div>
 
       <div className="field">

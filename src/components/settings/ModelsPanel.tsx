@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { getVersion } from '@tauri-apps/api/app';
 import type { PanelProps } from './types';
+
+const SWATCHES = ['#1db584', '#17a2a2', '#3b82f6', '#e91e8c', '#ff6b5a', '#ffa500'];
 
 interface ModelStatus {
   name: string;
@@ -18,11 +21,13 @@ export function ModelsPanel({ config }: PanelProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState<string | null>(null);
+  const [version, setVersion] = useState('');
 
   const refresh = () =>
     invoke<ModelStatus[]>('get_models_status').then(setModels).catch(console.error);
 
   useEffect(() => {
+    getVersion().then(setVersion).catch(() => {});
     refresh();
     const unlistens = [
       listen<number>('model-download-progress', (e) => setProgress(e.payload)),
@@ -119,6 +124,23 @@ export function ModelsPanel({ config }: PanelProps) {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="about-card">
+        <div className="about-orb" />
+        <div>
+          <span className="about-wordmark">Lectus</span>{' '}
+          <span className="about-version">v{version}</span>
+          <p className="field-hint" style={{ maxWidth: 420, marginTop: 6 }}>
+            Hold or tap to talk; Lectus transcribes locally or in the cloud and pastes wherever you
+            point. Named after the Eclectus parrot — colourful and a great talker.
+          </p>
+          <div className="swatches">
+            {SWATCHES.map((c) => (
+              <span className="swatch" key={c} style={{ background: c }} />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

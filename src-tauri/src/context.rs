@@ -1,4 +1,4 @@
-//! Focused-app detection for per-app profiles (Windows).
+//! Focused-app detection for per-app profiles.
 //!
 //! Captured at the moment the hotkey lands — that is the app the text will be
 //! injected into, so its profile governs tone/cleanup/language for this
@@ -43,7 +43,42 @@ pub fn foreground_app() -> Option<String> {
     }
 }
 
-#[cfg(not(target_os = "windows"))]
+/// Lower-cased localized name of the frontmost app, e.g. "visual studio code",
+/// "slack". Windows yields "code.exe" — profiles match by case-insensitive
+/// substring, so a rule like "code" hits on both platforms.
+#[cfg(target_os = "macos")]
+// objc 0.2's msg_send! internals probe cfg(cargo-clippy), tripping the
+// unexpected_cfgs lint on modern rustc — noise, not a real problem.
+#[allow(unexpected_cfgs)]
+pub fn foreground_app() -> Option<String> {
+    use objc::runtime::Object;
+    use objc::{class, msg_send, sel, sel_impl};
+
+    // NSWorkspace getters are safe off the main thread; the pipeline calls
+    // this from a tauri worker.
+    unsafe {
+        let workspace: *mut Object = msg_send![class!(NSWorkspace), sharedWorkspace];
+        let app: *mut Object = msg_send![workspace, frontmostApplication];
+        if app.is_null() {
+            return None;
+        }
+        let name: *mut Object = msg_send![app, localizedName];
+        if name.is_null() {
+            return None;
+        }
+        let utf8: *const std::os::raw::c_char = msg_send![name, UTF8String];
+        if utf8.is_null() {
+            return None;
+        }
+        Some(
+            std::ffi::CStr::from_ptr(utf8)
+                .to_string_lossy()
+                .to_ascii_lowercase(),
+        )
+    }
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
 pub fn foreground_app() -> Option<String> {
     None
 }

@@ -25,7 +25,10 @@ custom-protocol = ["tauri/custom-protocol"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon", "image-png"] }
+# macos-private-api: required for the transparent pill overlay window on macOS
+# (WKWebView background stays opaque without it). No-op on Windows. Note: uses
+# private API — fine for direct distribution, would block a Mac App Store build.
+tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-api"] }
 tauri-plugin-shell = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -35,11 +38,40 @@ arboard = "3"
 # Windows: injecting into elevated windows needs uiAccess manifest entry
 enigo = "=0.2.1"
 tauri-plugin-global-shortcut = "2"
+# Frontend platform detection (navigator.platform is deprecated).
+tauri-plugin-os = "2"
 reqwest = { version = "0.12", features = ["json", "blocking", "multipart"] }
 anyhow = "1"
 log = "0.4"
 env_logger = "0.11"
 hound = "3.5"
+encoding_rs = "0.8"
+tauri-plugin-autostart = "2.5.1"
+libc = "0.2.189"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cocoa = "0.26"
+objc = "0.2"
+core-graphics = "0.24"
+core-foundation = "0.10"
+# Main-queue dispatch for the paste keystroke (TIS/TSM main-thread assert).
+dispatch2 = "0.3"
+# NSVisualEffectView sidebar vibrancy for the settings window.
+window-vibrancy = "0.6"
+# metal: native GPU inference via ggml Metal backend on Apple Silicon (no SDK install needed).
+whisper-rs = { version = "0.16", features = ["metal"] }
+# MUST stay dynamic-link: whisper-rs links ggml statically, and a second static
+# ggml in llama-cpp-sys-2 collides at link time (duplicate ggml_* symbols).
+llama-cpp-2 = { version = "0.1", features = ["metal", "dynamic-link", "dynamic-backends"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = [
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_System_LibraryLoader",
+  "Win32_System_Threading",
+  "Win32_Foundation",
+] }
 # vulkan: GPU inference via ggml Vulkan backend — build needs the LunarG Vulkan
 # SDK (VULKAN_SDK env var); runtime only needs vulkan-1.dll, shipped with GPU drivers.
 whisper-rs = { version = "0.16", features = ["openmp", "vulkan"] }
@@ -50,22 +82,6 @@ whisper-rs = { version = "0.16", features = ["openmp", "vulkan"] }
 # symbols). Dynamic keeps llama's ggml inside its own DLLs; backends
 # (ggml-vulkan.dll etc.) load at runtime via llama_cpp_2::load_backends().
 llama-cpp-2 = { version = "0.1", features = ["vulkan", "dynamic-link", "dynamic-backends"] }
-encoding_rs = "0.8"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-cocoa = "0.26"
-objc = "0.2"
-core-graphics = "0.24"
-core-foundation = "0.10"
-
-[target.'cfg(target_os = "windows")'.dependencies]
-windows = { version = "0.58", features = [
-  "Win32_UI_Input_KeyboardAndMouse",
-  "Win32_UI_WindowsAndMessaging",
-  "Win32_System_LibraryLoader",
-  "Win32_System_Threading",
-  "Win32_Foundation",
-] }
 
 [dev-dependencies]
 tempfile = "3"

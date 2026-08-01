@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Merged into the macOS .app bundle by tauri-build. Without
+     NSMicrophoneUsageDescription, TCC kills the bundled app on first mic
+     access (the always-on pre-roll stream opens the mic at launch). -->
+<plist version="1.0">
+<dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Lectus captures your voice while the dictation hotkey is held so it can transcribe what you say.</string>
+</dict>
+</plist>

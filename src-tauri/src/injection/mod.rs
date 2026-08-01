@@ -27,6 +27,11 @@ pub fn inject_text(text: &str, mode: &str) -> Result<()> {
     }
     #[cfg(not(target_os = "windows"))]
     {
+        // macOS: no typed-keystroke path yet — every mode resolves to clipboard
+        // paste (Cmd+V via enigo, which needs Accessibility permission). A
+        // CGEventKeyboardSetUnicodeString-based twin of SendInput is the known
+        // gap for terminal-safe injection parity; the Settings UI hides the
+        // "Typed keystrokes" option on macOS until it exists.
         let _ = mode;
         inject_via_clipboard(text)
     }

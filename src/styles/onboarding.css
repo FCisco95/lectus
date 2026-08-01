@@ -1,0 +1,125 @@
+/* Lectus first-run onboarding — reuses the settings window (App.tsx renders
+   this instead of <Settings/> until config.onboarding_completed is true). */
+
+.onboarding-root {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-window);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.onboarding-step {
+  width: 460px;
+  max-width: calc(100vw - 48px);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-7);
+  position: relative;
+}
+
+html.platform-mac .onboarding-step { padding-top: calc(var(--space-7) + 14px); }
+
+.onboarding-step-tag {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-4);
+}
+
+.onboarding-orb {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin-bottom: var(--space-5);
+  background:
+    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.6), transparent 42%),
+    var(--brand-conic);
+  box-shadow: 0 8px 24px rgba(233, 30, 140, 0.25);
+}
+
+.onboarding-step h2 {
+  font-size: 22px;
+  letter-spacing: -0.3px;
+  margin: 0 0 var(--space-2);
+}
+.onboarding-step h2 em {
+  font-style: normal;
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.onboarding-step p {
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0 0 var(--space-4);
+}
+
+.onboarding-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+  font-weight: 600;
+}
+
+.onboarding-callout {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  border-left: 3px solid var(--lectus-gold);
+  padding: 2px 0 2px 12px;
+  margin-bottom: var(--space-4);
+}
+
+.onboarding-btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: var(--space-5);
+  margin-bottom: 26px;
+}
+
+.onboarding-kbd {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 2px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  display: inline-block;
+}
+
+.onboarding-dots {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.onboarding-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+.onboarding-dots i.on {
+  background: var(--accent);
+  width: 18px;
+  border-radius: 3px;
+}
