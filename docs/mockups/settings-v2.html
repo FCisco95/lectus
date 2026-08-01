@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en" class="platform-mac" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>Lectus mockup — Settings v2 (premium)</title>
+<link rel="stylesheet" href="tokens.mock.css">
+<style>
+  /* ============================================================
+     v2 tokens — layered on tokens.mock.css. Same brand hues, used
+     far more sparingly: one accent (blue) for interactive state,
+     the full parrot gradient reserved for the logo mark only.
+     Glass surfaces replace flat cards; sidebar tabs are gone.
+     ============================================================ */
+  :root {
+    --ink:        #17181c;
+    --paper:      #eceef2;
+    --glass-bg:   rgba(255, 255, 255, 0.62);
+    --glass-bg-2: rgba(255, 255, 255, 0.44);
+    --glass-border: rgba(20, 22, 30, 0.08);
+    --glass-line: rgba(20, 22, 30, 0.06);
+    --muted:      #6b6d78;
+    --faint:      #93949e;
+    --accent-2:   #2f6fed;
+    --accent-soft: rgba(47, 111, 237, 0.12);
+    --accent-soft-strong: rgba(47, 111, 237, 0.22);
+  }
+  html[data-theme="dark"] {
+    --ink:        #eef0f4;
+    --paper:      #14151a;
+    --glass-bg:   rgba(38, 40, 48, 0.58);
+    --glass-bg-2: rgba(38, 40, 48, 0.40);
+    --glass-border: rgba(255, 255, 255, 0.09);
+    --glass-line: rgba(255, 255, 255, 0.07);
+    --muted:      #a3a5b0;
+    --faint:      #6e6f7a;
+    --accent-2:   #5b8fff;
+    --accent-soft: rgba(91, 143, 255, 0.14);
+    --accent-soft-strong: rgba(91, 143, 255, 0.26);
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font-family: var(--font-ui); color: var(--ink);
+    background: #2a2d38;
+    min-height: 100vh; padding: 64px 24px 40px;
+    display: flex; justify-content: center; align-items: flex-start;
+  }
+
+  /* ---------- mockup chrome ---------- */
+  .mock-toolbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; gap: 8px; justify-content: center; padding: 12px;
+    background: rgba(14,15,18,0.85); backdrop-filter: blur(10px);
+    font: 12px/1 var(--font-ui); color: #eee;
+  }
+  .mock-toolbar button {
+    font: inherit; color: inherit; background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;
+    padding: 6px 14px; cursor: pointer;
+  }
+  .mock-toolbar button.on { background: var(--accent-2); border-color: transparent; }
+
+  .desktop {
+    width: 1080px; max-width: 100%; padding: 60px;
+    border-radius: 18px; overflow: hidden;
+    background:
+      radial-gradient(1100px 480px at 15% 0%, #4a3f6b 0%, transparent 60%),
+      radial-gradient(900px 560px at 92% 15%, #245b5e 0%, transparent 55%),
+      linear-gradient(160deg, #1b1e2e, #2d2540 55%, #10262b);
+  }
+
+  /* ---------- window ---------- */
+  .win {
+    width: 900px; height: 620px; margin: 0 auto;
+    display: flex; flex-direction: column;
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 40px 90px rgba(0,0,0,0.5);
+    background: var(--paper);
+    border: 1px solid var(--glass-border);
+    position: relative;
+  }
+
+  /* faint ambient wash behind the whole window so the glass has something
+     to catch, standing in for real macOS desktop content behind vibrancy */
+  .win::before {
+    content: ""; position: absolute; inset: 0; z-index: 0;
+    background:
+      radial-gradient(600px 340px at 18% -8%, color-mix(in srgb, var(--accent-2) 16%, transparent), transparent 60%),
+      radial-gradient(500px 300px at 100% 0%, color-mix(in srgb, var(--lectus-magenta) 10%, transparent), transparent 55%);
+    opacity: .55;
+  }
+
+  .traffic { display: none; gap: 8px; padding: 14px 0 0 14px; position: relative; z-index: 2; }
+  .platform-mac .traffic { display: flex; }
+  .traffic span { width: 12px; height: 12px; border-radius: 50%; }
+  .traffic .r { background: #ff5f57; } .traffic .y { background: #febc2e; } .traffic .g { background: #28c840; }
+
+  /* ---------- top identity + nav bar (replaces the sidebar) ---------- */
+  .topbar {
+    position: relative; z-index: 2;
+    display: flex; align-items: center; gap: 22px;
+    padding: 6px 28px 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; }
+  .orb {
+    width: 22px; height: 22px; border-radius: 50%; background:
+      radial-gradient(circle at 32% 30%, rgba(255,255,255,0.7), transparent 42%),
+      var(--brand-conic);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .wordmark { font-weight: 650; font-size: 14px; letter-spacing: -0.1px; color: var(--ink); opacity: .82; }
+
+  .segnav {
+    margin-left: 6px;
+    display: inline-flex; gap: 2px; padding: 3px;
+    background: var(--glass-bg-2);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    backdrop-filter: blur(20px) saturate(1.5);
+  }
+  .segnav a {
+    text-decoration: none; color: var(--muted); font-size: 12.5px; font-weight: 560;
+    padding: 6px 13px; border-radius: 9px; letter-spacing: 0.1px;
+    transition: background 140ms, color 140ms;
+  }
+  .segnav a.active { color: var(--ink); background: var(--paper); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  .segnav a:not(.active):hover { color: var(--ink); }
+
+  .topbar .spacer { flex: 1; }
+  .topbar .version { font-size: 11px; color: var(--faint); letter-spacing: .2px; }
+
+  /* ---------- content ---------- */
+  .content {
+    position: relative; z-index: 1;
+    flex: 1; overflow-y: auto;
+    padding: 8px 44px 40px;
+  }
+  h1 {
+    font-size: 26px; font-weight: 650; letter-spacing: -0.4px;
+    margin-bottom: 4px; text-wrap: balance;
+  }
+  .sub { color: var(--muted); font-size: 13.5px; margin-bottom: 30px; max-width: 46ch; line-height: 1.5; }
+
+  .pane {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 12px 30px rgba(0,0,0,0.10);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .prow {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px; padding: 18px 22px;
+  }
+  .prow + .prow { border-top: 1px solid var(--glass-line); }
+  .prow-label b { display: block; font-weight: 600; font-size: 13.5px; letter-spacing: -0.1px; }
+  .prow-label span { color: var(--muted); font-size: 12px; line-height: 1.45; display: block; margin-top: 3px; max-width: 40ch; }
+
+  select.v2, .segv2 {
+    font: inherit; font-size: 12.5px; color: var(--ink);
+    background: color-mix(in srgb, var(--ink) 4%, transparent);
+    border: 1px solid var(--glass-border);
+    border-radius: 9px; padding: 7px 11px;
+  }
+  .segv2 { display: inline-flex; padding: 2px; gap: 2px; }
+  .segv2 span { padding: 5px 13px; border-radius: 7px; color: var(--muted); cursor: default; font-size: 12px; }
+  .segv2 span.on { background: var(--paper); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.12); font-weight: 600; }
+
+  .toggle {
+    width: 36px; height: 21px; border-radius: 11px; background: var(--accent-2);
+    position: relative; flex-shrink: 0;
+  }
+  .toggle::after { content:""; position: absolute; top: 2px; right: 2px;
+                   width: 17px; height: 17px; border-radius: 50%; background: #fff;
+                   box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  .toggle.off { background: color-mix(in srgb, var(--ink) 16%, transparent); }
+  .toggle.off::after { right: auto; left: 2px; }
+
+  .kbd {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    background: color-mix(in srgb, var(--ink) 5%, transparent);
+    border: 1px solid var(--glass-border); border-bottom-width: 2px;
+    border-radius: 8px; padding: 5px 10px; letter-spacing: 1px; color: var(--ink);
+  }
+
+  .banner {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-soft-strong);
+    border-radius: 16px; padding: 14px 18px; margin-bottom: 20px;
+    font-size: 12.5px; color: var(--ink);
+  }
+  .banner b { font-weight: 650; }
+  .banner .btnrow { margin-left: auto; display: flex; gap: 8px; }
+  .btn {
+    font: inherit; font-weight: 600; font-size: 12.5px;
+    border: 1px solid var(--glass-border); border-radius: 9px;
+    background: var(--paper); color: var(--ink);
+    padding: 7px 14px; cursor: pointer; white-space: nowrap;
+  }
+  .btn.primary { background: var(--accent-2); border-color: transparent; color: #fff; }
+
+  .autosave {
+    position: absolute; right: 22px; bottom: 18px; z-index: 3;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18); border-radius: 999px;
+    padding: 7px 15px; font-size: 12px; color: var(--success);
+    display: flex; align-items: center; gap: 6px; font-weight: 600;
+    backdrop-filter: blur(16px);
+  }
+
+  .note { max-width: 900px; margin: 22px auto 0; font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.7; }
+</style>
+</head>
+<body>
+  <div class="mock-toolbar">
+    <button data-plat="platform-mac" class="on">macOS</button>
+    <button data-plat="platform-win">Windows</button>
+    <span style="width:16px"></span>
+    <button data-theme="light">Light</button>
+    <button data-theme="dark" class="on">Dark</button>
+  </div>
+
+  <div class="desktop">
+    <div class="win">
+      <div class="traffic"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+
+      <div class="topbar">
+        <div class="brand"><div class="orb"></div><div class="wordmark">Lectus</div></div>
+        <nav class="segnav">
+          <a class="active" href="#">General</a>
+          <a href="#">Dictation</a>
+          <a href="#">Vocabulary</a>
+          <a href="#">AI Cleanup</a>
+          <a href="#">History</a>
+          <a href="#">Models &amp; About</a>
+        </nav>
+        <div class="spacer"></div>
+        <div class="version">v0.5.0</div>
+      </div>
+
+      <main class="content">
+        <h1>General</h1>
+        <div class="sub">Appearance, microphone and how text is inserted.</div>
+
+        <div class="banner">
+          <span>⚠️</span>
+          <span><b>Accessibility permission is off.</b> The dictation hotkey won't work until it's granted and Lectus is relaunched.</span>
+          <div class="btnrow">
+            <button class="btn">Open System Settings</button>
+            <button class="btn primary">Relaunch</button>
+          </div>
+        </div>
+
+        <div class="pane">
+          <div class="prow">
+            <div class="prow-label"><b>Appearance</b><span>Follow the system, or force light / dark.</span></div>
+            <div class="segv2"><span class="on">System</span><span>Light</span><span>Dark</span></div>
+          </div>
+          <div class="prow">
+            <div class="prow-label"><b>Microphone</b><span>Input device used for dictation.</span></div>
+            <select class="v2"><option>MacBook Pro Microphone</option></select>
+          </div>
+          <div class="prow">
+            <div class="prow-label"><b>Insert text using</b><span>How transcribed text lands in the focused app.</span></div>
+            <select class="v2"><option>Clipboard paste (restores clipboard)</option></select>
+          </div>
+        </div>
+
+        <div class="pane">
+          <div class="prow">
+            <div class="prow-label"><b>Hold to talk</b><span>Hold to record, release to transcribe.</span></div>
+            <span class="kbd">⌃⇧Space</span>
+          </div>
+          <div class="prow">
+            <div class="prow-label"><b>Toggle dictation</b><span>Press once to start, again to stop.</span></div>
+            <span class="kbd">⌥⌘D</span>
+          </div>
+          <div class="prow">
+            <div class="prow-label"><b>Launch at login</b><span>Start Lectus in the background at sign-in.</span></div>
+            <div class="toggle"></div>
+          </div>
+          <div class="prow">
+            <div class="prow-label"><b>Voice activity detection</b><span>Trims silence before recognition — fewer "ghost words".</span></div>
+            <div class="toggle"></div>
+          </div>
+        </div>
+
+        <div class="autosave">✓ Saved</div>
+      </main>
+    </div>
+  </div>
+
+  <p class="note">
+    v2 direction: top identity bar + a floating segmented switcher replaces the left icon-rail sidebar entirely —
+    no fixed nav column eating width. Panes are glass (24px blur, translucent fill, 1px hairline, soft ambient
+    shadow) over a faint radial wash standing in for real desktop vibrancy. One accent (blue) carries every
+    interactive state — toggles, the active segment, primary buttons, focus rings, kbd hover. The parrot gradient
+    is now reserved for the logo mark only; everything else is neutral ink/paper. Type steps up (26px page
+    title vs. 20px before), rows breathe more (18/22 padding vs. 12/16), and corner radii round out to 16–18px.
+  </p>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get('plat')) document.documentElement.className = 'platform-' + q.get('plat');
+  if (q.get('theme')) document.documentElement.dataset.theme = q.get('theme');
+  document.querySelectorAll('.mock-toolbar button').forEach(b => b.onclick = () => {
+    const h = document.documentElement;
+    if (b.dataset.plat) { h.className = b.dataset.plat; }
+    if (b.dataset.theme) { h.dataset.theme = b.dataset.theme; }
+    [...b.parentNode.children].filter(x => x.dataset.plat && b.dataset.plat || x.dataset.theme && b.dataset.theme)
+      .forEach(x => x.classList.toggle('on', x === b));
+  });
+</script>
+</body>
+</html>

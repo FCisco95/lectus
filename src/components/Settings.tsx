@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { getVersion } from '@tauri-apps/api/app';
 import '../styles/settings.css';
 import type { Config } from './settings/types';
 import { Icon } from './Icon';
@@ -27,6 +28,7 @@ export function Settings() {
   const [tab, setTab] = useState<TabId>('general');
   const [status, setStatus] = useState('');
   const [statusKind, setStatusKind] = useState<'' | 'ok' | 'err'>('');
+  const [version, setVersion] = useState('');
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -34,6 +36,7 @@ export function Settings() {
     invoke<Config>('get_config')
       .then(setConfig)
       .catch((e) => { setStatus(`Load error: ${e}`); setStatusKind('err'); });
+    getVersion().then(setVersion).catch(() => {});
   }, []);
 
   if (!config) {
@@ -61,13 +64,12 @@ export function Settings() {
 
   return (
     <div className="settings-app">
-      <div className="settings-dragregion" data-tauri-drag-region />
-      <nav className="settings-sidebar">
+      <div className="settings-topbar" data-tauri-drag-region>
         <div className="settings-brand">
           <div className="settings-brand-orb" />
           <span className="settings-brand-name">Lectus</span>
         </div>
-        <div className="settings-nav">
+        <nav className="settings-nav">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -78,9 +80,10 @@ export function Settings() {
               {t.label}
             </button>
           ))}
-        </div>
+        </nav>
         <div className="settings-sidebar-spacer" />
-      </nav>
+        <span className="settings-version">v{version}</span>
+      </div>
 
       <main className="settings-content">
         {tab === 'general' && <GeneralPanel config={config} update={update} />}
