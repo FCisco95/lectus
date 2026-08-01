@@ -18,7 +18,8 @@ pub struct LocalWhisper {
 impl LocalWhisper {
     pub fn new(model_path: &Path) -> Result<Self> {
         let mut params = WhisperContextParameters::default();
-        // Vulkan GPU inference; whisper.cpp falls back to CPU when no device is found.
+        // GPU inference — Vulkan on Windows, Metal on macOS (per-target Cargo
+        // features); whisper.cpp falls back to CPU when no device is found.
         params.use_gpu(true);
         let ctx = WhisperContext::new_with_params(
             model_path.to_str().ok_or_else(|| anyhow::anyhow!("invalid model path"))?,
@@ -120,10 +121,9 @@ mod tests {
     /// Run: cargo test --release bench_latency -- --ignored --nocapture
     /// (Vulkan build env required — see memory lectus-vulkan-build.)
     #[test]
-    #[ignore = "benchmark — requires downloaded models in %APPDATA%"]
+    #[ignore = "benchmark — requires downloaded models in the app data dir"]
     fn bench_latency() {
-        let appdata = std::env::var("APPDATA").expect("APPDATA not set");
-        let model_dir = PathBuf::from(appdata).join("ai.organic.lectus").join("models");
+        let model_dir = crate::transcription::model::bench_app_data_dir().join("models");
         let sample_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/audio_samples");
 
         let models = ["ggml-tiny.bin", "ggml-base.bin", "ggml-small.bin"];

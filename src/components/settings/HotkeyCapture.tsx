@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CODE_TO_KEY } from './types';
+import { CODE_TO_KEY, IS_MAC } from './types';
 
 interface HotkeyCaptureProps {
   value: string;
@@ -31,7 +31,7 @@ export function HotkeyCapture({ value, onCapture }: HotkeyCaptureProps) {
           const mapped = CODE_TO_KEY[e.code];
           if (!mapped) {
             reset();
-            setHint(`Unsupported key (${e.code}). Try Ctrl/Shift/Alt/Win or F13–F15.`);
+            setHint(`Unsupported key (${e.code}). Try Ctrl/Shift/${IS_MAC ? 'Option/Cmd' : 'Alt/Win'} or F13–F15.`);
             return;
           }
           if (!held.includes(mapped) && held.length < 2) {

@@ -43,8 +43,19 @@ fn backend() -> Result<&'static LlamaBackend> {
         match compile_time_dir {
             Some(_) => llama_cpp_2::llama_backend::load_backends(),
             None => {
-                if let Some(dir) = std::env::current_exe().ok().and_then(|e| e.parent().map(|p| p.to_path_buf())) {
-                    llama_cpp_2::llama_backend::load_backends_from_path(&dir);
+                // Shipped-build search order: next to the exe (Windows installer
+                // layout), then the macOS .app bundle's Resources/backends dir
+                // (tauri.macos.conf.json ships the .so modules there).
+                if let Some(exe_dir) = std::env::current_exe().ok().and_then(|e| e.parent().map(|p| p.to_path_buf())) {
+                    let candidates = [
+                        exe_dir.clone(),
+                        exe_dir.join("../Resources/backends"),
+                    ];
+                    for dir in candidates {
+                        if dir.exists() {
+                            llama_cpp_2::llama_backend::load_backends_from_path(&dir);
+                        }
+                    }
                 }
             }
         }
@@ -175,12 +186,10 @@ mod tests {
     #[test]
     #[ignore = "benchmark — requires the downloaded cleanup model"]
     fn bench_cleanup() {
-        let appdata = std::env::var("APPDATA").expect("APPDATA not set");
         // LECTUS_CLEANUP_MODEL overrides the file name for A/B-ing candidates.
         let file = std::env::var("LECTUS_CLEANUP_MODEL")
             .unwrap_or_else(|_| CLEANUP_MODEL_NAME.to_string());
-        let model_path = std::path::PathBuf::from(appdata)
-            .join("ai.organic.lectus")
+        let model_path = crate::transcription::model::bench_app_data_dir()
             .join("models")
             .join(file);
         assert!(model_path.exists(), "cleanup model not downloaded at {model_path:?}");

@@ -8,6 +8,21 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager};
 
+/// Bench-only twin of Tauri's `app_data_dir` (benches run without an
+/// AppHandle): `%APPDATA%\ai.organic.lectus` on Windows,
+/// `~/Library/Application Support/ai.organic.lectus` on macOS.
+#[cfg(test)]
+pub(crate) fn bench_app_data_dir() -> PathBuf {
+    #[cfg(target_os = "windows")]
+    let root = PathBuf::from(std::env::var("APPDATA").expect("APPDATA not set"));
+    #[cfg(target_os = "macos")]
+    let root = PathBuf::from(std::env::var("HOME").expect("HOME not set"))
+        .join("Library/Application Support");
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    let root = PathBuf::from(std::env::var("HOME").expect("HOME not set")).join(".local/share");
+    root.join("ai.organic.lectus")
+}
+
 /// A downloadable Whisper model.
 #[derive(Clone, serde::Serialize)]
 pub struct ModelInfo {

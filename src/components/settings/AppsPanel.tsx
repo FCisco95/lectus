@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { AppProfile, PanelProps } from './types';
-import { LANGUAGES } from './types';
+import { IS_MAC, LANGUAGES } from './types';
 
 const TONES = ['neutral', 'formal', 'casual', 'concise'];
 
@@ -121,7 +121,7 @@ export function AppsPanel({ config, update }: PanelProps) {
             >
               <option value="">Use global setting</option>
               <option value="auto">Auto</option>
-              <option value="sendinput">Typed keystrokes</option>
+              {!IS_MAC && <option value="sendinput">Typed keystrokes</option>}
               <option value="clipboard">Clipboard paste</option>
             </select>
           </div>

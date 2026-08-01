@@ -43,6 +43,10 @@ export interface PanelProps {
   update: (patch: Partial<Config>) => void;
 }
 
+// Typed-keystroke injection (SendInput) is Windows-only; on macOS every mode
+// resolves to clipboard paste, so the option is hidden there.
+export const IS_MAC = navigator.platform.toUpperCase().includes('MAC');
+
 // KeyboardEvent.code → Lectus config key string.
 // MUST stay in sync with config_key_to_vk in src-tauri/src/hook/mod.rs.
 export const CODE_TO_KEY: Record<string, string> = {

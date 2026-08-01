@@ -554,7 +554,7 @@ async fn do_pipeline(
                 match guard.as_mut() {
                     Some(engine) => engine.transcribe(&accumulated, &opts).map_err(|e| e.to_string()),
                     None => Err(
-                        "Whisper model not loaded — run scripts/download_model.ps1 first".to_string(),
+                        "Whisper model not loaded — download one in Settings → Models".to_string(),
                     ),
                 }
             }

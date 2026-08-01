@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { IS_MAC } from './types';
 import type { PanelProps } from './types';
 
 export function GeneralPanel({ config, update }: PanelProps) {
@@ -37,12 +38,13 @@ export function GeneralPanel({ config, update }: PanelProps) {
           onChange={(e) => update({ injection_mode: e.target.value })}
         >
           <option value="auto">Auto (recommended)</option>
-          <option value="sendinput">Typed keystrokes</option>
+          {!IS_MAC && <option value="sendinput">Typed keystrokes</option>}
           <option value="clipboard">Clipboard paste</option>
         </select>
         <div className="field-hint">
-          Auto types the text natively (works in terminals, never touches your clipboard)
-          and falls back to paste if blocked. Clipboard paste is fastest for very long dictations.
+          {IS_MAC
+            ? 'Text is inserted via clipboard paste (Cmd+V into the focused field); your previous clipboard is restored afterwards.'
+            : 'Auto types the text natively (works in terminals, never touches your clipboard) and falls back to paste if blocked. Clipboard paste is fastest for very long dictations.'}
         </div>
       </div>
 

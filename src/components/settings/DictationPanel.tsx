@@ -1,4 +1,5 @@
 import type { PanelProps } from './types';
+import { IS_MAC } from './types';
 import { HotkeyCapture } from './HotkeyCapture';
 
 export function DictationPanel({ config, update }: PanelProps) {
@@ -41,7 +42,11 @@ export function DictationPanel({ config, update }: PanelProps) {
       <div className="field">
         <label className="field-label">Hold-to-talk key</label>
         <HotkeyCapture value={config.hold_hotkey} onCapture={(k) => update({ hold_hotkey: k })} />
-        <div className="field-hint">Used in hold mode. A modifier (Ctrl/Shift/Alt/Win), a two-key combo (hold both, e.g. Ctrl+Win), or F13–F15.</div>
+        <div className="field-hint">
+          {IS_MAC
+            ? 'Used in hold mode. A modifier (Ctrl/Shift/Option/Cmd), a two-key combo (hold both, e.g. Ctrl+Cmd), or F13–F15.'
+            : 'Used in hold mode. A modifier (Ctrl/Shift/Alt/Win), a two-key combo (hold both, e.g. Ctrl+Win), or F13–F15.'}
+        </div>
       </div>
 
       <div className="field">
