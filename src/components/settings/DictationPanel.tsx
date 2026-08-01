@@ -44,7 +44,7 @@ export function DictationPanel({ config, update }: PanelProps) {
         <HotkeyCapture value={config.hold_hotkey} onCapture={(k) => update({ hold_hotkey: k })} />
         <div className="field-hint">
           {IS_MAC
-            ? 'Used in hold mode. A modifier (Ctrl/Shift/Option/Cmd), a two-key combo (hold both, e.g. Ctrl+Cmd), or F13–F15.'
+            ? 'Used in hold mode. A modifier (⌃ ⇧ ⌥ ⌘), a two-key combo (hold both, e.g. ⌃⌘), or F13–F15.'
             : 'Used in hold mode. A modifier (Ctrl/Shift/Alt/Win), a two-key combo (hold both, e.g. Ctrl+Win), or F13–F15.'}
         </div>
       </div>

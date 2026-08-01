@@ -1,7 +1,7 @@
-/* The pill window must be genuinely transparent. The global :root background
-   (App.css) would otherwise paint an opaque rectangle behind the orb, so we
-   neutralise it only for the pill window (class added in App.tsx). The Settings
-   window, sharing the same bundle, keeps its normal background. */
+/* The pill window must be genuinely transparent. Any global background would
+   otherwise paint an opaque rectangle behind the orb, so we neutralise it only
+   for the pill window (class added in App.tsx). The Settings window, sharing
+   the same bundle, keeps its normal background. */
 html.pill-window,
 html.pill-window body,
 html.pill-window #root {
