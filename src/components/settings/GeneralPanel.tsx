@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { isEnabled as autostartEnabled, enable as autostartEnable, disable as autostartDisable } from '@tauri-apps/plugin-autostart';
-import { relaunch } from '@tauri-apps/plugin-process';
 import { IS_MAC } from './types';
 import type { PanelProps } from './types';
 
@@ -50,7 +49,7 @@ export function GeneralPanel({ config, update }: PanelProps) {
           <button className="btn" onClick={() => invoke('open_accessibility_settings')}>
             Open System Settings
           </button>
-          <button className="btn btn-primary" onClick={() => relaunch()}>
+          <button className="btn btn-primary" onClick={() => invoke('relaunch_app')}>
             Relaunch
           </button>
         </div>

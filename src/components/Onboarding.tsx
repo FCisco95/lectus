@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { relaunch } from '@tauri-apps/plugin-process';
 import '../styles/settings.css';
 import '../styles/onboarding.css';
 import type { Config } from './settings/types';
@@ -125,7 +124,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                 Open System Settings
               </button>
               {accessible && (
-                <button className="btn" onClick={() => relaunch()}>
+                <button className="btn" onClick={() => invoke('relaunch_app')}>
                   Relaunch instead
                 </button>
               )}

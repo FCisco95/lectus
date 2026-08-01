@@ -407,6 +407,29 @@ fn request_microphone_access() {
     });
 }
 
+/// Terminate the current process without running libc `atexit`/C++ static
+/// destructors. `std::process::exit` (and therefore `app_handle.exit`/
+/// `app_handle.restart`) runs those on the way out, which crashes here: once
+/// whisper's Metal backend has been initialized (it warms up at every
+/// startup — see `warmup_engine`), ggml-metal's own static device-registry
+/// destructor hits `GGML_ASSERT([rsets->data count] == 0)` during teardown —
+/// a known upstream bug (ggml-org/llama.cpp#17869), not anything in our
+/// state. Skipping straight to the `_exit` syscall sidesteps it entirely;
+/// there's nothing on our side left to flush (config saves are synchronous).
+fn force_exit(code: i32) -> ! {
+    unsafe { libc::_exit(code) }
+}
+
+/// Spawn a fresh instance of this binary, then hand off via `force_exit`
+/// instead of the normal exit path (see its doc comment for why).
+#[tauri::command]
+fn relaunch_app() {
+    if let Ok(exe) = std::env::current_exe() {
+        let _ = std::process::Command::new(exe).spawn();
+    }
+    force_exit(0);
+}
+
 /// Deep-link into System Settings' Accessibility pane (macOS only — the
 /// onboarding step and the General-tab banner both need this, so it lives
 /// here rather than duplicated in the frontend).
@@ -799,7 +822,6 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -837,6 +859,7 @@ pub fn run() {
             microphone_status,
             request_microphone_access,
             open_accessibility_settings,
+            relaunch_app,
         ])
         .setup(|app| {
             // Menu-bar app: no Dock icon, no app switcher entry. The settings
@@ -887,7 +910,11 @@ pub fn run() {
                 .icon(idle_icon)
                 .tooltip("Lectus")
                 .menu(&menu)
-                .show_menu_on_left_click(cfg!(target_os = "macos"))
+                // Left click opens Settings directly on both platforms (one
+                // click, not click-then-click-Settings-in-the-menu); the
+                // dropdown menu (Settings…/Quit) is right-click only, which
+                // is macOS's native convention for menu-bar extras anyway.
+                .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "settings" => {
                         if let Some(w) = app.get_webview_window("settings") {
@@ -895,12 +922,13 @@ pub fn run() {
                             let _ = w.set_focus();
                         }
                     }
-                    "quit" => app.exit(0),
+                    // Not app.exit(0): that runs the normal libc exit path,
+                    // which crashes on ggml-metal teardown — see force_exit.
+                    "quit" => force_exit(0),
                     _ => {}
                 });
             #[cfg(target_os = "macos")]
             let tray = tray.icon_as_template(true);
-            #[cfg(not(target_os = "macos"))]
             let tray = tray.on_tray_icon_event(|tray, event| {
                 use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
                 if let TrayIconEvent::Click {
