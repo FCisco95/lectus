@@ -114,21 +114,20 @@ fn do_set_state(
     app_state.set_state(next.clone());
     app_handle.emit("state-changed", state_str).map_err(|e| e.to_string())?;
 
-    let icon_path = match next {
-        RecordingState::Recording => "icons/tray-recording.png",
-        RecordingState::Transcribing => "icons/tray-transcribing.png",
-        _ => "icons/tray-idle.png",
-    };
     if let Some(tray) = app_handle.tray_by_id("main") {
         if let Ok(res_dir) = app_handle.path().resource_dir() {
-            if let Ok(icon) = tauri::image::Image::from_path(res_dir.join(icon_path)) {
+            if let Ok(icon) = tauri::image::Image::from_path(res_dir.join(tray_icon_path(&next))) {
                 tray.set_icon(Some(icon)).ok();
+                // set_icon clears the template flag on macOS; re-assert it so the
+                // menu bar keeps adapting the glyph to light/dark appearance.
+                #[cfg(target_os = "macos")]
+                tray.set_icon_as_template(true).ok();
             }
         }
     }
 
     if let Some(pill) = app_handle.get_webview_window("pill") {
-        let size = match next {
+        let size = match &next {
             RecordingState::Recording | RecordingState::Transcribing => {
                 tauri::LogicalSize::new(240.0, 72.0)
             }
@@ -138,6 +137,24 @@ fn do_set_state(
         let _ = pill.show();
     }
     Ok(())
+}
+
+/// Tray icon for a state. Windows/Linux use the colored PNGs; macOS uses
+/// monochrome template PNGs (36 px = 18 pt @2x) so the menu bar can adapt
+/// them to light/dark appearance and highlight states.
+fn tray_icon_path(state: &RecordingState) -> &'static str {
+    #[cfg(target_os = "macos")]
+    return match state {
+        RecordingState::Recording => "icons/tray-template-recording.png",
+        RecordingState::Transcribing => "icons/tray-template-transcribing.png",
+        _ => "icons/tray-template-idle.png",
+    };
+    #[cfg(not(target_os = "macos"))]
+    match state {
+        RecordingState::Recording => "icons/tray-recording.png",
+        RecordingState::Transcribing => "icons/tray-transcribing.png",
+        _ => "icons/tray-idle.png",
+    }
 }
 
 #[tauri::command]
@@ -723,14 +740,35 @@ pub fn run() {
             get_foreground_app,
         ])
         .setup(|app| {
-            let settings_item =
-                MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+            let settings_item = MenuItem::with_id(
+                app,
+                "settings",
+                if cfg!(target_os = "macos") { "Settings…" } else { "Settings" },
+                true,
+                None::<&str>,
+            )?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit Lectus", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
-            TrayIconBuilder::with_id("main")
-                .icon(app.default_window_icon().unwrap().clone())
+            // Start on the real idle tray asset (the app icon looked wrong in the
+            // tray until the first state change) and keep the platform's tray
+            // conventions: macOS = template glyph + menu on any click; Windows =
+            // colored icon, left-click opens Settings, right-click shows the menu.
+            let idle_icon = app
+                .path()
+                .resource_dir()
+                .ok()
+                .and_then(|d| {
+                    tauri::image::Image::from_path(
+                        d.join(tray_icon_path(&RecordingState::Idle)),
+                    )
+                    .ok()
+                })
+                .unwrap_or_else(|| app.default_window_icon().unwrap().clone());
+            let tray = TrayIconBuilder::with_id("main")
+                .icon(idle_icon)
+                .tooltip("Lectus")
                 .menu(&menu)
-                .show_menu_on_left_click(true)
+                .show_menu_on_left_click(cfg!(target_os = "macos"))
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "settings" => {
                         if let Some(w) = app.get_webview_window("settings") {
@@ -740,8 +778,25 @@ pub fn run() {
                     }
                     "quit" => app.exit(0),
                     _ => {}
-                })
-                .build(app)?;
+                });
+            #[cfg(target_os = "macos")]
+            let tray = tray.icon_as_template(true);
+            #[cfg(not(target_os = "macos"))]
+            let tray = tray.on_tray_icon_event(|tray, event| {
+                use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
+                if let TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } = event
+                {
+                    if let Some(w) = tray.app_handle().get_webview_window("settings") {
+                        let _ = w.show();
+                        let _ = w.set_focus();
+                    }
+                }
+            });
+            tray.build(app)?;
 
             if let Some(w) = app.get_webview_window("settings") {
                 let w_for_event = w.clone();

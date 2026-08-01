@@ -62,7 +62,10 @@
       "../models/ggml-tiny.en.bin": "models/ggml-tiny.en.bin",
       "icons/tray-idle.png": "icons/tray-idle.png",
       "icons/tray-recording.png": "icons/tray-recording.png",
-      "icons/tray-transcribing.png": "icons/tray-transcribing.png"
+      "icons/tray-transcribing.png": "icons/tray-transcribing.png",
+      "icons/tray-template-idle.png": "icons/tray-template-idle.png",
+      "icons/tray-template-recording.png": "icons/tray-template-recording.png",
+      "icons/tray-template-transcribing.png": "icons/tray-template-transcribing.png"
     }
   }
 }
