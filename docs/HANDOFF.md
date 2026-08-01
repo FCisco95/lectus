@@ -2,11 +2,11 @@
 
 _Last updated: 2026-08-01 (night) • Branch: `master` • Version: 0.4.0 (0.5.0 pending Track 1 sign-off)_
 
-> **⏸ WAITING ON CISCO: mockup sign-off.** The v0.5.0 session ran two tracks.
-> Track 2 (models, measured) is DONE and committed. Track 1 (native UX overhaul)
-> landed its non-visual half; the visual restyle is gated on your approval of
-> `docs/mockups/` — open `settings.html`, `pill.html`, `onboarding.html` in a
-> browser (mac/win × light/dark toggles at the top of each page).
+> **✅ MOCKUPS APPROVED (Cisco, 2026-08-01, no tweaks).** The v0.5.0 session ran
+> two tracks. Track 2 (models, measured) is DONE and committed. Track 1 (native
+> UX overhaul) landed its non-visual half; the visual restyle is now UNBLOCKED —
+> implement it to match `docs/mockups/` (settings.html, pill.html,
+> onboarding.html, tokens.mock.css) in the commit order below.
 
 ## This session's commits (all on master, in order)
 
