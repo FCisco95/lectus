@@ -116,20 +116,26 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               </span>
             </div>
             <p className="onboarding-callout">
-              <b>Important:</b> after granting, Lectus must be relaunched for the permission to take
-              effect. Status updates live — Relaunch lights up once you're set.
+              <b>Important:</b> if you just granted this in System Settings, relaunch Lectus so the
+              hotkey listener picks it up. Already granted from a previous run (as detected here)?
+              Just continue.
             </p>
             <div className="onboarding-btn-row">
               <button className="btn" onClick={() => invoke('open_accessibility_settings')}>
                 Open System Settings
               </button>
+              {accessible && (
+                <button className="btn" onClick={() => relaunch()}>
+                  Relaunch instead
+                </button>
+              )}
               <button
                 className="btn btn-primary"
                 style={{ marginLeft: 'auto' }}
                 disabled={!accessible}
-                onClick={() => relaunch()}
+                onClick={goNext}
               >
-                Relaunch Lectus
+                Continue
               </button>
             </div>
           </>
