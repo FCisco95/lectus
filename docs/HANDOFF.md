@@ -2,10 +2,10 @@
 
 ## Metadata
 
-- Last Updated: 2026-08-01 (late night)
+- Last Updated: 2026-08-02
 - Repository: lectus
-- Branch: `master`
-- Version: 0.4.0 (0.5.0 bump still pending — see Next Actions #1)
+- Branch: `feat/v0.5.0-ux-overhaul-live-fixes` (PR #2, not yet merged to master)
+- Version: 0.5.0 (bumped: package.json, src-tauri/Cargo.toml, tauri.conf.json)
 - Next-session model: Sonnet 5 (implementation continues; no new plan needed)
 
 ## TL;DR
@@ -115,13 +115,23 @@ verification — flagged as a risk, not done blind.
 - ✅ Onboarding (5 steps, backend already existed from a prior session)
 - ✅ Live-eyeball pass — **done, this session**, with Cisco at the keyboard;
   bugs above are what came out of it and are fixed
-- ⬜ Version bump to 0.5.0 (`tauri.conf.json`, `src-tauri/Cargo.toml`,
-  `package.json`, About footer) — **not done**, do first next session
-- ⬜ Delete `docs/mockups/` (both `settings.html`/`pill.html`/`onboarding.html`/
-  `tokens.mock.css` AND the new `settings-v2.html`) — **not done**, do
-  after the version bump and after confirming Cisco doesn't want the v2
-  mockup kept around for reference a bit longer
-- ⬜ Refresh this file + dated snapshot — **this document is that refresh**
+- ✅ Version bump to 0.5.0 (`tauri.conf.json`, `src-tauri/Cargo.toml` +
+  `Cargo.lock`, `package.json` — About footer already dynamic via
+  `getVersion()`, no hardcoded string to touch)
+- ✅ Deleted `docs/mockups/` entirely (`settings.html`/`pill.html`/
+  `onboarding.html`/`tokens.mock.css`/`settings-v2.html`) — all preserved
+  in git history (commit `82e0dc2` for the originals, `c5302f6` for v2) if
+  ever needed for reference
+- ✅ Refresh this file + dated snapshot — this document is that refresh
+
+## Track 1 — CLOSED
+
+Everything in the approved plan is implemented, live-tested, and this
+mechanical wrap-up is done. **Not yet merged to master** — PR #2
+(`feat/v0.5.0-ux-overhaul-live-fixes`) is open, awaiting review/merge.
+Remaining work is genuinely new scope, not follow-through on this plan:
+Windows verification, and whatever Cisco's continued live testing (Small
+whisper model A/B, remaining tabs, theme toggle) turns up.
 
 ## Not yet re-verified after all the above changes
 
