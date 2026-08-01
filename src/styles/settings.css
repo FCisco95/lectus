@@ -48,6 +48,18 @@ html, body, #root { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   padding: var(--space-2) var(--space-7) var(--space-3);
 }
 
+/* The topbar carries data-tauri-drag-region so the empty space around the
+   nav is draggable, but that attribute maps to -webkit-app-region: drag on
+   every descendant too — without this opt-out, clicks on the nav buttons
+   (and any other interactive child added later) can get swallowed as a
+   window-drag gesture instead of registering. */
+.settings-topbar button,
+.settings-topbar a,
+.settings-topbar input,
+.settings-topbar select {
+  -webkit-app-region: no-drag;
+}
+
 html.platform-mac .settings-topbar { padding-top: 20px; }
 
 .settings-brand {

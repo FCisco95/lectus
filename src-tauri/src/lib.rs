@@ -1133,8 +1133,20 @@ pub fn run() {
             });
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error running Lectus");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            // No Dock icon (Accessory policy) means no automatic reopen
+            // behavior: without this, clicking the app again while it's
+            // already running does nothing visible, which reads as "it
+            // won't open" even though it's running.
+            if let tauri::RunEvent::Reopen { .. } = event {
+                if let Some(w) = app_handle.get_webview_window("settings") {
+                    let _ = w.show();
+                    let _ = w.set_focus();
+                }
+            }
+        });
 }
 
 #[cfg(test)]
