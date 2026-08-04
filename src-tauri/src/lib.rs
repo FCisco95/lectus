@@ -1147,6 +1147,8 @@ pub fn run() {
             // behavior: without this, clicking the app again while it's
             // already running does nothing visible, which reads as "it
             // won't open" even though it's running.
+            // (RunEvent::Reopen only exists on macOS.)
+            #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Reopen { .. } = event {
                 if let Some(w) = app_handle.get_webview_window("settings") {
                     let _ = w.show();
