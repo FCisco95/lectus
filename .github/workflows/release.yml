@@ -106,9 +106,20 @@ jobs:
           arch: x64
       # (vcvars env is exported for the tauri-action step below)
 
-      - name: Add Vulkan Bin to PATH (Windows)
+      - name: Vulkan / Ninja env (Windows)
         if: runner.os == 'Windows'
-        run: echo "C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }}\Bin" >> $env:GITHUB_PATH
+        run: |
+          echo "C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }}\Bin" >> $env:GITHUB_PATH
+          echo "VULKAN_SDK=C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }}" >> $env:GITHUB_ENV
+          echo "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
+
+      # tauri-build validates the bundle resource globs (ggml/llama DLLs, backends/) inside chirp's
+      # build script, which cargo may run before llama-cpp-sys-2 has produced them. Warm the target
+      # dir first; --keep-going makes cargo finish the native deps even though chirp itself fails.
+      - name: Prebuild native deps
+        working-directory: src-tauri
+        continue-on-error: true
+        run: cargo build --release --keep-going
 
       - name: Build + publish release
         uses: tauri-apps/tauri-action@v0
@@ -116,9 +127,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # Windows: same env as build-release.cmd
-          VULKAN_SDK: C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }}
-          CMAKE_GENERATOR: Ninja
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Lectus ${{ github.ref_name }}'
