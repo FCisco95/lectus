@@ -23,7 +23,7 @@ for /f "tokens=2" %%p in ('tasklist /fi "imagename eq %EXE%" /fo list ^| findstr
   taskkill /PID %%p /F >nul 2>&1
 )
 for /f "tokens=2" %%p in ('tasklist /fi "imagename eq %EXE%" /fo list ^| findstr /b "PID:"') do (
-  echo chirp.exe still running (PID %%p) — killing with elevation...
+  echo chirp.exe still running ^(PID %%p^) - killing with elevation...
   powershell -Command "Start-Process taskkill -ArgumentList '/PID %%p /F' -Verb RunAs -Wait" >nul 2>&1
 )
 

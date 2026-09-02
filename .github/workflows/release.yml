@@ -112,6 +112,13 @@ jobs:
           echo "C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }}\Bin" >> $env:GITHUB_PATH
           echo "VULKAN_SDK=C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }}" >> $env:GITHUB_ENV
           echo "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
+          # whisper-rs-sys forwards GGML_* to CMake. Without this, whisper's statically linked ggml is
+          # built with -march=native for the runner's CPU (AVX-512) and crashes with 0xc000001d
+          # (illegal instruction) on machines without it (e.g. Ryzen 5800X). AVX2/FMA/F16C = portable baseline.
+          echo "GGML_NATIVE=OFF" >> $env:GITHUB_ENV
+          echo "GGML_AVX2=ON" >> $env:GITHUB_ENV
+          echo "GGML_FMA=ON" >> $env:GITHUB_ENV
+          echo "GGML_F16C=ON" >> $env:GITHUB_ENV
 
       # tauri-build validates the bundle resource globs (ggml/llama DLLs, backends/) inside chirp's
       # build script, which cargo may run before llama-cpp-sys-2 has produced them. Warm the target
