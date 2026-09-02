@@ -511,3 +511,18 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
 .about-version { font-size: var(--text-base); font-weight: 500; color: var(--text-tertiary); }
 .swatches { display: flex; gap: 8px; margin-top: 14px; }
 .swatch { width: 22px; height: 22px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
+
+/* Update banner (update-banner.tsx): pinned above the settings content when a background
+   download is parked and waiting for a restart. */
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(29, 181, 132, 0.12);
+  border-bottom: 1px solid rgba(29, 181, 132, 0.35);
+  font-size: 13px;
+}
+.update-banner-text { flex: 1; }
+.update-banner-btn { padding: 4px 12px; font-size: 13px; }
+.about-updates { display: flex; align-items: center; margin: 10px 0 6px; }

@@ -8,6 +8,7 @@ mod hotkey;
 mod injection;
 mod state;
 mod transcription;
+mod updates;
 mod worker;
 
 use state::{AppState, RecordingState};
@@ -828,11 +829,15 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
+        .manage(updates::PendingUpdate::new())
+        .manage(updates::LastUpdateError(Mutex::new(None)))
         .manage(AppState::new())
         .manage(WhisperState {
             local: Arc::new(Mutex::new(None)),
@@ -867,6 +872,9 @@ pub fn run() {
             request_microphone_access,
             open_accessibility_settings,
             relaunch_app,
+            updates::check_for_updates,
+            updates::last_update_error,
+            updates::restart_and_apply,
         ])
         .setup(|app| {
             // Menu-bar app: no Dock icon, no app switcher entry. The settings
@@ -1132,6 +1140,10 @@ pub fn run() {
                 }
                 Err(e) => eprintln!("warning: keyboard hook not installed: {e}"),
             }
+
+            // Background update check: query the GitHub Releases feed, download any newer build (signature-verified),
+            // and notify Settings. All failures are silent/log-only — never blocks dictation. Install only on user click.
+            updates::spawn_background_check(app.handle().clone());
 
             let pipeline_handle = app.handle().clone();
             app.listen("hold-start", move |_event| {

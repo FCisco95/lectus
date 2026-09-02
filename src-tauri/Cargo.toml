@@ -1,6 +1,6 @@
 [package]
 name = "chirp"
-version = "0.4.0"
+version = "0.5.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -48,6 +48,8 @@ env_logger = "0.11"
 hound = "3.5"
 encoding_rs = "0.8"
 tauri-plugin-autostart = "2.5.1"
+tauri-plugin-updater = "2.11.0"
+tauri-plugin-process = "2.3.1"
 libc = "0.2.189"
 
 [target.'cfg(target_os = "macos")'.dependencies]

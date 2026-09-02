@@ -22,12 +22,19 @@ export function ModelsPanel({ config }: PanelProps) {
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState<string | null>(null);
   const [version, setVersion] = useState('');
+  const [updateStatus, setUpdateStatus] = useState('');
+  const [updateAvailable, setUpdateAvailable] = useState('');
+  const [lastUpdateError, setLastUpdateError] = useState('');
 
   const refresh = () =>
     invoke<ModelStatus[]>('get_models_status').then(setModels).catch(console.error);
 
   useEffect(() => {
     getVersion().then(setVersion).catch(() => {});
+    // Last background-check failure, persisted Rust-side, so a silently-failing updater is visible here.
+    invoke<string | null>('last_update_error')
+      .then((e) => { if (e) setLastUpdateError(e); })
+      .catch(() => {});
     refresh();
     const unlistens = [
       listen<number>('model-download-progress', (e) => setProgress(e.payload)),
@@ -51,6 +58,17 @@ export function ModelsPanel({ config }: PanelProps) {
     ];
     return () => { unlistens.forEach((u) => u.then((f) => f())); };
   }, [config.model_name]);
+
+  const checkUpdates = async () => {
+    setUpdateStatus('Checking…');
+    try {
+      const info = await invoke<{ version: string } | null>('check_for_updates');
+      setUpdateStatus(info ? `Update to v${info.version} downloading…` : 'Up to date');
+      if (info) setUpdateAvailable(info.version);
+    } catch (e) {
+      setUpdateStatus(`Check failed: ${e}`);
+    }
+  };
 
   const handleDownload = (name: string) => {
     setDownloading(name);
@@ -135,6 +153,20 @@ export function ModelsPanel({ config }: PanelProps) {
             Hold or tap to talk; Lectus transcribes locally or in the cloud and pastes wherever you
             point. Named after the Eclectus parrot — colourful and a great talker.
           </p>
+          <div className="about-updates">
+            <button className="btn btn-secondary" onClick={checkUpdates} disabled={updateStatus === 'Checking…'}>
+              Check for updates
+            </button>
+            {updateStatus && <span className="field-hint" style={{ marginLeft: 10 }}>{updateStatus}</span>}
+            {updateAvailable && (
+              <span className="field-hint" style={{ marginLeft: 10 }}>
+                v{updateAvailable} downloaded — restart from the banner above.
+              </span>
+            )}
+          </div>
+          {lastUpdateError && !updateStatus && (
+            <div className="field-hint" style={{ marginTop: 6 }}>Last background check: {lastUpdateError}</div>
+          )}
           <div className="swatches">
             {SWATCHES.map((c) => (
               <span className="swatch" key={c} style={{ background: c }} />

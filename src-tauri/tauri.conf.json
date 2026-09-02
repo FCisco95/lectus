@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Lectus",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "identifier": "ai.organic.lectus",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -40,14 +40,24 @@
         "x": 100,
         "y": 100
       }
-    ],
+      ],
     "security": {
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
     }
   },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/FCisco95/lectus/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVCNzg2NDNBQjIwMjNCQzMKUldURE93S3lPbVI0NjdZVStBTlhlZXU5TkFFZmpzbzdEUzhlR3FYdEpsK09UdzQ2U2FJbnEzK1UK"
+    },
+    "process": {}
+  },
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "macOS": {
       "minimumSystemVersion": "11.0"
     },
@@ -57,7 +67,7 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ],
+      ],
     "resources": {
       "../models/ggml-tiny.en.bin": "models/ggml-tiny.en.bin",
       "icons/tray-idle.png": "icons/tray-idle.png",

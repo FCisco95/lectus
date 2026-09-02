@@ -1,0 +1,126 @@
+name: Release
+
+# Tag-driven: push v0.5.0 → build Windows + macOS, sign, draft release + latest.json for the updater.
+# Human gate: the workflow produces a DRAFT release; publish it in the GitHub UI to go live.
+on:
+  push:
+    tags: ['v*']
+
+env:
+  VULKAN_SDK_VERSION: '1.4.350.0'
+
+permissions:
+  contents: write # draft release + asset upload
+
+jobs:
+  version-guard:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.match.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if tag version != tauri.conf.json version
+        id: match
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          CONF=$(jq -r .version src-tauri/tauri.conf.json)
+          PKG=$(jq -r .version package.json)
+          CARGO=$(grep -m1 '^version' src-tauri/Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          echo "tag=$TAG conf=$CONF pkg=$PKG cargo=$CARGO"
+          if [ "$TAG" != "$CONF" ] || [ "$TAG" != "$PKG" ] || [ "$TAG" != "$CARGO" ]; then
+            echo "::error::version mismatch — run scripts/bump-version.mjs $TAG and commit"
+            exit 1
+          fi
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: version-guard
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+          - os: macos-14 # arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # Short-path target: the whisper/llama C++ build hits MAX_PATH on the default target dir.
+      # A junction keeps `target/release/...` valid for tauri.windows.conf.json resource paths.
+      - name: Short-path target dir (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          mkdir D:\lt
+          mklink /J src-tauri\target D:\lt
+
+      # Bundled default ASR model (gitignored, ~77 MB).
+      - name: Download bundled whisper model
+        shell: bash
+        run: bash scripts/download_model.sh
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: lectus-release
+          workspaces: src-tauri
+
+      # --- Windows: replicate the local Vulkan build recipe from build-release.cmd ---
+      - name: Vulkan SDK cache (Windows)
+        if: runner.os == 'Windows'
+        id: vulkan-cache
+        uses: actions/cache@v4
+        with:
+          path: C:\VulkanSDK
+          key: vulkan-${{ env.VULKAN_SDK_VERSION }}
+
+      - name: Install Vulkan SDK (Windows)
+        if: runner.os == 'Windows' && steps.vulkan-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          $url = "https://sdk.lunarg.com/sdk/download/${{ env.VULKAN_SDK_VERSION }}/windows/vulkansdk-windows-X64-${{ env.VULKAN_SDK_VERSION }}.exe"
+          Invoke-WebRequest -Uri $url -OutFile vulkan-installer.exe
+          Start-Process -FilePath .\vulkan-installer.exe -ArgumentList '--accept-licenses --default-answer --confirm-command install' -Wait
+
+      - name: Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ninja -y --no-progress
+
+      - name: npm ci
+        run: npm ci
+
+      - name: MSVC env (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      # (vcvars env is exported for the tauri-action step below)
+
+      - name: Add Vulkan Bin to PATH (Windows)
+        if: runner.os == 'Windows'
+        run: echo "C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }}\Bin" >> $env:GITHUB_PATH
+
+      - name: Build + publish release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Windows: same env as build-release.cmd
+          VULKAN_SDK: C:\VulkanSDK\${{ env.VULKAN_SDK_VERSION }}
+          CMAKE_GENERATOR: Ninja
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Lectus ${{ github.ref_name }}'
+          releaseDraft: true
+          prerelease: false
+          generateReleaseNotes: true
+          updaterJsonPreferNsis: true
+          args: ${{ runner.os == 'Windows' && '' || '--target aarch64-apple-darwin' }}

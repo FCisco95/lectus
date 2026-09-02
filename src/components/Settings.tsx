@@ -11,6 +11,7 @@ import { DictionaryPanel } from './settings/DictionaryPanel';
 import { HistoryPanel } from './settings/HistoryPanel';
 import { AIPanel } from './settings/AIPanel';
 import { ModelsPanel } from './settings/ModelsPanel';
+import { UpdateBanner } from './update-banner';
 
 type TabId = 'general' | 'dictation' | 'vocabulary' | 'ai' | 'history' | 'models';
 
@@ -85,6 +86,7 @@ export function Settings() {
         <span className="settings-version">v{version}</span>
       </div>
 
+      <UpdateBanner />
       <main className="settings-content">
         {tab === 'general' && <GeneralPanel config={config} update={update} />}
         {tab === 'dictation' && <DictationPanel config={config} update={update} />}

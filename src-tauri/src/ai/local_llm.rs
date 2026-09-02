@@ -43,12 +43,13 @@ fn backend() -> Result<&'static LlamaBackend> {
         match compile_time_dir {
             Some(_) => llama_cpp_2::llama_backend::load_backends(),
             None => {
-                // Shipped-build search order: next to the exe (Windows installer
-                // layout), then the macOS .app bundle's Resources/backends dir
+                // Shipped-build search order: next to the exe, then the Windows
+                // installer's backends/ dir (tauri.windows.conf.json), then the macOS .app bundle's Resources/backends dir
                 // (tauri.macos.conf.json ships the .so modules there).
                 if let Some(exe_dir) = std::env::current_exe().ok().and_then(|e| e.parent().map(|p| p.to_path_buf())) {
                     let candidates = [
                         exe_dir.clone(),
+                        exe_dir.join("backends"),
                         exe_dir.join("../Resources/backends"),
                     ];
                     for dir in candidates {
