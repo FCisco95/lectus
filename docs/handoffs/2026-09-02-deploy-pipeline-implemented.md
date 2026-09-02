@@ -4,7 +4,7 @@
 
 - Last Updated: 2026-09-02 (Windows PC, late evening)
 - Repository: `lectus` (github.com/FCisco95/lectus) — **PRIVATE, stays private for now (decision below)**
-- Branch: `master` @ `2a3e2aa` (pushed). Tag `v0.5.0` → `b41002a` (pushed).
+- Branch: `master` @ `482de20`+ (pushed; last code commit `2a3e2aa`). Tag `v0.5.0` → `b41002a` (pushed).
 - Version in manifests: `0.5.0`
 - Release `Lectus v0.5.0`: **draft** (reverted to draft after the AVX-512 crash; left as draft since the repo is private and the feed is inert anyway). CI run `33677520267`: Windows green, macOS DMG flake (assets from run 4 remain).
 - **Live Windows install: `%LocalAppData%\Lectus\chirp.exe` = CI-built 0.5.0 (NSIS installer, 2026-09-02 21:52). Launched, stayed up, models loaded.**
