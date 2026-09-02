@@ -40,7 +40,9 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-          - os: macos-14 # arm64
+          # arm64. macos-15 ships Xcode 16: the Xcode 15.4 clang on macos-14 fails on the
+          # `armv9.2-a+…+nosve+sme` ggml-cpu variant that llama-cpp-sys-2's ALL_VARIANTS build emits.
+          - os: macos-15
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
