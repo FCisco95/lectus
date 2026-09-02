@@ -40,9 +40,13 @@ jobs:
       matrix:
         include:
           - os: windows-latest
+            args: ''
           # arm64. macos-15 ships Xcode 16: the Xcode 15.4 clang on macos-14 fails on the
           # `armv9.2-a+…+nosve+sme` ggml-cpu variant that llama-cpp-sys-2's ALL_VARIANTS build emits.
+          # --bundles app: skip the DMG — hdiutil hangs intermittently on GH runners, and the
+          # updater only needs the .app.tar.gz that tauri-action derives from the .app bundle.
           - os: macos-15
+            args: --bundles app
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -141,5 +145,7 @@ jobs:
           prerelease: false
           generateReleaseNotes: true
           updaterJsonPreferNsis: true
-          # No --target: macos-14 is an arm64 host, so the default triple is aarch64-apple-darwin.
-          # (A `cond && '' || x` expression always yields x — empty string is falsy in GH expressions.)
+          # No --target: macos-15 is an arm64 host, so the default triple is aarch64-apple-darwin.
+          # Per-OS args come from the matrix (a `cond && '' || x` expression always yields x —
+          # empty string is falsy in GH expressions).
+          args: ${{ matrix.args }}
