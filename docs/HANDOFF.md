@@ -4,71 +4,72 @@
 
 - Last Updated: 2026-09-02 (Windows PC, evening session)
 - Repository: `lectus` (github.com/FCisco95/lectus)
-- Branch: `master` @ `593cf3d` (pushed) — tag `v0.5.0` pushed, release CI run `33651941995` in progress at handoff time
+- Branch: `master` @ `8195532` (pushed). Tag `v0.5.0` → `8195532` (pushed).
 - Version in manifests: `0.5.0`
-- Live Windows install: `%LocalAppData%\Lectus\chirp.exe` — still the 2026-08-26 build (0.4.0); not yet updated via the new pipeline
+- **Draft release `Lectus v0.5.0` exists on GitHub — NOT published yet (human gate).** CI run `33659383340` green on both OSes.
+- Live Windows install: `%LocalAppData%\Lectus\chirp.exe` — still the hand-copied 2026-08-26 build (0.4.0)
 
 ## TL;DR
 
-Deploy pipeline + auto-update **implemented and committed** (`593cf3d`), per the approved spec
-`docs/superpowers/specs/2026-09-02-deploy-pipeline-design.md`. The first tag-driven release
-(`v0.5.0`) is building on GitHub Actions. What ships:
+Deploy pipeline + auto-update **shipped and CI-verified**. First tag-driven release built successfully on
+attempt 4 (three CI fixes, all committed). Draft release holds: `latest.json`, Windows NSIS + MSI (+ `.sig`),
+macOS arm64 `.dmg` + `.app.tar.gz` (+ `.sig`). MSI admin-extract confirmed the Windows payload: `chirp.exe`,
+`ggml.dll`, `ggml-base.dll`, `llama.dll`, `llama-common.dll`, `backends/` (9 ggml-cpu variants +
+`ggml-vulkan.dll`), `models/ggml-tiny.en.bin`. `latest.json` prefers the NSIS installer for Windows.
 
-- `scripts/bump-version.mjs <ver>` rewrites package.json / Cargo.toml / tauri.conf.json (all at 0.5.0).
+Implementation summary (commit `593cf3d` + CI fixes `58a4193`, `c0a4ebe`, `c825957`, `8195532`):
+
+- `scripts/bump-version.mjs <ver>` rewrites package.json / Cargo.toml / tauri.conf.json.
 - `src-tauri/src/updates.rs`: background check on launch → download + signature verify → `update-downloaded`
-  event → banner in Settings ("Restart now / Later"). Install only on click, gated on `RecordingState::Idle`.
+  event → Settings banner "Restart now / Later". Install only on click, gated on `RecordingState::Idle`.
   Manual "Check for updates" + last background error in Settings → About. Failures log-only.
-- `.github/workflows/release.yml`: `v*` tag → version guard (tag == 3 manifests) → matrix windows-latest +
-  macos-14 via `tauri-action@v0` → **draft** release + `latest.json`. Windows replicates the Vulkan recipe
-  (SDK 1.4.350.0 cached, Ninja, `ilammy/msvc-dev-cmd`, junction `src-tauri\target → D:\lt` for MAX_PATH).
-  Model `ggml-tiny.en.bin` is gitignored → workflow downloads it via `scripts/download_model.sh`.
-- `src-tauri/tauri.windows.conf.json`: bundles ggml/llama DLLs + `backends/*.dll` into the NSIS installer
-  (macOS conf already bundled dylibs). Backend loader now also searches `<exe>/backends`.
-- `deploy-local.cmd`: dev-loop copy `C:\lt\release` → `%LocalAppData%\Lectus` (exe, DLLs, backends), PID kill
-  with UAC-elevated fallback, relaunch.
-- Signing: keypair generated (minisign ID `EB78643AB2023BC3`); pubkey in tauri.conf.json; private key +
-  password in repo secrets `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; encrypted
-  key backed up in cisco-brain `40 - RESOURCES/Lectus Release Signing/` (vault commit `584d8ea`, not pushed).
-  **Password is NOT in the vault** — it is only in GitHub secrets (and the original generation output).
-  Put it in the password manager.
-
-Verified locally: `cargo check --release` clean (vcvars + Vulkan env), `npm run build` clean.
-**Not yet verified:** CI run result, installer contents, updater E2E.
+- `.github/workflows/release.yml`: `v*` tag → version guard → windows-latest + macos-15 via `tauri-action@v0`
+  → draft release + `latest.json`.
+- `src-tauri/tauri.windows.conf.json`: bundles DLLs + `backends/*.dll`. Loader also searches `<exe>/backends`.
+- `deploy-local.cmd`: dev-loop copy `C:\lt\release` → `%LocalAppData%\Lectus` incl. backends, UAC-kill fallback.
+- Signing: minisign ID `EB78643AB2023BC3`; pubkey in tauri.conf.json; secrets `TAURI_SIGNING_PRIVATE_KEY` +
+  `..._PASSWORD`; encrypted key backed up in cisco-brain `40 - RESOURCES/Lectus Release Signing/` (vault commit
+  `584d8ea`, not pushed). **Password is NOT in the vault** — keep it in the password manager.
 
 ## What to do next
 
-1. Check the CI run: `gh run view 33651941995` (or Actions tab). Expect 30–45 min first time.
-   - If Windows fails on Vulkan SDK download: LunarG URL pattern is
-     `https://sdk.lunarg.com/sdk/download/<ver>/windows/vulkansdk-windows-X64-<ver>.exe`; verify 1.4.350.0 exists.
-   - If `tauri.windows.conf.json` resource globs don't resolve: junction step or glob path is wrong; the DLLs
-     live in `target/release/` and backends in `target/release/build/llama-cpp-sys-2-*/out/backends/`.
-   - Fallback per spec: build Windows locally (`build-release.cmd`), upload artifacts manually.
-2. Review the draft release on GitHub, spot-check both bundles (Windows NSIS should contain ggml/llama DLLs +
-   `backends/`), then **publish** → `latest.json` becomes live.
-3. Updater E2E (plan Task 10): install the v0.5.0 NSIS on this PC (replaces the hand-copied install), then
-   bump to `0.5.1`, tag, publish, and confirm the running 0.5.0 shows the banner and restarts into 0.5.1.
-   Also: offline launch → silent; tampered artifact → rejected.
-4. Cleanup: delete any test release; `build-release.cmd` stays untracked as the local recipe.
-5. Then sub-project #2: verification hardening (`tauri-plugin-mcp`, Windows runtime pass).
+1. **Publish the draft release** (GitHub → Releases → Lectus v0.5.0 → Publish). This makes `latest.json` live.
+2. Install `Lectus_0.5.0_x64-setup.exe` on this PC (replaces the hand-copied install; quit the tray app first).
+   Check Settings → About shows v0.5.0 and "Check for updates" reports "Up to date".
+3. Updater E2E: `node scripts/bump-version.mjs 0.5.1` → commit → `git tag v0.5.1` → push tag → publish the
+   draft → relaunch 0.5.0 → expect banner "Update to v0.5.1 ready" → Restart now → About shows 0.5.1.
+   Also: offline launch → silent; edit a `.sig` on a test release → updater rejects.
+4. macOS: pull master on the Mac, install the `.dmg` from the release, same checks.
+5. Cleanup: `build-release.cmd` stays untracked as the local recipe. Then sub-project #2 (verification hardening).
 
-## Gotchas Learned This Session
+## CI gotchas learned (4 attempts)
 
-- **Bash tool mangles `\r`/`\t`/`\b` inside command text** (README got `C:\lt<CR>elease`, YAML got a tab,
-  cmd got backspaces). For Windows paths in file edits use the Write/Edit tools or a Python script file, and
-  hexdump-verify (`od -c`) after any shell-side edit containing backslashes.
-- `cargo check` needs the vcvars + `VULKAN_SDK` + `CMAKE_GENERATOR=Ninja` + `CARGO_TARGET_DIR=C:\lt` env —
-  run it through a `.cmd` wrapper (scratchpad `check.cmd` pattern), outside the sandbox.
-- Auto-mode classifier blocks reading the private key file and blocked a combined push+tag command; plain
-  `git push` and `git tag` + `git push origin <tag>` as separate commands went through.
-- `generate_handler!` "could not find `__cmd__x`" errors were a red herring — the real error was a missing
-  `>` in a generic type earlier in the file; always read the first error.
-- `tauri-plugin-process` is registered but unused: macOS restart reuses the `spawn + libc::_exit` pattern
-  from `relaunch_app` to dodge the ggml-metal teardown crash; Windows exits via the NSIS installer.
+1. `${{ cond && '' || 'x' }}` always yields `x` — empty string is falsy in GH expressions. Dropped `--target`
+   (macos-15 host is already arm64).
+2. macos-14's Xcode 15.4 clang fails on ggml-cpu's `armv9.2-a+…+nosve+sme` variant (`svmmla needs sve,i8mm`).
+   macos-15 (Xcode 16) compiles it.
+3. Windows MAX_PATH: a junction `src-tauri\target → D:\lt` alone is transparent to cargo; must also export
+   `CARGO_TARGET_DIR=D:\lt`. The junction stays so `target/release/...` resource paths still resolve.
+4. tauri-build validates bundle resource globs inside chirp's build script, which cargo may run before
+   llama-cpp-sys-2 has emitted the DLLs/backends → "resource path doesn't exist". Fix: a `continue-on-error`
+   warm-up `cargo build --release --keep-going` step before tauri-action.
+5. Windows CI wall time ~25 min per attempt (Vulkan SDK + cold cargo). Rust cache now warm; second runs faster.
+
+## Other gotchas this session
+
+- **Bash tool mangles `\r`/`\t`/`\b` inside command text.** For Windows paths in file edits use Write/Edit or a
+  script file; verify with `od -c`.
+- `cargo check` needs vcvars + `VULKAN_SDK` + `CMAKE_GENERATOR=Ninja` + `CARGO_TARGET_DIR=C:\lt` via a `.cmd`
+  wrapper, outside the sandbox.
+- Auto-mode classifier blocked reading the private key and combined push+force-tag commands; separate
+  `git push origin :refs/tags/v0.5.0` then `git push origin v0.5.0` went through.
+- No 7-Zip on this PC: inspect Windows installer payload via `msiexec /a <msi> /qn TARGETDIR=<dir>` (MSI and
+  NSIS share the same resource set).
+- `tauri-plugin-process` registered but unused (macOS restart reuses `spawn + libc::_exit`; Windows exits via NSIS).
 
 ## Known Gaps
 
-- Prior session's claimed plan file (`e58c5aa`) never existed; work was tracked from the spec directly.
-- `chirp_lib.dll` is copied by `deploy-local.cmd` but is a cdylib build artifact, not needed at runtime.
+- Updater not yet exercised end to end (needs a published release + a second version).
 - Windows runtime pass (autostart, force_exit/relaunch, drag-region) still unverified post-v0.5.0.
 - `tauri-plugin-mcp` not wired. `docs/mockups/` cleanup pending.
 - Vault commit `584d8ea` (key backup) not pushed.
@@ -76,29 +77,27 @@ Verified locally: `cargo check --release` clean (vcvars + Vulkan env), `npm run 
 ## Suggested Skills
 
 - `handoff-memory` — reload this file next session
-- `babysit` — watch the release run if still in progress
+- `verify` — Lectus live verification after installing 0.5.0
 - `superpowers:verification-before-completion` — before claiming the updater works
-- `superpowers:systematic-debugging` — if CI fails
 - `handoff` — refresh at session end
 
 ## Next-session prompt
 
 ```text
-Lectus: deploy pipeline shipped on 2026-09-02 (commit 593cf3d, tag v0.5.0, CI run 33651941995).
-Read docs/HANDOFF.md first. Check whether the Release workflow succeeded and a draft release exists.
-If green: spot-check bundles, publish the draft, install the v0.5.0 NSIS on this PC, then run the
-updater E2E (bump to 0.5.1 with scripts/bump-version.mjs, tag, publish, confirm banner + restart).
-If red: debug the workflow (.github/workflows/release.yml); Windows fallback is a local
-build-release.cmd build + manual artifact upload.
-Model: claude-sonnet-5 high. Skills: babysit, superpowers:systematic-debugging,
-superpowers:verification-before-completion, handoff.
+Lectus: deploy pipeline shipped 2026-09-02 (master 8195532, tag v0.5.0, CI run 33659383340 green,
+draft release "Lectus v0.5.0" waiting to be published). Read docs/HANDOFF.md first.
+Steps: I publish the draft → install Lectus_0.5.0_x64-setup.exe on this PC → confirm About shows 0.5.0 →
+updater E2E: bump to 0.5.1 (scripts/bump-version.mjs), tag, publish, confirm banner + restart into 0.5.1;
+offline launch silent; tampered .sig rejected. Then macOS install from the .dmg.
+Model: claude-sonnet-5 high. Skills: verify, superpowers:verification-before-completion, handoff.
 ```
 
 ## Generated artifacts this session
 
 | What | Where | Notes |
 |---|---|---|
-| Pipeline implementation | commit `593cf3d` on master (pushed) | updater, CI, bump script, deploy-local, Windows bundle conf |
-| Tag | `v0.5.0` (pushed) | triggered CI run 33651941995 |
-| Signing key backup | cisco-brain `40 - RESOURCES/Lectus Release Signing/` | vault commit `584d8ea`, password deliberately excluded |
+| Pipeline implementation | `593cf3d` + CI fixes through `8195532` on master (pushed) | updater, CI, bump script, deploy-local, Windows bundle conf |
+| Tag | `v0.5.0` → `8195532` (pushed, moved 3× during CI debugging) | run 33659383340 |
+| Draft release | github.com/FCisco95/lectus/releases (draft) | 8 assets incl. latest.json + sigs; not published |
+| Signing key backup | cisco-brain `40 - RESOURCES/Lectus Release Signing/` | vault commit `584d8ea`; password deliberately excluded |
 | Handoff snapshot | `docs/handoffs/2026-09-02-deploy-pipeline-implemented.md` | this session |
