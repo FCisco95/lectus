@@ -123,4 +123,5 @@ jobs:
           prerelease: false
           generateReleaseNotes: true
           updaterJsonPreferNsis: true
-          args: ${{ runner.os == 'Windows' && '' || '--target aarch64-apple-darwin' }}
+          # No --target: macos-14 is an arm64 host, so the default triple is aarch64-apple-darwin.
+          # (A `cond && '' || x` expression always yields x — empty string is falsy in GH expressions.)
