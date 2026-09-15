@@ -62,6 +62,10 @@ pub struct Config {
     pub onboarding_completed: bool,
     /// UI theme: "system" (follow OS), "light", or "dark".
     pub theme: String,
+    /// Mute (or duck) system playback while the dictation key is held so
+    /// background audio does not drown out your own thoughts. Restored on
+    /// release, error, idle, and process exit. Default on.
+    pub mute_while_dictating: bool,
 }
 
 /// Overrides applied when dictating into a matching app. `None` = keep the
@@ -148,6 +152,7 @@ impl Default for Config {
             app_profiles: Vec::new(),
             onboarding_completed: false,
             theme: "system".into(),
+            mute_while_dictating: true,
         }
     }
 }
@@ -227,6 +232,17 @@ mod tests {
         assert_eq!(loaded.hold_hotkey, defaults.hold_hotkey);
         assert_eq!(loaded.cloud_base_url, defaults.cloud_base_url);
         assert_eq!(loaded.model_path, defaults.model_path);
+        assert!(loaded.mute_while_dictating);
+    }
+
+    #[test]
+    fn mute_while_dictating_defaults_on() {
+        assert!(Config::default().mute_while_dictating);
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        std::fs::write(&path, r#"{"use_cloud": false}"#).unwrap();
+        let loaded = Config::load_from(&path).unwrap();
+        assert!(loaded.mute_while_dictating);
     }
 
     #[test]
@@ -292,6 +308,7 @@ mod tests {
         incoming.model_name = "ggml-base.bin".into();
         incoming.model_path = PathBuf::from("models/ggml-tiny.en.bin");
 
+        incoming.mute_while_dictating = false;
         live.apply_ui_update(incoming);
 
         assert_eq!(live.model_name, "ggml-large-v3-turbo.bin");
@@ -300,5 +317,6 @@ mod tests {
         assert_eq!(live.pill_y, 1309);
         assert_eq!(live.theme, "light");
         assert_eq!(live.dictionary_words, vec!["Mycel".to_string()]);
+        assert!(!live.mute_while_dictating);
     }
 }

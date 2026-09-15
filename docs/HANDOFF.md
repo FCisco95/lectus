@@ -4,75 +4,80 @@
 
 - Last Updated: 2026-09-15 (Windows PC)
 - Repository: `lectus` (github.com/FCisco95/lectus) — still private
-- Branch: `master` (local persistence/autostart fixes uncommitted)
+- Branch: `master` (ahead of origin by persistence commit + mute feature)
 - Version in manifests: `0.5.0`
-- Live Windows install: `%LocalAppData%\Lectus\chirp.exe` (local rebuild 2026-09-15, launched, Vulkan load + warmup ok)
+- Live Windows install: `%LocalAppData%\Lectus\chirp.exe` (rebuilt 2026-09-15 evening, launched)
 
 ## TL;DR
 
-Audit of "previous version / model not saved / words not stored" found real
-causes, not a broken Whisper model.
+Mute-while-dictating shipped. Hold the key → default render endpoint mutes
+(or volume-ducks to 0 if mute is unsupported) → restore on release, pipeline
+error, idle, and process exit. Settings toggle **Mute playback while dictating**
+defaults ON. Old `config.json` without the key loads as on.
 
-1. **Launch-at-login pointed at leftover 0.4.0** (`C:\lt\release\chirp.exe`, Aug 26).
-   Desktop/Start Menu already targeted 0.5.0. After reboot, 0.4.0 started first;
-   single-instance then kept that process when the 0.5.0 shortcut was clicked.
-   **HKCU Run `Lectus` now points at `%LocalAppData%\Lectus\chirp.exe`.** New
-   builds also rewrite leftover Run keys on launch.
-2. **Settings auto-save clobbered `model_name`.** The hidden Settings webview
-   kept a stale snapshot; changing any other setting wrote the old model back
-   to `config.json`. `apply_ui_update` now preserves model + pill position;
-   config writes are atomic.
-3. **History was only saved after a successful inject.** Failed paste dropped
-   the transcript. History now saves first.
+Wispr Flow prior art: Settings → System → Sound → “Mute music while dictating”
+(on by default on Windows; mutes the default output device, restores after).
+Lectus matches that on Windows via `IAudioEndpointVolume`, not capture/VAD/inject.
 
-Current config still has `ggml-large-v3-turbo.bin` + dictionary `Mycel, Claude`.
-App relaunched; Vulkan 3080 load + 173 ms warmup confirmed.
+Persistence/autostart audit from earlier today is committed
+(`fix: persist selected model and repair leftover Windows autostart`).
 
 ## What to do next
 
-1. Reboot once and confirm the tray pill is 0.5.0 (Settings → Models & About)
-   and Large v3 Turbo is still Active. That is the real autostart proof.
-2. Dictation: wait for the pill to go idle before starting the next phrase.
-   Overlapping hold-to-talk while large-v3-turbo is still transcribing is
-   silently skipped (`pipeline: skipped overlapping dictation`). Changing that
-   needs a capture-pipeline change — ask first (AGENTS.md).
-3. **Wispr Flow is disabled** (2026-09-15): Startup shortcut removed,
-   `openAtLogin` set false, not running. App still installed if you want it
-   later. Lectus login start is enabled (`%LocalAppData%\Lectus\chirp.exe`).
-4. Updater is still inert (private repo 404). Organic token gate remains the
-   gating item for public releases.
+1. **Try a real hold with music/YouTube playing.** Live synthetic dictation
+   verify did **not** finish: the desktop was in use (Chrome focused) and the
+   inject window kept disappearing. Evidence that *does* exist:
+   - `cargo test --lib` → 68 passed, including restore-on-every-exit-path
+     and a real `IAudioEndpointVolume` mute roundtrip.
+   - New binary Vulkan-loaded large-v3-turbo (warmup 202 ms) before the
+     synthetic pass was aborted.
+2. Reboot once and confirm tray is 0.5.0 + Large v3 Turbo still Active
+   (autostart proof from the morning audit).
+3. Updater is still inert (private repo 404). Organic token gate remains
+   the gating item for public releases.
 
 ## PC inventory (2026-09-15)
 
 | Copy | Path | Role |
 |---|---|---|
-| Installed 0.5.0 | `%LocalAppData%\Lectus\chirp.exe` | **live** (desktop, start menu, Run key) |
-| Cargo target | `C:\lt\release\chirp.exe` | current local rebuild, not autostarted |
-| Old NSIS | `C:\lt\release\bundle\nsis\Lectus_0.4.0_x64-setup.exe` | leftover installer, do not run |
+| Installed 0.5.0 + mute | `%LocalAppData%\Lectus\chirp.exe` | **live** (desktop, start menu, Run key) |
+| Cargo target | `C:\lt\release\chirp.exe` | same rebuild |
 | Config/history | `%APPDATA%\ai.organic.lectus\` | `config.json` + `history.json` (cap 100) |
+
+Current config: `ggml-large-v3-turbo.bin`, hold `RControl`, dictionary
+`Mycel, Claude`, theme dark. `mute_while_dictating` is not yet written to
+disk; missing key deserializes to `true`.
 
 ## Code this session
 
-- `src-tauri/src/autostart.rs` — prefer installed exe; rewrite leftover Run keys
-- `src-tauri/src/config.rs` — `apply_ui_update`, atomic `save_to`
-- `src-tauri/src/lib.rs` — save_config merge-then-write; history before inject; autostart repair; overlap log
-- `src/components/Settings.tsx` — reload config on focus; patch `model_name` on `model-active`
+- `src-tauri/src/playback.rs` — ducker + Fake tests + Windows endpoint volume
+- `src-tauri/src/lib.rs` — hold-start duck; restore on hold-stop / idle /
+  pipeline error / `RunEvent::Exit`
+- `src-tauri/src/config.rs` — `mute_while_dictating` default true, atomic save unchanged
+- `src/components/settings/GeneralPanel.tsx` — toggle next to VAD
+- `src-tauri/Cargo.toml` — `Win32_Media_Audio` + Endpoints + Com features
 
-Tests: `cargo test --lib` → 58 passed, 0 failed.
+Do **not** change capture/injection/shortcut unless asked. Default hotkey
+is still hold Right Ctrl (low-level hook, not a bare-modifier plugin registration).
+
+Tests: `cargo test --lib` → 68 passed, 0 failed, 4 ignored.
 
 ## Suggested skills
 
-- `verify` — live dictation pass after the reboot check
+- `verify` — one live dictation pass with music playing (read config hotkey
+  first; do not use Notepad as the inject target)
 - `handoff-memory` — this file
-- `superpowers:brainstorming` — overlapping-dictation queue (only if user wants pipeline work)
+- `superpowers:systematic-debugging` — if mute restore leaves the PC silent
 
 ## Next-session prompt
 
 ```text
-Lectus persistence/autostart audit shipped 2026-09-15 (uncommitted on master).
-Read docs/HANDOFF.md. Confirm after reboot: Run key still points at
-%LocalAppData%\Lectus\chirp.exe, Settings shows v0.5.0, Large v3 Turbo still
-Active. Then either commit these fixes or (only if asked) design a queue so a
-second hold-to-talk is not dropped while large-v3-turbo is transcribing.
+Lectus mute-while-dictating shipped 2026-09-15 on master. Read docs/HANDOFF.md.
+Confirm: hold Right Ctrl with YouTube/music playing — output goes quiet, then
+restores on release. Settings → General shows “Mute playback while dictating”
+on. config.json should pick up mute_while_dictating: true after any Settings
+save. Live synthetic verify was aborted (user at desktop); re-run the verify
+skill if you want log evidence. Capture/injection/shortcut pipeline stays off
+limits unless asked.
 Skills: verify, handoff.
 ```

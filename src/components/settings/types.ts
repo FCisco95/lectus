@@ -38,6 +38,7 @@ export interface Config {
   app_profiles: AppProfile[];
   onboarding_completed: boolean;
   theme: 'system' | 'light' | 'dark';
+  mute_while_dictating: boolean;
 }
 
 export interface PanelProps {

@@ -117,6 +117,16 @@ export function GeneralPanel({ config, update }: PanelProps) {
         </div>
         <div className="row">
           <div className="row-label">
+            <b>Mute playback while dictating</b>
+            <span>Music, videos and games go quiet while you hold the key, then return to the previous volume.</span>
+          </div>
+          <div
+            className={`toggle${config.mute_while_dictating !== false ? '' : ' off'}`}
+            onClick={() => update({ mute_while_dictating: config.mute_while_dictating === false })}
+          />
+        </div>
+        <div className="row">
+          <div className="row-label">
             <b>Launch at login</b>
             <span>Start Lectus in the background at sign-in.</span>
           </div>

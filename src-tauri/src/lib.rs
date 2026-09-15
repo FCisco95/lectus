@@ -7,6 +7,7 @@ mod history;
 mod hook;
 mod hotkey;
 mod injection;
+mod playback;
 mod state;
 mod transcription;
 mod updates;
@@ -103,6 +104,17 @@ struct ModelStatus {
     active: bool,
 }
 
+fn playback_on(app: &tauri::AppHandle, event: playback::PlaybackEvent) {
+    let enabled = app
+        .state::<AppState>()
+        .config
+        .lock()
+        .unwrap()
+        .mute_while_dictating;
+    let ducker = app.state::<playback::AppPlayback>();
+    playback::on_event(&*ducker, enabled, event);
+}
+
 fn do_set_state(
     state_str: &str,
     app_state: &AppState,
@@ -113,6 +125,9 @@ fn do_set_state(
         "transcribing" => RecordingState::Transcribing,
         _ => RecordingState::Idle,
     };
+    if next == RecordingState::Idle {
+        playback_on(app_handle, playback::PlaybackEvent::Idle);
+    }
     app_state.set_state(next.clone());
     app_handle.emit("state-changed", state_str).map_err(|e| e.to_string())?;
 
@@ -781,6 +796,7 @@ async fn run_pipeline(
     .await;
     recording_active.store(false, Ordering::SeqCst);
     if outcome.is_err() {
+        playback_on(&app_handle, playback::PlaybackEvent::PipelineError);
         do_set_state("idle", &app_state, &app_handle).ok();
     }
     outcome
@@ -815,6 +831,7 @@ async fn run_hold_pipeline(app: tauri::AppHandle) {
         hook.set_toggle_state(false);
     }
     if outcome.is_err() {
+        playback_on(&app, playback::PlaybackEvent::PipelineError);
         do_set_state("idle", app_state.inner(), &app).ok();
     }
 }
@@ -853,6 +870,7 @@ pub fn run() {
             hook: Mutex::new(None),
         })
         .manage(PreRoll(Mutex::new(None)))
+        .manage(playback::platform_ducker())
         .invoke_handler(tauri::generate_handler![
             list_input_devices,
             set_recording_state,
@@ -1162,13 +1180,24 @@ pub fn run() {
             let pipeline_handle = app.handle().clone();
             app.listen("hold-start", move |_event| {
                 let h = pipeline_handle.clone();
+                playback_on(&h, playback::PlaybackEvent::HoldStart);
                 tauri::async_runtime::spawn(run_hold_pipeline(h));
+            });
+            let stop_handle = app.handle().clone();
+            app.listen("hold-stop", move |_event| {
+                playback_on(&stop_handle, playback::PlaybackEvent::HoldStop);
             });
             Ok(())
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
+            if matches!(
+                event,
+                tauri::RunEvent::Exit | tauri::RunEvent::ExitRequested { .. }
+            ) {
+                playback_on(app_handle, playback::PlaybackEvent::ProcessExit);
+            }
             // No Dock icon (Accessory policy) means no automatic reopen
             // behavior: without this, clicking the app again while it's
             // already running does nothing visible, which reads as "it
