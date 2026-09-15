@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getVersion } from '@tauri-apps/api/app';
 import '../styles/settings.css';
 import type { Config } from './settings/types';
@@ -34,10 +36,24 @@ export function Settings() {
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    invoke<Config>('get_config')
-      .then(setConfig)
-      .catch((e) => { setStatus(`Load error: ${e}`); setStatusKind('err'); });
+    const load = () =>
+      invoke<Config>('get_config')
+        .then(setConfig)
+        .catch((e) => { setStatus(`Load error: ${e}`); setStatusKind('err'); });
+    load();
     getVersion().then(setVersion).catch(() => {});
+
+    // Settings is hidden, not unmounted. Re-read on focus so a model picked
+    // via select_model isn't overwritten by a stale auto-save snapshot.
+    const win = getCurrentWebviewWindow();
+    const unFocus = win.listen('tauri://focus', () => { load(); });
+    const unModel = listen<string>('model-active', (e) => {
+      setConfig((c) => (c ? { ...c, model_name: e.payload } : c));
+    });
+    return () => {
+      unFocus.then((f) => f());
+      unModel.then((f) => f());
+    };
   }, []);
 
   if (!config) {

@@ -1,5 +1,6 @@
 mod ai;
 mod audio;
+mod autostart;
 mod config;
 mod context;
 mod history;
@@ -256,30 +257,31 @@ fn save_config(
         return Err("Cannot enable cloud transcription without an API key".to_string());
     }
 
-    if let Ok(cfg_dir) = app_handle.path().app_config_dir() {
-        let cfg_path = cfg_dir.join("config.json");
-        new_config.save_to(&cfg_path).map_err(|e| e.to_string())?;
-    }
-
-    *whisper_state.cloud.lock().unwrap() = Some(transcription::cloud::CloudWhisper::new(
-        &new_config.cloud_base_url,
-        &new_config.cloud_api_key,
-    ));
-
-    let (device_changed, local_cleanup_enabled, theme_changed) = {
+    let (device_changed, local_cleanup_enabled, theme_changed, snapshot) = {
         let mut guard = app_state.config.lock().unwrap();
         let changed = guard.input_device != new_config.input_device;
         let was_local = guard.ai_cleanup_enabled && guard.ai_cleanup_engine == "local";
         let now_local = new_config.ai_cleanup_enabled && new_config.ai_cleanup_engine == "local";
         let theme_changed = guard.theme != new_config.theme;
-        let resolved_model = guard.model_path.clone();
-        let (px, py) = (guard.pill_x, guard.pill_y);
-        *guard = new_config;
-        guard.model_path = resolved_model;
-        guard.pill_x = px;
-        guard.pill_y = py;
-        (changed, !was_local && now_local, theme_changed)
+        guard.apply_ui_update(new_config);
+        (
+            changed,
+            !was_local && now_local,
+            theme_changed,
+            guard.clone(),
+        )
     };
+
+    if let Ok(cfg_dir) = app_handle.path().app_config_dir() {
+        snapshot
+            .save_to(&cfg_dir.join("config.json"))
+            .map_err(|e| e.to_string())?;
+    }
+
+    *whisper_state.cloud.lock().unwrap() = Some(transcription::cloud::CloudWhisper::new(
+        &snapshot.cloud_base_url,
+        &snapshot.cloud_api_key,
+    ));
 
     // Every webview (settings + pill) resolves `data-theme` itself on load;
     // broadcast so an already-open window updates without a reload.
@@ -597,6 +599,7 @@ async fn do_pipeline(
     {
         let mut rec = app_state.recording.lock().unwrap();
         if *rec != RecordingState::Idle {
+            log::warn!("pipeline: skipped overlapping dictation (already {rec:?})");
             return Ok(String::new());
         }
         *rec = RecordingState::Recording;
@@ -720,12 +723,9 @@ async fn do_pipeline(
         log::info!("pipeline: AI cleanup took {} ms", t_cleanup.elapsed().as_millis());
     }
 
-    // 5. Inject into the focused field.
+    // 5. Persist history as soon as we have text, then inject. Injection can
+    // fail (UIPI, no focused field) without that meaning the dictation is lost.
     if !transcript.is_empty() {
-        let t_inject = std::time::Instant::now();
-        injection::inject_text(&transcript, &cfg.injection_mode).map_err(|e| e.to_string())?;
-        log::info!("pipeline: injection took {} ms", t_inject.elapsed().as_millis());
-
         if let Ok(dir) = app_handle.path().app_data_dir() {
             // Prefer whisper's detected language; fall back to a forced config value.
             let language = detected_language.clone().or_else(|| match cfg.language.trim() {
@@ -741,6 +741,10 @@ async fn do_pipeline(
                 let _ = app_handle.emit("history-added", entry);
             }
         }
+
+        let t_inject = std::time::Instant::now();
+        injection::inject_text(&transcript, &cfg.injection_mode).map_err(|e| e.to_string())?;
+        log::info!("pipeline: injection took {} ms", t_inject.elapsed().as_millis());
     }
 
     do_set_state("idle", app_state, app_handle)?;
@@ -975,6 +979,16 @@ pub fn run() {
                 if let Ok(loaded) = config::Config::load_from(&cfg_path) {
                     *app.state::<AppState>().config.lock().unwrap() = loaded;
                 }
+            }
+
+            // Launch-at-login must point at the NSIS install, not a leftover
+            // cargo-target copy. Repair on every boot so a later local run
+            // that re-enabled autostart cannot stick.
+            #[cfg(windows)]
+            {
+                use tauri_plugin_autostart::ManagerExt;
+                let enabled = app.autolaunch().is_enabled().unwrap_or(false);
+                autostart::repair_windows_run_keys(enabled);
             }
 
             // First run: surface the (normally hidden) settings window so the

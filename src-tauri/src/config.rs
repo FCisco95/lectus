@@ -165,9 +165,27 @@ impl Config {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
+        // Atomic write: a crash mid-save must not leave a truncated config
+        // that would deserialize as an error and silently fall back to
+        // defaults (including `model_name`) on the next launch.
+        let tmp = path.with_extension("json.tmp");
         let text = serde_json::to_string_pretty(self)?;
-        std::fs::write(path, text)?;
+        std::fs::write(&tmp, text)?;
+        std::fs::rename(&tmp, path)?;
         Ok(())
+    }
+
+    /// Overlay a Settings-form snapshot without clobbering fields the form
+    /// does not own. The Settings webview stays mounted while hidden, so its
+    /// copy of `model_name` / `model_path` / pill position can be stale
+    /// relative to `select_model` and drag-to-move. Writing that snapshot
+    /// straight to disk is what reset the chosen model after a reboot.
+    pub fn apply_ui_update(&mut self, mut incoming: Config) {
+        incoming.model_name = self.model_name.clone();
+        incoming.model_path = self.model_path.clone();
+        incoming.pill_x = self.pill_x;
+        incoming.pill_y = self.pill_y;
+        *self = incoming;
     }
 }
 
@@ -245,5 +263,42 @@ mod tests {
         let cfg = Config::default();
         cfg.save_to(&path).unwrap();
         assert!(path.exists());
+    }
+
+    #[test]
+    fn test_save_is_atomic_no_tmp_left() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        Config::default().save_to(&path).unwrap();
+        assert!(path.exists());
+        assert!(!path.with_extension("json.tmp").exists());
+        let loaded = Config::load_from(&path).unwrap();
+        assert_eq!(loaded.model_name, Config::default().model_name);
+    }
+
+    #[test]
+    fn test_ui_update_does_not_clobber_selected_model_or_pill() {
+        let mut live = Config::default();
+        live.model_name = "ggml-large-v3-turbo.bin".into();
+        live.model_path = PathBuf::from(r"C:\models\ggml-large-v3-turbo.bin");
+        live.pill_x = 1533;
+        live.pill_y = 1309;
+        live.theme = "dark".into();
+
+        // Stale Settings snapshot still has the previous model and default pill.
+        let mut incoming = Config::default();
+        incoming.theme = "light".into();
+        incoming.dictionary_words = vec!["Mycel".into()];
+        incoming.model_name = "ggml-base.bin".into();
+        incoming.model_path = PathBuf::from("models/ggml-tiny.en.bin");
+
+        live.apply_ui_update(incoming);
+
+        assert_eq!(live.model_name, "ggml-large-v3-turbo.bin");
+        assert_eq!(live.model_path, PathBuf::from(r"C:\models\ggml-large-v3-turbo.bin"));
+        assert_eq!(live.pill_x, 1533);
+        assert_eq!(live.pill_y, 1309);
+        assert_eq!(live.theme, "light");
+        assert_eq!(live.dictionary_words, vec!["Mycel".to_string()]);
     }
 }
