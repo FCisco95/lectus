@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 
@@ -45,6 +46,16 @@ export function Sidebar({ active, onSelect, onOpenSettings, version }: SidebarPr
         >
           <span className="sidebar-icon"><Icon name="general" /></span>
           Settings
+        </button>
+        <button
+          type="button"
+          className="sidebar-item"
+          // The README is the manual. A fixed URL on the Rust side, so the
+          // webview never gets to pick what the system browser opens.
+          onClick={() => { invoke('open_help').catch(() => {}); }}
+        >
+          <span className="sidebar-icon"><Icon name="help" /></span>
+          Help
         </button>
         <span className="sidebar-version">v{version}</span>
       </div>

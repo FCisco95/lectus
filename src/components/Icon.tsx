@@ -13,6 +13,7 @@ export type IconName =
   | 'mic'
   | 'accessibility'
   | 'key'
+  | 'help'
   | 'check';
 
 const PATHS: Record<IconName, string> = {
@@ -27,6 +28,7 @@ const PATHS: Record<IconName, string> = {
   mic: 'M9 2h6v12H9zM9 2a3 3 0 0 1 6 0M5 10v2a7 7 0 0 0 14 0v-2M12 19v3',
   accessibility: 'M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM4 8h16M12 8v13M8 21l4-6 4 6M7 12h10',
   key: 'M15 7a4 4 0 1 1-4 4H3v3h2v3h3v-3h2v-2.17A4 4 0 0 1 15 7z',
+  help: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1 1-1.1 1.8v.5M12 17h.01',
   check: 'M20 6L9 17l-5-5',
 };
 

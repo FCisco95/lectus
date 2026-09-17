@@ -3,7 +3,7 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { Pill } from './components/Pill';
-import { Settings } from './components/Settings';
+import { Shell } from './components/Shell';
 import { Onboarding } from './components/Onboarding';
 import { Titlebar } from './components/Titlebar';
 import { IS_MAC } from './components/settings/types';
@@ -24,7 +24,7 @@ export default function App() {
         .then((c) => setOnboardingDone(c.onboarding_completed))
         .catch(() => setOnboardingDone(true));
     load();
-    // Settings stays mounted while hidden. Re-read on focus so a first
+    // The shell stays mounted while hidden. Re-read on focus so a first
     // fetch that raced defaults cannot leave onboarding stuck on screen.
     const win = getCurrentWebviewWindow();
     const unFocus = win.listen('tauri://focus', () => { load(); });
@@ -87,7 +87,7 @@ export default function App() {
       {onboardingDone === null ? null : !onboardingDone ? (
         <Onboarding onComplete={() => setOnboardingDone(true)} />
       ) : (
-        <Settings />
+        <Shell />
       )}
     </div>
   );

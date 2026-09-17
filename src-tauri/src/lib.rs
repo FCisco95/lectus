@@ -301,6 +301,14 @@ fn show_home(app_handle: tauri::AppHandle) {
     show_app_window(&app_handle, true);
 }
 
+/// Sidebar → Help: the README in the system browser. The URL is fixed here
+/// on purpose — the webview cannot ask for an arbitrary one.
+#[tauri::command]
+fn open_help() -> Result<(), String> {
+    license::connect::open_in_browser("https://github.com/FCisco95/lectus#readme")
+        .map_err(|e| e.to_string())
+}
+
 /// Erase all stored history.
 #[tauri::command]
 fn clear_history(app_handle: tauri::AppHandle) -> Result<(), String> {
@@ -1009,6 +1017,7 @@ pub fn run() {
             get_history,
             get_history_stats,
             clear_history,
+            open_help,
             copy_to_clipboard,
             get_models_status,
             download_model,

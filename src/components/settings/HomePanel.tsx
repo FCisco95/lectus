@@ -1,28 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { Config, LicenseStatus } from './types';
 import { allowsDictation, formatHotkey } from './types';
-
-interface HistoryEntry {
-  text: string;
-  timestamp: number;
-  language: string | null;
-}
 
 interface HistoryStats {
   dictations_7d: number;
   words_7d: number;
   dictations_total: number;
   words_total: number;
-}
-
-function formatTime(ms: number): string {
-  try {
-    return new Date(ms).toLocaleString();
-  } catch {
-    return '';
-  }
+  streak_days?: number;
 }
 
 interface HomePanelProps {
@@ -46,31 +33,26 @@ function membershipNotice(status: LicenseStatus | null): string | null {
   }
 }
 
+/** Home fits on one screen: banner (when it applies) → greeting → three stat
+ *  cards → one status line → empty-state hint. The dictation list lives under
+ *  Dictations, which is the only surface that scrolls. */
 export function HomePanel({ config, onOpenTab }: HomePanelProps) {
-  const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [stats, setStats] = useState<HistoryStats | null>(null);
-  const [copied, setCopied] = useState<number | null>(null);
-  const [filter, setFilter] = useState('');
   const [engineReady, setEngineReady] = useState(true);
   const [license, setLicense] = useState<LicenseStatus | null>(null);
 
-  const load = () => {
-    invoke<HistoryEntry[]>('get_history')
-      .then((list) => setEntries([...list].reverse()))
-      .catch(() => {});
-    invoke<HistoryStats>('get_history_stats')
-      .then(setStats)
-      .catch(() => {});
+  const loadStats = () => {
+    invoke<HistoryStats>('get_history_stats').then(setStats).catch(() => {});
   };
 
   useEffect(() => {
-    load();
+    loadStats();
     invoke<boolean>('engine_ready')
       .then(setEngineReady)
       .catch(() => setEngineReady(true));
     invoke<LicenseStatus>('license_status').then(setLicense).catch(() => {});
     const unLicense = listen<LicenseStatus>('license-changed', (e) => setLicense(e.payload));
-    const unAdded = listen<HistoryEntry>('history-added', () => load());
+    const unAdded = listen('history-added', () => loadStats());
     const unReady = listen('model-active', () => setEngineReady(true));
     const unLoad = listen('model-loading', () => setEngineReady(false));
     return () => {
@@ -81,45 +63,30 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
     };
   }, []);
 
-  const visible = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return entries;
-    return entries.filter((e) => e.text.toLowerCase().includes(q));
-  }, [entries, filter]);
-
-  const copy = (text: string, i: number) => {
-    invoke('copy_to_clipboard', { text })
-      .then(() => { setCopied(i); setTimeout(() => setCopied(null), 1200); })
-      .catch(() => {});
-  };
-
-  const clearAll = () => {
-    invoke('clear_history').then(() => {
-      setEntries([]);
-      setStats({ dictations_7d: 0, words_7d: 0, dictations_total: 0, words_total: 0 });
-    }).catch(() => {});
-  };
-
   const modelLabel = (config.model_name || '')
     .replace(/^ggml-/, '')
     .replace(/\.bin$/, '')
     .replace(/-/g, ' ');
 
-  return (
-    <div>
-      <h2 className="settings-panel-title">Home</h2>
-      <p className="settings-panel-sub">
-        Last {Math.max(stats?.dictations_total ?? entries.length, 0)} dictations on this device.
-      </p>
+  const hotkey = formatHotkey(config.hold_hotkey);
+  const notice = membershipNotice(license);
+  const empty = stats !== null && stats.dictations_total === 0;
 
-      {membershipNotice(license) && (
+  return (
+    <div className="home">
+      {notice && (
         <div className="banner">
-          <span>{membershipNotice(license)}</span>
+          <span>{notice}</span>
           <button className="btn btn-primary" type="button" onClick={() => onOpenTab('membership')}>
             {license?.kind === 'unlinked' ? 'Connect wallet' : 'Membership'}
           </button>
         </div>
       )}
+
+      <h2 className="settings-panel-title home-greeting">Welcome back</h2>
+      <p className="settings-panel-sub">
+        {empty ? 'Your first dictation is one keypress away.' : 'Here is your week so far.'}
+      </p>
 
       <div className="home-stats">
         <div className="home-stat">
@@ -131,67 +98,28 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
           <div className="home-stat-label">Dictations this week</div>
         </div>
         <div className="home-stat">
-          <div className="home-stat-value">{stats?.dictations_total ?? '—'}</div>
-          <div className="home-stat-label">Stored</div>
+          <div className="home-stat-value">{stats?.streak_days ?? '—'}</div>
+          <div className="home-stat-label">Day streak</div>
         </div>
       </div>
 
       <div className="home-status">
-        <span>{modelLabel || 'No model'}</span>
-        <span>·</span>
-        <span>{formatHotkey(config.hold_hotkey)}</span>
-        <span>·</span>
-        <span>
+        <button className="home-link" type="button" onClick={() => onOpenTab('models')}>
+          {modelLabel || 'No model'}
+        </button>
+        <span aria-hidden="true">·</span>
+        <span>{hotkey}</span>
+        <span aria-hidden="true">·</span>
+        <span className={`home-state${!allowsDictation(license) ? ' locked' : engineReady ? ' ready' : ''}`}>
           {!allowsDictation(license) ? 'Locked' : engineReady ? 'Ready' : 'Loading model…'}
         </span>
       </div>
 
-      <div className="home-jumps">
-        <button className="btn btn-secondary" type="button" onClick={() => onOpenTab('vocabulary')}>
-          Vocabulary
-        </button>
-        <button className="btn btn-secondary" type="button" onClick={() => onOpenTab('models')}>
-          Models
-        </button>
-      </div>
-
-      {entries.length > 0 && (
-        <div className="home-list-tools">
-          <input
-            className="input"
-            value={filter}
-            placeholder="Filter dictations…"
-            onChange={(e) => setFilter(e.target.value)}
-          />
-          <button className="btn btn-ghost" type="button" onClick={clearAll}>
-            Clear history
-          </button>
-        </div>
-      )}
-
-      {entries.length === 0 ? (
-        <p className="history-empty">
-          Hold {formatHotkey(config.hold_hotkey)} and talk — your words show up here.
+      {empty && (
+        <p className="home-hint">
+          Hold <span className="kbd">{hotkey}</span> and talk. Your words land in whatever field is
+          focused, and a copy shows up under Dictations.
         </p>
-      ) : visible.length === 0 ? (
-        <p className="history-empty">No dictations match that filter.</p>
-      ) : (
-        <div className="history-list">
-          {visible.map((e, i) => (
-            <div className="history-item" key={`${e.timestamp}-${i}`}>
-              <div className="history-item-text">{e.text}</div>
-              <div className="history-item-meta">
-                <span>{formatTime(e.timestamp)}</span>
-                {e.language && <span>· {e.language}</span>}
-                <span className="history-item-actions">
-                  <button className="history-copy" onClick={() => copy(e.text, i)}>
-                    {copied === i ? 'Copied ✓' : 'Copy'}
-                  </button>
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
       )}
     </div>
   );
