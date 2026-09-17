@@ -5,6 +5,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Pill } from './components/Pill';
 import { Settings } from './components/Settings';
 import { Onboarding } from './components/Onboarding';
+import { Titlebar } from './components/Titlebar';
 import { IS_MAC } from './components/settings/types';
 import type { Config } from './components/settings/types';
 import './styles/tokens.css';
@@ -76,7 +77,18 @@ export default function App() {
   }, []);
 
   if (windowLabel === 'pill') return <Pill state={appState} />;
-  if (onboardingDone === null) return null;
-  if (!onboardingDone) return <Onboarding onComplete={() => setOnboardingDone(true)} />;
-  return <Settings />;
+
+  // Every non-pill screen sits under our own titlebar — the window is
+  // undecorated, so this bar is the only way to move or close it. Onboarding
+  // included: a first-run window with no drag handle cannot be moved.
+  return (
+    <div className="app-frame">
+      <Titlebar />
+      {onboardingDone === null ? null : !onboardingDone ? (
+        <Onboarding onComplete={() => setOnboardingDone(true)} />
+      ) : (
+        <Settings />
+      )}
+    </div>
+  );
 }

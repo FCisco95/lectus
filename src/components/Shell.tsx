@@ -1,0 +1,79 @@
+import { useEffect, useState } from 'react';
+import { listen } from '@tauri-apps/api/event';
+import { getVersion } from '@tauri-apps/api/app';
+import '../styles/settings.css';
+import { useConfig } from './settings/useConfig';
+import { Sidebar } from './Sidebar';
+import type { SurfaceId } from './Sidebar';
+import { SettingsModal } from './SettingsModal';
+import type { SettingsTab } from './SettingsModal';
+import { HomePanel } from './settings/HomePanel';
+import { DictationsPanel } from './settings/DictationsPanel';
+import { DictionaryPanel } from './settings/DictionaryPanel';
+import { MembershipPanel } from './settings/MembershipPanel';
+import { UpdateBanner } from './update-banner';
+
+/** The app shell: sidebar of surfaces on the window background, content in one
+ *  card. Everything configurable opens in a modal on top (SettingsModal). */
+export function Shell() {
+  const { config, update, status, statusKind } = useConfig();
+  const [surface, setSurface] = useState<SurfaceId>('home');
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
+  const [version, setVersion] = useState('');
+
+  useEffect(() => {
+    getVersion().then(setVersion).catch(() => {});
+    const unHome = listen('open-home', () => setSurface('home'));
+    // A refused dictation: go straight to the screen that can fix it, and get
+    // the modal out of the way if it happened to be open.
+    const unBlocked = listen('license-blocked', () => {
+      setSettingsTab(null);
+      setSurface('membership');
+    });
+    return () => {
+      unHome.then((f) => f());
+      unBlocked.then((f) => f());
+    };
+  }, []);
+
+  if (!config) {
+    return <div className="settings-app" style={{ padding: 24 }}>{status || 'Loading…'}</div>;
+  }
+
+  // Home's shortcut buttons: two are surfaces, one lives in the modal now.
+  const jump = (target: 'vocabulary' | 'models' | 'membership') => {
+    if (target === 'models') setSettingsTab('models');
+    else setSurface(target);
+  };
+
+  return (
+    <div className="settings-app">
+      <Sidebar
+        active={surface}
+        onSelect={setSurface}
+        onOpenSettings={() => setSettingsTab('general')}
+        version={version}
+      />
+
+      <main className="surface">
+        <UpdateBanner />
+        {surface === 'home' && <HomePanel config={config} onOpenTab={jump} />}
+        {surface === 'dictations' && <DictationsPanel config={config} />}
+        {surface === 'vocabulary' && <DictionaryPanel config={config} update={update} />}
+        {surface === 'membership' && <MembershipPanel />}
+
+        {status && <div className={`settings-autosave-status ${statusKind}`}>{status}</div>}
+      </main>
+
+      {settingsTab && (
+        <SettingsModal
+          config={config}
+          update={update}
+          initialTab={settingsTab}
+          version={version}
+          onClose={() => setSettingsTab(null)}
+        />
+      )}
+    </div>
+  );
+}

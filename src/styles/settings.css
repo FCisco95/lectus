@@ -579,3 +579,84 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
 .update-banner-text { flex: 1; }
 .update-banner-btn { padding: 4px 12px; font-size: 13px; }
 .about-updates { display: flex; align-items: center; margin: 10px 0 6px; }
+
+/* ============================================================
+   Window chrome — the app's own titlebar.
+   The settings window runs undecorated (tauri.conf.json), so this bar is the
+   only drag handle and the only place the window buttons live. macOS keeps
+   its native traffic lights; .titlebar-controls is hidden there.
+   ============================================================ */
+
+.app-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg-window);
+}
+
+.titlebar {
+  flex: 0 0 auto;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  padding-left: var(--space-4);
+  gap: var(--space-2);
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+  z-index: 10;
+}
+
+/* Touch and pen input on Windows needs app-region, not just the attribute. */
+*[data-tauri-drag-region] { app-region: drag; -webkit-app-region: drag; }
+
+.titlebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.titlebar-orb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--brand-conic);
+}
+
+.titlebar-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.titlebar-controls {
+  margin-left: auto;
+  display: flex;
+  height: 100%;
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-button {
+  width: 46px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif;
+  font-size: 10px;
+  line-height: 1;
+  cursor: default;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.titlebar-button:hover { background: var(--bg-hover); color: var(--text-primary); }
+.titlebar-button:active { background: var(--bg-active); }
+.titlebar-button.danger:hover { background: #e81123; color: #fff; }
+
+/* The app body sits under the titlebar rather than owning the viewport. */
+.app-frame .settings-app { height: auto; flex: 1 1 auto; min-height: 0; }

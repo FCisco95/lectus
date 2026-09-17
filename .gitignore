@@ -28,3 +28,6 @@ models/*.bin
 *.njsproj
 *.sln
 *.sw?
+
+# Brainstorming visual companion sessions
+.superpowers/

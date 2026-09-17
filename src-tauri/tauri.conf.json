@@ -16,12 +16,12 @@
       {
         "label": "settings",
         "title": "Lectus",
-        "width": 880,
-        "height": 640,
+        "width": 960,
+        "height": 680,
         "minWidth": 720,
         "minHeight": 540,
         "visible": false,
-        "decorations": true,
+        "decorations": false,
         "resizable": true
       },
       {
