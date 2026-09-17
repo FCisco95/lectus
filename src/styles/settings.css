@@ -853,3 +853,22 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
 .resize-sw { left: 0; bottom: 0; width: 12px; height: 12px; cursor: nesw-resize; }
 /* A maximised window has no edges to grab. */
 html.maximized .resize-strip { display: none; }
+
+/* ---- What's new (WhatsNewModal.tsx): the modal panel, single column ---- */
+.modal-panel.compact {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  height: auto;
+  max-height: min(560px, 100%);
+}
+.modal-panel.compact .modal-body { padding-top: var(--space-7); }
+.whats-new-notes {
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.whats-new-actions { display: flex; justify-content: flex-end; }

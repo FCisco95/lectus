@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getVersion } from '@tauri-apps/api/app';
 import '../styles/settings.css';
@@ -12,6 +13,8 @@ import { DictationsPanel } from './settings/DictationsPanel';
 import { DictionaryPanel } from './settings/DictionaryPanel';
 import { MembershipPanel } from './settings/MembershipPanel';
 import { UpdateBanner } from './update-banner';
+import { WhatsNewModal } from './WhatsNewModal';
+import type { WhatsNew } from './WhatsNewModal';
 
 /** The app shell: sidebar of surfaces on the window background, content in one
  *  card. Everything configurable opens in a modal on top (SettingsModal). */
@@ -20,9 +23,15 @@ export function Shell() {
   const [surface, setSurface] = useState<SurfaceId>('home');
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [version, setVersion] = useState('');
+  const [whatsNew, setWhatsNew] = useState<WhatsNew | null>(null);
 
   useEffect(() => {
     getVersion().then(setVersion).catch(() => {});
+    // Release notes parked by the previous build's "Restart now"; the
+    // command deletes them, so this shows exactly once per update.
+    invoke<WhatsNew | null>('take_whats_new_notes')
+      .then((n) => { if (n) setWhatsNew(n); })
+      .catch(() => {});
     const unHome = listen('open-home', () => setSurface('home'));
     // A refused dictation: go straight to the screen that can fix it, and get
     // the modal out of the way if it happened to be open.
@@ -48,7 +57,7 @@ export function Shell() {
 
   return (
     <div className="settings-app">
-      <div className="shell-columns" inert={settingsTab !== null}>
+      <div className="shell-columns" inert={settingsTab !== null || whatsNew !== null}>
         <Sidebar
           active={surface}
           onSelect={setSurface}
@@ -68,6 +77,10 @@ export function Shell() {
       </div>
 
       {status && <div className={`settings-autosave-status ${statusKind}`}>{status}</div>}
+
+      {whatsNew && !settingsTab && (
+        <WhatsNewModal info={whatsNew} onClose={() => setWhatsNew(null)} />
+      )}
 
       {settingsTab && (
         <SettingsModal

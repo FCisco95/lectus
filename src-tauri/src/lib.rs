@@ -1050,6 +1050,7 @@ pub fn run() {
             updates::check_for_updates,
             updates::last_update_error,
             updates::restart_and_apply,
+            updates::take_whats_new_notes,
         ])
         .setup(|app| {
             // Menu-bar app: no Dock icon, no app switcher entry. The settings

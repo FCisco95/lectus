@@ -10,7 +10,8 @@
 //! interrupt dictation.
 //! Failures are logged and reported via `update-error`; silent in UI except the About line.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_updater::UpdaterExt;
@@ -18,10 +19,44 @@ use tauri_plugin_updater::UpdaterExt;
 use crate::state::{AppState, RecordingState};
 
 /// Payload emitted on `update-downloaded` and returned by `check_for_updates`.
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UpdateInfo {
     pub version: String,
     pub notes: Option<String>,
+}
+
+/// `<app_data>/whats_new.json`: the release notes of the build about to be
+/// installed, written just before the installer runs and read once by the
+/// build that comes up afterwards. The file is the whole "shown once"
+/// mechanism — taking it deletes it.
+fn whats_new_path(dir: &Path) -> PathBuf {
+    dir.join("whats_new.json")
+}
+
+/// Park the notes for the next launch. Best effort: a failure here only
+/// costs the popup.
+pub fn stash_whats_new(dir: &Path, info: &UpdateInfo) -> std::io::Result<()> {
+    std::fs::create_dir_all(dir)?;
+    let text = serde_json::to_string_pretty(info).map_err(std::io::Error::other)?;
+    std::fs::write(whats_new_path(dir), text)
+}
+
+/// The parked notes, if any, removed on read. `current_version` is what is
+/// running now: notes stashed for some other version (an install that never
+/// happened, a downgrade) are discarded rather than shown.
+pub fn take_whats_new(dir: &Path, current_version: &str) -> Option<UpdateInfo> {
+    let path = whats_new_path(dir);
+    let text = std::fs::read_to_string(&path).ok()?;
+    let _ = std::fs::remove_file(&path);
+    let info: UpdateInfo = serde_json::from_str(&text).ok()?;
+    (info.version == current_version).then_some(info)
+}
+
+/// Tauri command: release notes to show once after an update, or null.
+#[tauri::command]
+pub fn take_whats_new_notes(app: AppHandle) -> Option<UpdateInfo> {
+    let dir = app.path().app_data_dir().ok()?;
+    take_whats_new(&dir, &app.package_info().version.to_string())
 }
 
 /// Managed state holding the downloaded update until the user confirms the restart. The download +
@@ -130,6 +165,14 @@ pub fn restart_and_apply(app: AppHandle) -> Result<(), String> {
         Some(x) => x,
         None => return Err("No downloaded update available.".to_string()),
     };
+    // Park the notes for the build that comes up after the installer; if the
+    // install fails below the stash is harmless (version check on read).
+    if let Ok(dir) = app.path().app_data_dir() {
+        let info = UpdateInfo { version: update.version.clone(), notes: update.body.clone() };
+        if let Err(e) = stash_whats_new(&dir, &info) {
+            log::warn!("could not stash release notes: {e}");
+        }
+    }
     if let Err(e) = update.install(&bytes) {
         // Put it back so the user can retry instead of silently losing the downloaded payload.
         *app.state::<PendingUpdate>().0.lock().unwrap() = Some((update, bytes));
@@ -145,4 +188,48 @@ pub fn restart_and_apply(app: AppHandle) -> Result<(), String> {
         unsafe { libc::_exit(0) }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    fn info(version: &str) -> UpdateInfo {
+        UpdateInfo { version: version.into(), notes: Some("- faster\n- prettier".into()) }
+    }
+
+    #[test]
+    fn take_returns_the_stash_once() {
+        let dir = tempdir().unwrap();
+        stash_whats_new(dir.path(), &info("0.7.0")).unwrap();
+        assert_eq!(take_whats_new(dir.path(), "0.7.0"), Some(info("0.7.0")));
+        // Second launch: nothing, the file is gone.
+        assert_eq!(take_whats_new(dir.path(), "0.7.0"), None);
+        assert!(!whats_new_path(dir.path()).exists());
+    }
+
+    #[test]
+    fn take_on_missing_file_is_none() {
+        let dir = tempdir().unwrap();
+        assert_eq!(take_whats_new(dir.path(), "0.7.0"), None);
+    }
+
+    #[test]
+    fn take_discards_notes_for_another_version() {
+        // Stashed for 0.7.0 but 0.6.0 came up (install failed or rolled
+        // back): drop the stash instead of announcing a build not running.
+        let dir = tempdir().unwrap();
+        stash_whats_new(dir.path(), &info("0.7.0")).unwrap();
+        assert_eq!(take_whats_new(dir.path(), "0.6.0"), None);
+        assert!(!whats_new_path(dir.path()).exists());
+    }
+
+    #[test]
+    fn take_survives_garbage() {
+        let dir = tempdir().unwrap();
+        std::fs::write(whats_new_path(dir.path()), "{not json").unwrap();
+        assert_eq!(take_whats_new(dir.path(), "0.7.0"), None);
+        assert!(!whats_new_path(dir.path()).exists());
+    }
 }
