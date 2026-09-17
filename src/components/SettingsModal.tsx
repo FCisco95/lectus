@@ -77,10 +77,14 @@ export function SettingsModal({ config, update, initialTab, version, onClose }: 
           <div className="modal-rail-foot">Lectus v{version}</div>
         </aside>
 
+        {/* Outside the scrolling body so it stays pinned to the card's corner.
+            A plain multiplication sign, not a Segoe glyph: this one also shows
+            on macOS. */}
+        <button className="modal-close" type="button" aria-label="Close settings" onClick={onClose}>
+          &times;
+        </button>
+
         <div className="modal-body">
-          <button className="modal-close" type="button" aria-label="Close settings" onClick={onClose}>
-            &#xE8BB;
-          </button>
           {tab === 'general' && <GeneralPanel config={config} update={update} />}
           {tab === 'dictation' && <DictationPanel config={config} update={update} />}
           {tab === 'models' && <ModelsPanel config={config} update={update} />}

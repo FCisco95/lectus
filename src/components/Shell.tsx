@@ -57,10 +57,12 @@ export function Shell() {
 
       <main className="surface">
         <UpdateBanner />
-        {surface === 'home' && <HomePanel config={config} onOpenTab={jump} />}
-        {surface === 'dictations' && <DictationsPanel config={config} />}
-        {surface === 'vocabulary' && <DictionaryPanel config={config} update={update} />}
-        {surface === 'membership' && <MembershipPanel />}
+        <div className="surface-body">
+          {surface === 'home' && <HomePanel config={config} onOpenTab={jump} />}
+          {surface === 'dictations' && <DictationsPanel config={config} />}
+          {surface === 'vocabulary' && <DictionaryPanel config={config} update={update} />}
+          {surface === 'membership' && <MembershipPanel />}
+        </div>
 
         {status && <div className={`settings-autosave-status ${statusKind}`}>{status}</div>}
       </main>
