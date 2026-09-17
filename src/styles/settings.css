@@ -821,3 +821,21 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
 
 /* Onboarding shares the frame: it sits under the titlebar, not over it. */
 .app-frame .onboarding-root { height: auto; flex: 1 1 auto; min-height: 0; }
+
+/* ---- Resize strips (ResizeHandles.tsx): invisible, Windows only ----
+   Fixed to the viewport edges, above everything, and opted out of the
+   drag region so the top strip resizes instead of moving the window. */
+.resize-strip {
+  position: fixed;
+  z-index: 100;
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+}
+.resize-n  { top: 0; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+.resize-s  { bottom: 0; left: 12px; right: 12px; height: 6px; cursor: ns-resize; }
+.resize-e  { top: 12px; bottom: 12px; right: 0; width: 6px; cursor: ew-resize; }
+.resize-w  { top: 12px; bottom: 12px; left: 0; width: 6px; cursor: ew-resize; }
+.resize-se { right: 0; bottom: 0; width: 12px; height: 12px; cursor: nwse-resize; }
+.resize-sw { left: 0; bottom: 0; width: 12px; height: 12px; cursor: nesw-resize; }
+/* A maximised window has no edges to grab. */
+html.maximized .resize-strip { display: none; }

@@ -6,6 +6,7 @@ import { Pill } from './components/Pill';
 import { Shell } from './components/Shell';
 import { Onboarding } from './components/Onboarding';
 import { Titlebar } from './components/Titlebar';
+import { ResizeHandles } from './components/ResizeHandles';
 import { IS_MAC } from './components/settings/types';
 import type { Config } from './components/settings/types';
 import './styles/tokens.css';
@@ -84,6 +85,7 @@ export default function App() {
   return (
     <div className="app-frame">
       <Titlebar />
+      <ResizeHandles />
       {onboardingDone === null ? null : !onboardingDone ? (
         <Onboarding onComplete={() => setOnboardingDone(true)} />
       ) : (

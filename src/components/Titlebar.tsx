@@ -20,7 +20,13 @@ export function Titlebar() {
     if (IS_MAC) return;
     const win = getCurrentWindow();
     let unlisten: (() => void) | undefined;
-    const sync = () => { win.isMaximized().then(setMaximized).catch(() => {}); };
+    const sync = () => {
+      win.isMaximized().then((m) => {
+        setMaximized(m);
+        // A maximised window has no edges to grab: ResizeHandles hides on this.
+        document.documentElement.classList.toggle('maximized', m);
+      }).catch(() => {});
+    };
     sync();
     win.onResized(sync).then((f) => { unlisten = f; }).catch(() => {});
     return () => { unlisten?.(); };
