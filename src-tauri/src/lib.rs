@@ -45,6 +45,41 @@ fn safety_cap_secs(trigger_mode: &str) -> u64 {
     300
 }
 
+/// True when this process was started by the login Run key / autostart plugin.
+fn args_mean_autostart<I, S>(args: I) -> bool
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    args.into_iter().any(|a| a.as_ref() == "--autostart")
+}
+
+fn launched_by_autostart() -> bool {
+    args_mean_autostart(std::env::args())
+}
+
+/// Show the app window. `force_home_tab` emits `open-home` so a hidden window
+/// lands on Home; a window that is already visible is only focused.
+fn show_app_window(app: &tauri::AppHandle, force_home_tab: bool) {
+    if let Some(w) = app.get_webview_window("settings") {
+        let was_visible = w.is_visible().unwrap_or(false);
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+        if force_home_tab || !was_visible {
+            let _ = app.emit("open-home", ());
+        }
+    }
+}
+
+fn user_opened_app(app: &tauri::AppHandle) {
+    let hidden = app
+        .get_webview_window("settings")
+        .map(|w| !w.is_visible().unwrap_or(false))
+        .unwrap_or(true);
+    show_app_window(app, hidden);
+}
+
 /// The key (or two-key chord) the hook should watch given the active trigger
 /// mode: the toggle key in toggle mode, otherwise the hold key. Falls back to
 /// Right Ctrl if the configured value isn't supported.
@@ -209,6 +244,33 @@ fn get_config(app_state: tauri::State<AppState>) -> config::Config {
     app_state.config.lock().unwrap().clone()
 }
 
+/// Mark first-run setup done without writing the rest of a stale Settings
+/// snapshot (which used to wipe dictionary + model back to defaults).
+#[tauri::command]
+fn complete_onboarding(
+    app_state: tauri::State<AppState>,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    let snapshot = {
+        let mut guard = app_state.config.lock().unwrap();
+        guard.onboarding_completed = true;
+        guard.clone()
+    };
+    if let Ok(cfg_dir) = app_handle.path().app_config_dir() {
+        snapshot
+            .save_to(&cfg_dir.join("config.json"))
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Whether the local Whisper engine has finished loading. The pill uses this
+/// so daily launch can show "Warming up…" instead of a dead orb.
+#[tauri::command]
+fn engine_ready(whisper_state: tauri::State<WhisperState>) -> bool {
+    whisper_state.local.lock().unwrap().is_some()
+}
+
 /// Whether the Claude Code CLI is available for AI cleanup (shown in Settings).
 #[tauri::command]
 fn check_claude_cli() -> bool {
@@ -223,6 +285,19 @@ fn get_history(app_handle: tauri::AppHandle) -> Vec<history::HistoryEntry> {
         .app_data_dir()
         .map(|d| history::load(&d))
         .unwrap_or_default()
+}
+
+/// Rolling-week + lifetime counts for the Home dashboard.
+#[tauri::command]
+fn get_history_stats(app_handle: tauri::AppHandle) -> history::HistoryStats {
+    let entries = get_history(app_handle);
+    history::stats(&entries, now_millis())
+}
+
+/// Pill / tray / frontend: show the app window on Home.
+#[tauri::command]
+fn show_home(app_handle: tauri::AppHandle) {
+    show_app_window(&app_handle, true);
 }
 
 /// Erase all stored history.
@@ -493,6 +568,24 @@ async fn download_cleanup_model(app_handle: tauri::AppHandle) -> Result<(), Stri
     .map_err(|e| e.to_string())?
 }
 
+/// Block until the local engine is in the cache, or 90s elapses. Daily launch
+/// loads large-v3-turbo off the setup thread; a hold that lands during that
+/// window should wait instead of injecting "model not loaded".
+fn wait_for_local_engine(
+    local: &Arc<Mutex<Option<transcription::local::LocalWhisper>>>,
+) -> Result<(), String> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(90);
+    loop {
+        if local.lock().unwrap().is_some() {
+            return Ok(());
+        }
+        if std::time::Instant::now() >= deadline {
+            return Err("Whisper model is still loading — try again in a moment".into());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+}
+
 /// Run a short silent inference on the whisper worker so the GPU backend
 /// compiles its pipelines up front instead of on the first real dictation
 /// (~8 s of Vulkan shader compilation on first `whisper_full`).
@@ -687,6 +780,9 @@ async fn do_pipeline(
     }
     let worker = app_handle.state::<worker::TranscribeWorker>().inner().clone();
     let (mut transcript, detected_language) = tokio::task::spawn_blocking(move || {
+        if !use_cloud {
+            wait_for_local_engine(&local)?;
+        }
         worker.run(move || {
             if use_cloud {
                 let guard = cloud.lock().unwrap();
@@ -717,7 +813,11 @@ async fn do_pipeline(
         transcript.len()
     );
 
-    // 4. Post-process: replacement rules + optional AI cleanup.
+    // 4. Post-process: dictionary spellings, replacement rules, optional AI cleanup.
+    transcript = transcription::dictionary::apply_dictionary_spellings(
+        &transcript,
+        &cfg.dictionary_words,
+    );
     transcript = transcription::dictionary::apply_rules(&transcript, &cfg.replacement_rules);
     if cfg.ai_cleanup_enabled && !transcript.is_empty() {
         let t_cleanup = std::time::Instant::now();
@@ -843,11 +943,7 @@ pub fn run() {
         .try_init();
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(w) = app.get_webview_window("settings") {
-                let _ = w.show();
-                let _ = w.unminimize();
-                let _ = w.set_focus();
-            }
+            user_opened_app(app);
         }))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -855,11 +951,11 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            None,
+            Some(vec!["--autostart"]),
         ))
         .manage(updates::PendingUpdate::new())
         .manage(updates::LastUpdateError(Mutex::new(None)))
-        .manage(AppState::new())
+        .manage(AppState::with_config(config::Config::load_or_default()))
         .manage(WhisperState {
             local: Arc::new(Mutex::new(None)),
             cloud: Arc::new(Mutex::new(None)),
@@ -878,9 +974,13 @@ pub fn run() {
             run_pipeline,
             get_config,
             save_config,
+            complete_onboarding,
+            engine_ready,
+            show_home,
             save_pill_position,
             check_claude_cli,
             get_history,
+            get_history_stats,
             clear_history,
             copy_to_clipboard,
             get_models_status,
@@ -922,7 +1022,7 @@ pub fn run() {
             let settings_item = MenuItem::with_id(
                 app,
                 "settings",
-                if cfg!(target_os = "macos") { "Settings…" } else { "Settings" },
+                "Home",
                 true,
                 None::<&str>,
             )?;
@@ -953,12 +1053,7 @@ pub fn run() {
                 // is macOS's native convention for menu-bar extras anyway.
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id().as_ref() {
-                    "settings" => {
-                        if let Some(w) = app.get_webview_window("settings") {
-                            let _ = w.show();
-                            let _ = w.set_focus();
-                        }
-                    }
+                    "settings" => show_app_window(app, true),
                     // Not app.exit(0): that runs the normal libc exit path,
                     // which crashes on ggml-metal teardown — see force_exit.
                     "quit" => force_exit(0),
@@ -974,10 +1069,7 @@ pub fn run() {
                     ..
                 } = event
                 {
-                    if let Some(w) = tray.app_handle().get_webview_window("settings") {
-                        let _ = w.show();
-                        let _ = w.set_focus();
-                    }
+                    user_opened_app(tray.app_handle());
                 }
             });
             tray.build(app)?;
@@ -1009,15 +1101,12 @@ pub fn run() {
                 autostart::repair_windows_run_keys(enabled);
             }
 
-            // First run: surface the (normally hidden) settings window so the
-            // onboarding flow can walk through permissions and the hotkey.
+            // First run: surface onboarding. User double-click (no --autostart)
+            // opens Home. Login-start stays in the tray.
             let needs_onboarding =
                 !app.state::<AppState>().config.lock().unwrap().onboarding_completed;
-            if needs_onboarding {
-                if let Some(w) = app.get_webview_window("settings") {
-                    let _ = w.show();
-                    let _ = w.set_focus();
-                }
+            if needs_onboarding || !launched_by_autostart() {
+                show_app_window(app.handle(), !needs_onboarding);
             }
 
             // Start the always-on pre-roll capture stream (500 ms ring).
@@ -1038,58 +1127,67 @@ pub fn run() {
 
             // Resolve the active model: prefer the downloaded multilingual model;
             // otherwise fall back to the bundled tiny.en so the app works on first run.
-            {
-                let app_state = app.state::<AppState>();
-                let model_name = app_state.config.lock().unwrap().model_name.clone();
-                let resolved = transcription::model::model_path(app.handle(), &model_name)
-                    .ok()
-                    .filter(|p| p.exists())
-                    .or_else(|| {
-                        app.path()
-                            .resource_dir()
-                            .ok()
-                            .map(|d| d.join("models/ggml-tiny.en.bin"))
-                            .filter(|p| p.exists())
-                    });
-                if let Some(path) = resolved {
-                    app_state.config.lock().unwrap().model_path = path;
-                }
+            // Load off this thread so tray + hotkey appear immediately — blocking
+            // here on large-v3-turbo is what made every daily launch feel dead.
+            let model_name = app.state::<AppState>().config.lock().unwrap().model_name.clone();
+            let resolved = transcription::model::model_path(app.handle(), &model_name)
+                .ok()
+                .filter(|p| p.exists())
+                .or_else(|| {
+                    app.path()
+                        .resource_dir()
+                        .ok()
+                        .map(|d| d.join("models/ggml-tiny.en.bin"))
+                        .filter(|p| p.exists())
+                });
+            if let Some(path) = resolved.clone() {
+                app.state::<AppState>().config.lock().unwrap().model_path = path;
             }
-
-            // Pre-load the configured model into the engine cache.
-            let model_path = app.state::<AppState>().config.lock().unwrap().model_path.clone();
-            match transcription::local::LocalWhisper::new(&model_path) {
-                Ok(engine) => {
-                    *app.state::<WhisperState>().local.lock().unwrap() = Some(engine);
-                    warmup_engine(&app.handle().clone());
-                }
-                Err(e) => {
-                    eprintln!("warning: could not load whisper model at {model_path:?}: {e}");
-                }
-            }
-
-            // On first run the bundled model is English-only. Download the
-            // configured multilingual model in background, then hot-swap it.
+            let already_downloaded =
+                transcription::model::is_downloaded(app.handle(), &model_name);
             {
                 let bg = app.handle().clone();
-                let model_name = app.state::<AppState>().config.lock().unwrap().model_name.clone();
-                let already = transcription::model::is_downloaded(&bg, &model_name);
-                if !already {
-                    std::thread::spawn(move || {
-                        match transcription::model::ensure_model(&bg, &model_name) {
+                let path_for_load = resolved;
+                let name_for_events = model_name.clone();
+                let name_for_download = model_name;
+                let _ = bg.emit("model-loading", name_for_events.clone());
+                std::thread::spawn(move || {
+                    if let Some(path) = path_for_load {
+                        match transcription::local::LocalWhisper::new(&path) {
+                            Ok(engine) => {
+                                *bg.state::<WhisperState>().local.lock().unwrap() = Some(engine);
+                                bg.state::<AppState>().config.lock().unwrap().model_path = path;
+                                warmup_engine(&bg);
+                                let _ = bg.emit("model-active", name_for_events.clone());
+                            }
+                            Err(e) => {
+                                eprintln!("warning: could not load whisper model: {e}");
+                                let _ = bg.emit("model-load-failed", e.to_string());
+                            }
+                        }
+                    }
+                    if !already_downloaded {
+                        match transcription::model::ensure_model(&bg, &name_for_download) {
                             Ok(path) => match transcription::local::LocalWhisper::new(&path) {
                                 Ok(engine) => {
                                     *bg.state::<WhisperState>().local.lock().unwrap() = Some(engine);
                                     bg.state::<AppState>().config.lock().unwrap().model_path = path;
                                     warmup_engine(&bg);
-                                    eprintln!("multilingual model loaded; language auto-detect active");
+                                    let _ = bg.emit("model-active", name_for_download);
+                                    eprintln!(
+                                        "multilingual model loaded; language auto-detect active"
+                                    );
                                 }
-                                Err(e) => eprintln!("warning: failed to load downloaded model: {e}"),
+                                Err(e) => {
+                                    eprintln!("warning: failed to load downloaded model: {e}")
+                                }
                             },
-                            Err(e) => eprintln!("warning: multilingual model not available: {e}"),
+                            Err(e) => {
+                                eprintln!("warning: multilingual model not available: {e}")
+                            }
                         }
-                    });
-                }
+                    }
+                });
             }
 
             // Fetch the tiny Silero VAD model in background (one-time, ~0.9 MB).
@@ -1205,17 +1303,21 @@ pub fn run() {
             // (RunEvent::Reopen only exists on macOS.)
             #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Reopen { .. } = event {
-                if let Some(w) = app_handle.get_webview_window("settings") {
-                    let _ = w.show();
-                    let _ = w.set_focus();
-                }
+                user_opened_app(app_handle);
             }
         });
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{safety_cap_secs, should_continue};
+    use super::{args_mean_autostart, safety_cap_secs, should_continue};
+
+    #[test]
+    fn autostart_flag_is_detected() {
+        assert!(args_mean_autostart(["chirp.exe", "--autostart"]));
+        assert!(!args_mean_autostart(["chirp.exe"]));
+        assert!(!args_mean_autostart(["chirp.exe", "--something-else"]));
+    }
 
     #[test]
     fn continues_while_active_and_under_cap() {

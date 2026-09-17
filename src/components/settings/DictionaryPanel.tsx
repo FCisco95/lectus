@@ -27,7 +27,9 @@ export function DictionaryPanel({ config, update }: PanelProps) {
   return (
     <div>
       <h2 className="settings-panel-title">Dictionary</h2>
-      <p className="settings-panel-sub">Words to help the system — and exact replacements.</p>
+      <p className="settings-panel-sub">
+        Saved on this machine. After each dictation, these spellings replace whatever Whisper guessed.
+      </p>
 
       <div className="field">
         <label className="field-label">Custom words</label>
@@ -41,7 +43,9 @@ export function DictionaryPanel({ config, update }: PanelProps) {
           />
           <button className="btn" type="button" onClick={addWord}>Add</button>
         </div>
-        <div className="field-hint">Biases recognition toward correct spellings of names and jargon.</div>
+        <div className="field-hint">
+          Stored in Settings and applied to every transcript (e.g. “claude” → “Claude”).
+        </div>
         {words.length > 0 && (
           <div className="tags">
             {words.map((w) => (

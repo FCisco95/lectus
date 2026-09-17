@@ -7,7 +7,42 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 /// Keep at most this many entries (newest last); older ones are dropped.
-pub const MAX_ENTRIES: usize = 100;
+/// Home's "this week" stats read this list, so the cap has to survive a busy day.
+pub const MAX_ENTRIES: usize = 500;
+
+/// Rolling window used by Home's weekly counts.
+pub const WEEK_MS: i64 = 7 * 24 * 60 * 60 * 1000;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct HistoryStats {
+    pub dictations_7d: usize,
+    pub words_7d: usize,
+    pub dictations_total: usize,
+    pub words_total: usize,
+}
+
+/// Whitespace-separated tokens. Empty / whitespace-only text is zero words.
+pub fn word_count(text: &str) -> usize {
+    text.split_whitespace().count()
+}
+
+/// Counts over `entries`. `now_ms` is Unix epoch milliseconds.
+pub fn stats(entries: &[HistoryEntry], now_ms: i64) -> HistoryStats {
+    let cutoff = now_ms.saturating_sub(WEEK_MS);
+    let mut out = HistoryStats {
+        dictations_total: entries.len(),
+        ..HistoryStats::default()
+    };
+    for e in entries {
+        let words = word_count(&e.text);
+        out.words_total += words;
+        if e.timestamp >= cutoff {
+            out.dictations_7d += 1;
+            out.words_7d += words;
+        }
+    }
+    out
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct HistoryEntry {
@@ -106,5 +141,37 @@ mod tests {
     fn load_missing_is_empty() {
         let dir = tempdir().unwrap();
         assert!(load(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn word_count_splits_on_whitespace() {
+        assert_eq!(word_count(""), 0);
+        assert_eq!(word_count("   "), 0);
+        assert_eq!(word_count("Mycel"), 1);
+        assert_eq!(word_count("hold the key and talk"), 5);
+        assert_eq!(word_count("  two\nlines  here "), 3);
+    }
+
+    #[test]
+    fn stats_empty_is_zeros() {
+        let s = stats(&[], 1_000_000);
+        assert_eq!(s, HistoryStats::default());
+    }
+
+    #[test]
+    fn stats_counts_only_the_rolling_week() {
+        let now = 1_700_000_000_000;
+        let week_ago = now - WEEK_MS;
+        let entries = vec![
+            entry("one two", week_ago - 1),
+            entry("three four five", week_ago),
+            entry("six", now),
+        ];
+        let s = stats(&entries, now);
+        assert_eq!(s.dictations_total, 3);
+        assert_eq!(s.words_total, 6);
+        // timestamp == cutoff is in-window; older than cutoff is not.
+        assert_eq!(s.dictations_7d, 2);
+        assert_eq!(s.words_7d, 4);
     }
 }

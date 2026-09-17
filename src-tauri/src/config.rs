@@ -185,12 +185,44 @@ impl Config {
     /// copy of `model_name` / `model_path` / pill position can be stale
     /// relative to `select_model` and drag-to-move. Writing that snapshot
     /// straight to disk is what reset the chosen model after a reboot.
+    ///
+    /// `onboarding_completed` is sticky true: a webview that fetched config
+    /// before disk load (defaults, flag false) must not send the user through
+    /// setup again or wipe the rest of the file via Onboarding's save.
     pub fn apply_ui_update(&mut self, mut incoming: Config) {
         incoming.model_name = self.model_name.clone();
         incoming.model_path = self.model_path.clone();
         incoming.pill_x = self.pill_x;
         incoming.pill_y = self.pill_y;
+        incoming.onboarding_completed = self.onboarding_completed || incoming.onboarding_completed;
         *self = incoming;
+    }
+
+    /// Platform app-support dir (`%APPDATA%\ai.organic.lectus` on Windows).
+    /// Used to load config before Tauri windows exist, so the first
+    /// `get_config` invoke cannot return defaults and flash onboarding.
+    pub fn app_support_dir() -> PathBuf {
+        #[cfg(target_os = "windows")]
+        {
+            PathBuf::from(std::env::var_os("APPDATA").unwrap_or_default()).join("ai.organic.lectus")
+        }
+        #[cfg(target_os = "macos")]
+        {
+            PathBuf::from(std::env::var_os("HOME").unwrap_or_default())
+                .join("Library/Application Support/ai.organic.lectus")
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        {
+            PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(".config/ai.organic.lectus")
+        }
+    }
+
+    pub fn config_file() -> PathBuf {
+        Self::app_support_dir().join("config.json")
+    }
+
+    pub fn load_or_default() -> Self {
+        Self::load_from(&Self::config_file()).unwrap_or_else(|_| Self::default())
     }
 }
 
@@ -318,5 +350,51 @@ mod tests {
         assert_eq!(live.theme, "light");
         assert_eq!(live.dictionary_words, vec!["Mycel".to_string()]);
         assert!(!live.mute_while_dictating);
+        assert!(!live.onboarding_completed);
+    }
+
+    #[test]
+    fn test_ui_update_does_not_revert_onboarding() {
+        let mut live = Config::default();
+        live.onboarding_completed = true;
+        live.dictionary_words = vec!["Mycel".into(), "Claude".into()];
+        live.model_name = "ggml-large-v3-turbo.bin".into();
+
+        // Stale Onboarding/Settings snapshot captured before disk load.
+        let incoming = Config::default();
+        assert!(!incoming.onboarding_completed);
+
+        live.apply_ui_update(incoming);
+
+        assert!(
+            live.onboarding_completed,
+            "finishing a stale onboarding form must not reset the completed flag"
+        );
+        assert_eq!(live.model_name, "ggml-large-v3-turbo.bin");
+    }
+
+    #[test]
+    fn test_ui_update_can_complete_onboarding() {
+        let mut live = Config::default();
+        let mut incoming = Config::default();
+        incoming.onboarding_completed = true;
+        live.apply_ui_update(incoming);
+        assert!(live.onboarding_completed);
+    }
+
+    #[test]
+    fn test_load_or_default_reads_existing_file() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        let mut saved = Config::default();
+        saved.model_name = "ggml-large-v3-turbo.bin".into();
+        saved.dictionary_words = vec!["Mycel".into()];
+        saved.onboarding_completed = true;
+        saved.save_to(&path).unwrap();
+
+        let loaded = Config::load_from(&path).unwrap();
+        assert_eq!(loaded.model_name, "ggml-large-v3-turbo.bin");
+        assert_eq!(loaded.dictionary_words, vec!["Mycel".to_string()]);
+        assert!(loaded.onboarding_completed);
     }
 }

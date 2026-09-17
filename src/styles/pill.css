@@ -46,6 +46,12 @@ html.pill-window #root {
 
 .pill-orb:hover { transform: scale(1.12); }
 
+/* Daily launch: model loads in the background. Pulse faster so the orb
+   doesn't look frozen while large-v3-turbo is coming up. */
+.pill-orb-warming {
+  animation: orb-pulse 0.9s var(--ease-out) infinite;
+}
+
 @keyframes orb-pulse {
   0%, 100% { transform: scale(1); filter: saturate(0.9) brightness(0.98); }
   50%      { transform: scale(1.05); filter: saturate(1.15) brightness(1.05); }

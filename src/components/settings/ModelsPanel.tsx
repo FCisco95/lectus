@@ -93,8 +93,8 @@ export function ModelsPanel({ config }: PanelProps) {
     <div>
       <h2 className="settings-panel-title">Models</h2>
       <p className="settings-panel-sub">
-        Download any Whisper model and switch between them. Tiny is the best starting point —
-        fast on CPU and supports 99 languages including Portuguese.
+        The active model is remembered across restarts. Large v3 Turbo is the usual pick for
+        Portuguese; Tiny/Base stay available when you want speed over accuracy.
       </p>
 
       <div className="model-list">

@@ -45,8 +45,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const goBack = () => setStepIndex((i) => Math.max(i - 1, 0));
 
   const finish = () => {
-    if (!config) { onComplete(); return; }
-    invoke('save_config', { newConfig: { ...config, onboarding_completed: true } })
+    invoke('complete_onboarding')
       .catch(() => {})
       .finally(onComplete);
   };
@@ -165,8 +164,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             <div className="onboarding-orb" />
             <h2>You're all set</h2>
             <p>
-              Lectus lives in your {IS_MAC ? 'menu bar' : 'system tray'} and the floating pill. Click
-              the pill or use your hotkey anywhere.
+              Lectus stays in your {IS_MAC ? 'menu bar' : 'system tray'} at login. Click the tray,
+              the shortcut, or the pill to open Home. Hold your hotkey anywhere to dictate.
             </p>
             <p>Tip: add app-specific tone &amp; language profiles under Settings → AI Cleanup.</p>
             <div className="onboarding-btn-row">

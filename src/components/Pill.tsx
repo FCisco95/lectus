@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
@@ -25,6 +25,7 @@ const BAR_COUNT = BAR_COLORS.length;
 
 // Floating dictation indicator: idle orb, rainbow audio-level bars while recording, spinner while transcribing.
 export function Pill({ state }: PillProps) {
+  const [warming, setWarming] = useState(false);
   // Latest mic RMS, written by the event listener, read by the rAF loop.
   // A ref (not state) keeps ~31 emits/sec from triggering React re-renders.
   const levelRef = useRef(0);
@@ -38,6 +39,18 @@ export function Pill({ state }: PillProps) {
       levelRef.current = e.payload ?? 0;
     });
     return () => { unlisten.then((f) => f()); };
+  }, []);
+
+  useEffect(() => {
+    invoke<boolean>('engine_ready')
+      .then((ready) => setWarming(!ready))
+      .catch(() => setWarming(false));
+    const unlistens = [
+      listen('model-loading', () => setWarming(true)),
+      listen('model-active', () => setWarming(false)),
+      listen('model-load-failed', () => setWarming(false)),
+    ];
+    return () => { unlistens.forEach((u) => u.then((f) => f())); };
   }, []);
 
   // Persist the pill's position after the user drags it. We listen to the
@@ -63,7 +76,7 @@ export function Pill({ state }: PillProps) {
 
   // Manual drag vs click: app-region drag would swallow clicks, so we detect
   // movement ourselves. A real drag hands off to the OS (startDragging); a
-  // clean click (no movement) toggles recording.
+  // clean click (no movement) opens Home. Dictation stays on the hotkey.
   const onMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     const startX = e.screenX;
@@ -79,7 +92,7 @@ export function Pill({ state }: PillProps) {
     const onUp = () => {
       cleanup();
       if (!dragging) {
-        invoke('toggle_recording').catch(() => {});
+        invoke('show_home').catch(() => {});
       }
     };
     const cleanup = () => {
@@ -137,7 +150,10 @@ export function Pill({ state }: PillProps) {
     >
       {state === 'idle' && (
         // Idle: a small parrot-coloured orb. Drag to move, click to start.
-        <div className="pill-orb" title="Lectus — drag to move, click to dictate" />
+        <div
+          className={`pill-orb${warming ? ' pill-orb-warming' : ''}`}
+          title={warming ? 'Lectus — loading your model…' : 'Lectus — drag to move, click for Home'}
+        />
       )}
       {state === 'recording' && (
         <div className="pill-container">

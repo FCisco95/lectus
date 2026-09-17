@@ -16,9 +16,13 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
+        Self::with_config(Config::default())
+    }
+
+    pub fn with_config(config: Config) -> Self {
         Self {
             recording: Mutex::new(RecordingState::Idle),
-            config: Mutex::new(Config::default()),
+            config: Mutex::new(config),
         }
     }
 

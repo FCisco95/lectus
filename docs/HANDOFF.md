@@ -2,72 +2,61 @@
 
 ## Metadata
 
-- Last Updated: 2026-09-15 evening (Windows PC)
+- Last Updated: 2026-09-17 late morning (Windows PC)
 - Repository: `lectus` (github.com/FCisco95/lectus) — still private
-- Branch: `master` (ahead of origin by 2 commits, not pushed)
+- Branch: `master` (ahead of origin; Home-window work uncommitted)
 - Version in manifests: `0.5.0`
-- Live Windows install: `%LocalAppData%\Lectus\chirp.exe` (rebuilt 2026-09-15 evening)
+- Live Windows install: `%LocalAppData%\Lectus\chirp.exe` (rebuilt 2026-09-17 10:09)
 
 ## TL;DR
 
-Mute-while-dictating shipped and the user confirmed it live: video kept
-playing underneath, output stayed muted for the hold, then restored. That
-is the intended Wispr Flow-style behavior.
+Home window shipped locally. Clicking the tray, desktop/Start shortcut, or
+the pill opens a Home tab (this-week word/dictation counts + full history).
+Login stays silent (`Run` key is `chirp.exe --autostart`). History tab is gone.
+Only the content pane scrolls.
 
-Two local commits on master, not pushed:
+Spec: `docs/superpowers/specs/2026-09-17-home-window-design.md`.
 
-- `afba49c` fix: persist selected model and repair leftover Windows autostart
-- `e72d46b` feat: mute system playback while the dictation key is held
-
-Session stopped for the night. Do not reopen mute design.
+Still out of scope (user asked, not this slice): Mycel aliases / preset vocab,
+Orca-style installer wizard, working auto-update (private repo 404), app
+profiles, overlapping-hold queue.
 
 ## What to do next
 
-1. If building: **overlapping-hold queue** (recommended). With large-v3-turbo,
-   a second hold while transcribing is still silently skipped
-   (`pipeline: skipped overlapping dictation`). This is a capture-pipeline
-   change — ask first (AGENTS.md). User was offered this vs context-awareness
-   vs voice commands; no pick yet.
-2. Reboot once and confirm tray is 0.5.0 + Large v3 Turbo still Active
-   (autostart leftover-0.4.0 proof).
-3. Open Settings once so `mute_while_dictating: true` is written to
-   `config.json` (missing key already deserializes as on).
-4. Push the two commits only if asked. Updater stays inert (private repo
-   404) until an Organic token gate exists.
+1. User check: Home should have opened on this relaunch. Confirm stats + list
+   scroll in one pane. Clicking the pill opens Home (hotkey still dictates).
+2. Next slice if they want it: **dictionary that hears Mycel** (preset list +
+   aliases), then **install + update**.
+3. Push only if asked.
 
-## PC inventory (2026-09-15)
+## PC inventory (2026-09-17)
 
 | Copy | Path | Role |
 |---|---|---|
-| Installed 0.5.0 + mute | `%LocalAppData%\Lectus\chirp.exe` | **live** |
+| Installed + Home window | `%LocalAppData%\Lectus\chirp.exe` | **live** (10:09) |
 | Cargo target | `C:\lt\release\chirp.exe` | same rebuild |
 | Config/history | `%APPDATA%\ai.organic.lectus\` | `config.json` + `history.json` |
 
-Config: `ggml-large-v3-turbo.bin`, hold `RControl`, dictionary `Mycel, Claude`,
-theme dark. `mute_while_dictating` may still be absent on disk.
+Autostart: `HKCU\...\Run\Lectus` = `...\Lectus\chirp.exe --autostart`.
 
 ## Constraints
 
-- Do **not** change capture/injection/shortcut unless asked.
-- Default hotkey is still hold Right Ctrl (low-level hook, not a bare-modifier
-  plugin registration).
+- Do **not** change capture/injection/shortcut unless asked. Pill click no
+  longer toggles recording (approved: opens Home).
+- Default hotkey is still hold Right Ctrl.
 - API keys stay in env/config only.
 
 ## Suggested skills
 
 - `handoff-memory` — this file
-- `superpowers:brainstorming` — overlapping-dictation queue (only if user wants it)
-- `verify` — optional; live mute is already user-confirmed
-- `superpowers:systematic-debugging` — only if mute restore leaves the PC silent
+- `verify` — optional; do not inject into user windows
+- `superpowers:brainstorming` — Mycel dictionary / installer next
 
 ## Next-session prompt
 
 ```text
-Lectus mute-while-dictating shipped 2026-09-15 and the user confirmed it
-live (video kept playing, stayed muted for the hold). Read docs/HANDOFF.md.
-Two unpushed master commits: afba49c (persistence/autostart), e72d46b (mute).
-Do not reopen mute. Next build candidate, if they want to keep going, is a
-queue so a second hold is not dropped while large-v3-turbo is transcribing
-(capture-pipeline — ask first). Otherwise: reboot autostart check, or
-context-awareness / voice commands. Skills: handoff-memory, brainstorming.
+Lectus 2026-09-17: Home window shipped locally (click tray/shortcut/pill
+opens Home; login silent with --autostart). Read docs/HANDOFF.md and
+docs/superpowers/specs/2026-09-17-home-window-design.md. Next if they want
+it: dictionary aliases for Mycel, then install+update. Do not reopen mute.
 ```

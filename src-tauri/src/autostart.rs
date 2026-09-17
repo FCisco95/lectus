@@ -22,6 +22,27 @@ pub fn is_leftover_exe(path: &Path) -> bool {
     s.contains(r"\lt\release\chirp.exe")
 }
 
+/// HKCU Run value that starts the installed app silently at login.
+pub fn desired_run_value(exe: &Path) -> String {
+    let p = exe.to_string_lossy();
+    if p.contains(' ') {
+        format!("\"{p}\" --autostart")
+    } else {
+        format!("{p} --autostart")
+    }
+}
+
+/// Path portion of a Run-key command (`C:\...\chirp.exe --autostart` → exe).
+pub fn exe_from_run_value(value: &str) -> PathBuf {
+    let v = value.trim();
+    if let Some(rest) = v.strip_prefix('"') {
+        if let Some(end) = rest.find('"') {
+            return PathBuf::from(&rest[..end]);
+        }
+    }
+    PathBuf::from(v.split_whitespace().next().unwrap_or(v))
+}
+
 /// If an existing Run-key value should be rewritten, return the path to write.
 pub fn replacement_path(
     existing_value: &Path,
@@ -37,6 +58,29 @@ pub fn replacement_path(
         .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("chirp.exe"));
     if is_chirp && (is_leftover_exe(existing_value) || installed.is_some()) {
         return Some(target);
+    }
+    None
+}
+
+/// Full REG_SZ to write, or None if `existing` already matches.
+pub fn replacement_value(
+    existing: &str,
+    installed: Option<&Path>,
+    current_exe: &Path,
+) -> Option<String> {
+    let existing_exe = exe_from_run_value(existing);
+    let target = replacement_path(&existing_exe, installed, current_exe)
+        .unwrap_or_else(|| preferred_exe(current_exe, installed));
+    let desired = desired_run_value(&target);
+    if normalize(Path::new(existing.trim())) == normalize(Path::new(&desired)) {
+        return None;
+    }
+    let is_chirp = existing_exe
+        .file_name()
+        .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("chirp.exe"));
+    if is_chirp && (is_leftover_exe(&existing_exe) || installed.is_some() || !existing.contains("--autostart"))
+    {
+        return Some(desired);
     }
     None
 }
@@ -79,21 +123,22 @@ pub fn repair_windows_run_keys(plugin_enabled: bool) {
     for name in WINDOWS_VALUE_NAMES {
         match read_run_value(name) {
             Ok(Some(existing)) => {
-                if let Some(next) = replacement_path(Path::new(&existing), installed.as_deref(), &current)
+                if let Some(next) = replacement_value(&existing, installed.as_deref(), &current)
                 {
-                    if let Err(e) = write_run_value(name, &next) {
+                    if let Err(e) = write_run_command(name, &next) {
                         log::warn!("autostart repair: failed to rewrite {name}: {e}");
                     } else {
-                        log::info!("autostart repair: {name} -> {}", next.display());
+                        log::info!("autostart repair: {name} -> {next}");
                     }
                 }
             }
             Ok(None) => {
                 // Plugin thinks autostart is on but this name was never written
                 // (name mismatch across versions). Fill the Lectus key so boot
-                // starts the installed binary.
+                // starts the installed binary silently.
                 if plugin_enabled && *name == "Lectus" {
-                    if let Err(e) = write_run_value(name, &target) {
+                    let cmd = desired_run_value(&target);
+                    if let Err(e) = write_run_command(name, &cmd) {
                         log::warn!("autostart repair: failed to write {name}: {e}");
                     }
                 }
@@ -130,8 +175,7 @@ fn read_run_value(name: &str) -> std::io::Result<Option<String>> {
 }
 
 #[cfg(windows)]
-fn write_run_value(name: &str, exe: &Path) -> std::io::Result<()> {
-    let value = exe.to_string_lossy().into_owned();
+fn write_run_command(name: &str, value: &str) -> std::io::Result<()> {
     let output = std::process::Command::new("reg")
         .args([
             "add",
@@ -141,7 +185,7 @@ fn write_run_value(name: &str, exe: &Path) -> std::io::Result<()> {
             "/t",
             "REG_SZ",
             "/d",
-            &value,
+            value,
             "/f",
         ])
         .output()?;
@@ -197,6 +241,63 @@ mod tests {
         let installed = PathBuf::from(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
         assert_eq!(
             replacement_path(&installed, Some(&installed), &installed),
+            None
+        );
+    }
+
+    #[test]
+    fn desired_run_value_appends_autostart_flag() {
+        let exe = PathBuf::from(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
+        assert_eq!(
+            desired_run_value(&exe),
+            r"C:\Users\me\AppData\Local\Lectus\chirp.exe --autostart"
+        );
+    }
+
+    #[test]
+    fn desired_run_value_quotes_paths_with_spaces() {
+        let exe = PathBuf::from(r"C:\Program Files\Lectus\chirp.exe");
+        assert_eq!(
+            desired_run_value(&exe),
+            r#""C:\Program Files\Lectus\chirp.exe" --autostart"#
+        );
+    }
+
+    #[test]
+    fn exe_from_run_value_strips_flag() {
+        assert_eq!(
+            exe_from_run_value(r"C:\Users\me\AppData\Local\Lectus\chirp.exe --autostart"),
+            PathBuf::from(r"C:\Users\me\AppData\Local\Lectus\chirp.exe")
+        );
+        assert_eq!(
+            exe_from_run_value(r#""C:\Program Files\Lectus\chirp.exe" --autostart"#),
+            PathBuf::from(r"C:\Program Files\Lectus\chirp.exe")
+        );
+    }
+
+    #[test]
+    fn rewrites_installed_path_missing_autostart_flag() {
+        let installed = PathBuf::from(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
+        let next = replacement_value(
+            r"C:\Users\me\AppData\Local\Lectus\chirp.exe",
+            Some(&installed),
+            &installed,
+        );
+        assert_eq!(
+            next.as_deref(),
+            Some(r"C:\Users\me\AppData\Local\Lectus\chirp.exe --autostart")
+        );
+    }
+
+    #[test]
+    fn leaves_correct_autostart_command_alone() {
+        let installed = PathBuf::from(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
+        assert_eq!(
+            replacement_value(
+                r"C:\Users\me\AppData\Local\Lectus\chirp.exe --autostart",
+                Some(&installed),
+                &installed,
+            ),
             None
         );
     }

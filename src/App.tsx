@@ -18,9 +18,16 @@ export default function App() {
 
   useEffect(() => {
     if (windowLabel === 'pill') return;
-    invoke<Config>('get_config')
-      .then((c) => setOnboardingDone(c.onboarding_completed))
-      .catch(() => setOnboardingDone(true));
+    const load = () =>
+      invoke<Config>('get_config')
+        .then((c) => setOnboardingDone(c.onboarding_completed))
+        .catch(() => setOnboardingDone(true));
+    load();
+    // Settings stays mounted while hidden. Re-read on focus so a first
+    // fetch that raced defaults cannot leave onboarding stuck on screen.
+    const win = getCurrentWebviewWindow();
+    const unFocus = win.listen('tauri://focus', () => { load(); });
+    return () => { unFocus.then((f) => f()); };
   }, [windowLabel]);
 
   useEffect(() => {
