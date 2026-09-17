@@ -14,9 +14,11 @@ export function GeneralPanel({ config, update }: PanelProps) {
   const [devices, setDevices] = useState<string[]>([]);
   const [launchAtLogin, setLaunchAtLogin] = useState(false);
   const [accessible, setAccessible] = useState(true);
+  const [osName, setOsName] = useState('');
 
   useEffect(() => {
     invoke<string[]>('list_input_devices').then(setDevices).catch(() => setDevices([]));
+    invoke<string>('os_display_name').then(setOsName).catch(() => {});
     autostartEnabled().then(setLaunchAtLogin).catch(() => {});
     if (IS_MAC) {
       const poll = () => invoke<boolean>('accessibility_status').then(setAccessible).catch(() => {});
@@ -56,6 +58,21 @@ export function GeneralPanel({ config, update }: PanelProps) {
       )}
 
       <div className="card">
+        <div className="row">
+          <div className="row-label">
+            <b>Your name</b>
+            <span>Used in the Home greeting. Leave empty to use your account name.</span>
+          </div>
+          <input
+            className="input"
+            type="text"
+            style={{ maxWidth: 220 }}
+            placeholder={osName || 'Your name'}
+            aria-label="Your name"
+            value={config.display_name ?? ''}
+            onChange={(e) => update({ display_name: e.target.value })}
+          />
+        </div>
         <div className="row">
           <div className="row-label"><b>Appearance</b><span>Follow the system, or force light / dark.</span></div>
           <div className="seg">

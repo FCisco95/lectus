@@ -6,6 +6,7 @@ mod context;
 mod history;
 mod hook;
 mod hotkey;
+mod identity;
 mod injection;
 mod license;
 mod playback;
@@ -299,6 +300,13 @@ fn get_history_stats(app_handle: tauri::AppHandle) -> history::HistoryStats {
 #[tauri::command]
 fn show_home(app_handle: tauri::AppHandle) {
     show_app_window(&app_handle, true);
+}
+
+/// The greeting name when `display_name` is empty: the OS display name, or
+/// a prettified account name when there is none.
+#[tauri::command]
+fn os_display_name() -> String {
+    identity::os_display_name()
 }
 
 /// Sidebar → Help: the README in the system browser. The URL is fixed here
@@ -1018,6 +1026,7 @@ pub fn run() {
             get_history_stats,
             clear_history,
             open_help,
+            os_display_name,
             copy_to_clipboard,
             get_models_status,
             download_model,

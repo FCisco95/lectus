@@ -39,6 +39,8 @@ export interface Config {
   onboarding_completed: boolean;
   theme: 'system' | 'light' | 'dark';
   mute_while_dictating: boolean;
+  /** Greeting name. Empty = derive from the OS account (`os_display_name`). */
+  display_name: string;
 }
 
 // Mirrors `Status` in src-tauri/src/license/mod.rs (serde tag = "kind").

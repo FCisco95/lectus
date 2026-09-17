@@ -66,6 +66,10 @@ pub struct Config {
     /// background audio does not drown out your own thoughts. Restored on
     /// release, error, idle, and process exit. Default on.
     pub mute_while_dictating: bool,
+    /// Name shown in the Home greeting. Empty means derive it from the OS
+    /// account (`identity::os_display_name`). Older configs without the key
+    /// load as empty via the container-level `serde(default)`.
+    pub display_name: String,
 }
 
 /// Overrides applied when dictating into a matching app. `None` = keep the
@@ -153,6 +157,7 @@ impl Default for Config {
             onboarding_completed: false,
             theme: "system".into(),
             mute_while_dictating: true,
+            display_name: String::new(),
         }
     }
 }
@@ -275,6 +280,20 @@ mod tests {
         std::fs::write(&path, r#"{"use_cloud": false}"#).unwrap();
         let loaded = Config::load_from(&path).unwrap();
         assert!(loaded.mute_while_dictating);
+    }
+
+    #[test]
+    fn display_name_defaults_empty_and_roundtrips() {
+        assert!(Config::default().display_name.is_empty());
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        // A config from before the field existed: empty, not an error.
+        std::fs::write(&path, r#"{"theme": "dark"}"#).unwrap();
+        assert!(Config::load_from(&path).unwrap().display_name.is_empty());
+        let mut cfg = Config::default();
+        cfg.display_name = "João".into();
+        cfg.save_to(&path).unwrap();
+        assert_eq!(Config::load_from(&path).unwrap().display_name, "João");
     }
 
     #[test]

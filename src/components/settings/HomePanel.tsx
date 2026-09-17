@@ -40,6 +40,7 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
   const [stats, setStats] = useState<HistoryStats | null>(null);
   const [engineReady, setEngineReady] = useState(true);
   const [license, setLicense] = useState<LicenseStatus | null>(null);
+  const [osName, setOsName] = useState('');
 
   const loadStats = () => {
     invoke<HistoryStats>('get_history_stats').then(setStats).catch(() => {});
@@ -51,6 +52,7 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
       .then(setEngineReady)
       .catch(() => setEngineReady(true));
     invoke<LicenseStatus>('license_status').then(setLicense).catch(() => {});
+    invoke<string>('os_display_name').then(setOsName).catch(() => {});
     const unLicense = listen<LicenseStatus>('license-changed', (e) => setLicense(e.payload));
     const unAdded = listen('history-added', () => loadStats());
     const unReady = listen('model-active', () => setEngineReady(true));
@@ -71,6 +73,9 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
   const hotkey = formatHotkey(config.hold_hotkey);
   const notice = membershipNotice(license);
   const empty = stats !== null && stats.dictations_total === 0;
+  // A typed name is shown as typed; the OS full name is trimmed to its first
+  // word so "Welcome back, João Francisco Vieira" does not wrap the title.
+  const name = (config.display_name ?? '').trim() || osName.trim().split(/\s+/)[0] || '';
 
   return (
     <div className="home">
@@ -83,7 +88,9 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
         </div>
       )}
 
-      <h2 className="settings-panel-title home-greeting">Welcome back</h2>
+      <h2 className="settings-panel-title home-greeting">
+        {name ? `Welcome back, ${name}` : 'Welcome back'}
+      </h2>
       <p className="settings-panel-sub">
         {empty ? 'Your first dictation is one keypress away.' : 'Here is your week so far.'}
       </p>
