@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { Config } from './types';
-import { formatHotkey } from './types';
+import type { Config, LicenseStatus } from './types';
+import { allowsDictation, formatHotkey } from './types';
 
 interface HistoryEntry {
   text: string;
@@ -27,7 +27,23 @@ function formatTime(ms: number): string {
 
 interface HomePanelProps {
   config: Config;
-  onOpenTab: (tab: 'vocabulary' | 'models') => void;
+  onOpenTab: (tab: 'vocabulary' | 'models' | 'membership') => void;
+}
+
+/** One line telling a locked or in-grace holder where they stand. Holders in
+ *  good standing see nothing — the gate should be invisible when it passes. */
+function membershipNotice(status: LicenseStatus | null): string | null {
+  if (!status) return null;
+  switch (status.kind) {
+    case 'unlinked':
+      return 'Link a wallet holding ORGANIC to start dictating.';
+    case 'grace':
+      return `Your wallet is below the $20 floor. Dictation keeps working for ${status.days_left} more ${status.days_left === 1 ? 'day' : 'days'}.`;
+    case 'locked':
+      return 'Dictation is locked: this wallet no longer holds $20 of ORGANIC.';
+    default:
+      return null;
+  }
 }
 
 export function HomePanel({ config, onOpenTab }: HomePanelProps) {
@@ -36,6 +52,7 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
   const [copied, setCopied] = useState<number | null>(null);
   const [filter, setFilter] = useState('');
   const [engineReady, setEngineReady] = useState(true);
+  const [license, setLicense] = useState<LicenseStatus | null>(null);
 
   const load = () => {
     invoke<HistoryEntry[]>('get_history')
@@ -51,10 +68,13 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
     invoke<boolean>('engine_ready')
       .then(setEngineReady)
       .catch(() => setEngineReady(true));
+    invoke<LicenseStatus>('license_status').then(setLicense).catch(() => {});
+    const unLicense = listen<LicenseStatus>('license-changed', (e) => setLicense(e.payload));
     const unAdded = listen<HistoryEntry>('history-added', () => load());
     const unReady = listen('model-active', () => setEngineReady(true));
     const unLoad = listen('model-loading', () => setEngineReady(false));
     return () => {
+      unLicense.then((f) => f());
       unAdded.then((f) => f());
       unReady.then((f) => f());
       unLoad.then((f) => f());
@@ -92,6 +112,15 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
         Last {Math.max(stats?.dictations_total ?? entries.length, 0)} dictations on this device.
       </p>
 
+      {membershipNotice(license) && (
+        <div className="banner">
+          <span>{membershipNotice(license)}</span>
+          <button className="btn btn-primary" type="button" onClick={() => onOpenTab('membership')}>
+            {license?.kind === 'unlinked' ? 'Connect wallet' : 'Membership'}
+          </button>
+        </div>
+      )}
+
       <div className="home-stats">
         <div className="home-stat">
           <div className="home-stat-value">{stats?.words_7d ?? '—'}</div>
@@ -112,7 +141,9 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
         <span>·</span>
         <span>{formatHotkey(config.hold_hotkey)}</span>
         <span>·</span>
-        <span>{engineReady ? 'Ready' : 'Loading model…'}</span>
+        <span>
+          {!allowsDictation(license) ? 'Locked' : engineReady ? 'Ready' : 'Loading model…'}
+        </span>
       </div>
 
       <div className="home-jumps">

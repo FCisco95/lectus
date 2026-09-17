@@ -7,6 +7,7 @@ mod history;
 mod hook;
 mod hotkey;
 mod injection;
+mod license;
 mod playback;
 mod state;
 mod transcription;
@@ -866,6 +867,26 @@ async fn do_pipeline(
     Ok(transcript)
 }
 
+/// The Organic token gate, checked at the mouth of every dictation.
+///
+/// Returns the blocking status when dictation must be refused, `None` when it
+/// may proceed. Only fully `Locked` and `Unlinked` wallets are refused: a
+/// holder inside the grace window keeps dictating and sees a banner instead.
+/// Nothing here touches an in-flight dictation — the gate can only decline to
+/// start one.
+fn gate_blocks_dictation(app: &tauri::AppHandle) -> Option<license::Status> {
+    let status = app.state::<license::LicenseState>().status(now_millis());
+    if status.allows_dictation() {
+        None
+    } else {
+        log::info!("dictation refused by the Organic gate: {status:?}");
+        // Bring Home forward so the refusal is explained rather than silent.
+        let _ = app.emit("license-blocked", status.clone());
+        show_app_window(app, true);
+        Some(status)
+    }
+}
+
 /// One dictation cycle: record → transcribe → inject.
 #[tauri::command]
 async fn run_pipeline(
@@ -874,6 +895,9 @@ async fn run_pipeline(
     activation: tauri::State<'_, Activation>,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
+    if gate_blocks_dictation(&app_handle).is_some() {
+        return Err("Lectus is locked: link a wallet holding ORGANIC.".into());
+    }
     let local = whisper_state.local.clone();
     let cloud = whisper_state.cloud.clone();
     let recording_active = activation.recording_active.clone();
@@ -956,6 +980,9 @@ pub fn run() {
         .manage(updates::PendingUpdate::new())
         .manage(updates::LastUpdateError(Mutex::new(None)))
         .manage(AppState::with_config(config::Config::load_or_default()))
+        .manage(license::LicenseState::new(license::commands::load_at_startup(
+            &config::Config::app_support_dir(),
+        )))
         .manage(WhisperState {
             local: Arc::new(Mutex::new(None)),
             cloud: Arc::new(Mutex::new(None)),
@@ -994,6 +1021,11 @@ pub fn run() {
             request_microphone_access,
             open_accessibility_settings,
             relaunch_app,
+            license::commands::license_status,
+            license::commands::license_floor,
+            license::commands::link_wallet,
+            license::commands::unlink_wallet,
+            license::commands::refresh_license,
             updates::check_for_updates,
             updates::last_update_error,
             updates::restart_and_apply,
@@ -1275,9 +1307,18 @@ pub fn run() {
             // and notify Settings. All failures are silent/log-only — never blocks dictation. Install only on user click.
             updates::spawn_background_check(app.handle().clone());
 
+            // Organic token gate: re-read the linked wallet's balance if the
+            // cadence is due. Silent and failure-tolerant — see license::commands.
+            license::commands::spawn_background_check(app.handle().clone());
+
             let pipeline_handle = app.handle().clone();
             app.listen("hold-start", move |_event| {
                 let h = pipeline_handle.clone();
+                // Ahead of the chime and the ducker: a refusal must not mute
+                // the user's audio or click at them.
+                if gate_blocks_dictation(&h).is_some() {
+                    return;
+                }
                 playback_on(&h, playback::PlaybackEvent::HoldStart);
                 tauri::async_runtime::spawn(run_hold_pipeline(h));
             });

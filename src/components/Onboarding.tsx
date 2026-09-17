@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import '../styles/settings.css';
 import '../styles/onboarding.css';
-import type { Config } from './settings/types';
-import { IS_MAC, formatHotkey } from './settings/types';
+import type { Config, LicenseFloor, LicenseStatus } from './settings/types';
+import { IS_MAC, allowsDictation, formatHotkey, shortAddress } from './settings/types';
 import { HotkeyCapture } from './settings/HotkeyCapture';
 
-type StepId = 'welcome' | 'mic' | 'accessibility' | 'hotkey' | 'done';
+type StepId = 'welcome' | 'wallet' | 'mic' | 'accessibility' | 'hotkey' | 'done';
 
-const ALL_STEPS: StepId[] = ['welcome', 'mic', 'accessibility', 'hotkey', 'done'];
+const ALL_STEPS: StepId[] = ['welcome', 'wallet', 'mic', 'accessibility', 'hotkey', 'done'];
 const STEPS = IS_MAC ? ALL_STEPS : ALL_STEPS.filter((s) => s !== 'accessibility');
 
 interface OnboardingProps {
@@ -20,10 +20,28 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [micStatus, setMicStatus] = useState('unknown');
   const [accessible, setAccessible] = useState(false);
+  const [license, setLicense] = useState<LicenseStatus | null>(null);
+  const [floor, setFloor] = useState<LicenseFloor | null>(null);
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState('');
 
   useEffect(() => {
     invoke<Config>('get_config').then(setConfig).catch(() => {});
+    invoke<LicenseStatus>('license_status').then(setLicense).catch(() => {});
+    invoke<LicenseFloor>('license_floor').then(setFloor).catch(() => {});
   }, []);
+
+  const connectWallet = async () => {
+    setLinkError('');
+    setLinking(true);
+    try {
+      setLicense(await invoke<LicenseStatus>('link_wallet'));
+    } catch (e) {
+      setLinkError(`${e}`);
+    } finally {
+      setLinking(false);
+    }
+  };
 
   useEffect(() => {
     const poll = () => invoke<string>('microphone_status').then(setMicStatus).catch(() => {});
@@ -59,7 +77,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     <div className="onboarding-root">
       <div className="onboarding-step">
         <div className="onboarding-step-tag">
-          Step {stepIndex + 1} · {step === 'mic' ? 'Microphone' : step === 'accessibility' ? 'Accessibility (macOS)' : step[0].toUpperCase() + step.slice(1)}
+          Step {stepIndex + 1} · {step === 'mic' ? 'Microphone' : step === 'wallet' ? 'Membership' : step === 'accessibility' ? 'Accessibility (macOS)' : step[0].toUpperCase() + step.slice(1)}
         </div>
 
         {step === 'welcome' && (
@@ -74,6 +92,41 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             <div className="onboarding-btn-row">
               <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={goNext}>
                 Get started
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 'wallet' && (
+          <>
+            <h2>Link your wallet</h2>
+            <p>
+              Lectus is free for people who hold ORGANIC — no account, no subscription.
+              Connect a Solana wallet once and sign a message. It moves no SOL, no tokens,
+              and approves nothing.
+            </p>
+            <p>
+              You need {floor ? `$${floor.floor_usd}` : '$20'} of ORGANIC
+              {floor?.tokens_required
+                ? ` — about ${Math.round(floor.tokens_required).toLocaleString()} ORG today`
+                : ''}
+              .
+            </p>
+            {allowsDictation(license) && license && license.kind !== 'unlinked' ? (
+              <p className="onboarding-ok">Linked: {shortAddress(license.pubkey)}</p>
+            ) : (
+              <div style={{ textAlign: 'center', margin: '18px 0 8px' }}>
+                <button className="btn btn-primary" onClick={connectWallet} disabled={linking}>
+                  {linking ? 'Waiting for your wallet…' : 'Connect wallet'}
+                </button>
+              </div>
+            )}
+            {linking && <p>Approve the signature in the browser tab Lectus just opened.</p>}
+            {linkError && <p className="onboarding-err">{linkError}</p>}
+            <div className="onboarding-btn-row">
+              <button className="btn" onClick={goBack}>Back</button>
+              <button className="btn btn-primary" style={{ marginLeft: 'auto' }} onClick={goNext}>
+                {allowsDictation(license) ? 'Continue' : 'Skip for now'}
               </button>
             </div>
           </>

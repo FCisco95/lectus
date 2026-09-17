@@ -41,6 +41,32 @@ export interface Config {
   mute_while_dictating: boolean;
 }
 
+// Mirrors `Status` in src-tauri/src/license/mod.rs (serde tag = "kind").
+export type LicenseStatus =
+  | { kind: 'unlinked' }
+  | { kind: 'active'; pubkey: string; balance: number; usd: number }
+  | { kind: 'grace'; pubkey: string; usd: number; days_left: number }
+  | { kind: 'locked'; pubkey: string; usd: number };
+
+// Reply from the `license_floor` command.
+export interface LicenseFloor {
+  floor_usd: number;
+  price_usd: number;
+  tokens_required: number | null;
+  mint: string;
+}
+
+/** Whether the gate currently permits dictation. Mirrors
+ *  `Status::allows_dictation` in src-tauri/src/license/mod.rs. */
+export function allowsDictation(status: LicenseStatus | null): boolean {
+  return status?.kind === 'active' || status?.kind === 'grace';
+}
+
+/** "DuXu…bonk" — a Solana pubkey at a glance. */
+export function shortAddress(pubkey: string): string {
+  return pubkey.length > 12 ? `${pubkey.slice(0, 4)}…${pubkey.slice(-4)}` : pubkey;
+}
+
 export interface PanelProps {
   config: Config;
   update: (patch: Partial<Config>) => void;

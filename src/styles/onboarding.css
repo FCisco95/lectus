@@ -123,3 +123,14 @@ html.platform-mac .onboarding-step { padding-top: calc(var(--space-7) + 14px); }
   width: 18px;
   border-radius: 3px;
 }
+
+/* Wallet step: the two outcomes of linking. */
+.onboarding-ok {
+  color: var(--accent);
+  font-weight: 600;
+  text-align: center;
+}
+.onboarding-err {
+  color: var(--danger);
+  text-align: center;
+}

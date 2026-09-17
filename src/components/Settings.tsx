@@ -13,9 +13,10 @@ import { DictationPanel } from './settings/DictationPanel';
 import { DictionaryPanel } from './settings/DictionaryPanel';
 import { AIPanel } from './settings/AIPanel';
 import { ModelsPanel } from './settings/ModelsPanel';
+import { MembershipPanel } from './settings/MembershipPanel';
 import { UpdateBanner } from './update-banner';
 
-type TabId = 'home' | 'general' | 'dictation' | 'vocabulary' | 'ai' | 'models';
+type TabId = 'home' | 'general' | 'dictation' | 'vocabulary' | 'ai' | 'models' | 'membership';
 
 const TABS: Array<{ id: TabId; label: string; icon: IconName }> = [
   { id: 'home', label: 'Home', icon: 'home' },
@@ -24,6 +25,7 @@ const TABS: Array<{ id: TabId; label: string; icon: IconName }> = [
   { id: 'vocabulary', label: 'Vocabulary', icon: 'vocabulary' },
   { id: 'ai', label: 'AI', icon: 'ai' },
   { id: 'models', label: 'Models', icon: 'models' },
+  { id: 'membership', label: 'Membership', icon: 'key' },
 ];
 
 export function Settings() {
@@ -89,11 +91,14 @@ export function Settings() {
       });
     });
     const unHome = listen('open-home', () => setTab('home'));
+    // A refused dictation: go straight to the screen that can fix it.
+    const unBlocked = listen('license-blocked', () => setTab('membership'));
     return () => {
       unFocus.then((f) => f());
       unBlur.then((f) => f());
       unModel.then((f) => f());
       unHome.then((f) => f());
+      unBlocked.then((f) => f());
     };
   }, []);
 
@@ -153,6 +158,7 @@ export function Settings() {
         {tab === 'vocabulary' && <DictionaryPanel config={config} update={update} />}
         {tab === 'ai' && <AIPanel config={config} update={update} />}
         {tab === 'models' && <ModelsPanel config={config} update={update} />}
+        {tab === 'membership' && <MembershipPanel />}
 
         {status && <div className={`settings-autosave-status ${statusKind}`}>{status}</div>}
       </main>
