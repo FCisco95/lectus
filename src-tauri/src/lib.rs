@@ -289,11 +289,14 @@ fn get_history(app_handle: tauri::AppHandle) -> Vec<history::HistoryEntry> {
         .unwrap_or_default()
 }
 
-/// Rolling-week + lifetime counts for the Home dashboard.
+/// Rolling-week + lifetime counts and the day streak for the Home cards.
+/// `tz_offset_min` is JavaScript's `getTimezoneOffset()` — minutes *behind*
+/// UTC — so the streak's day boundaries fall on the user's local midnight.
 #[tauri::command]
-fn get_history_stats(app_handle: tauri::AppHandle) -> history::HistoryStats {
+fn get_history_stats(app_handle: tauri::AppHandle, tz_offset_min: Option<i32>) -> history::HistoryStats {
     let entries = get_history(app_handle);
-    history::stats(&entries, now_millis())
+    let utc_offset_ms = -(tz_offset_min.unwrap_or(0) as i64) * 60_000;
+    history::stats(&entries, now_millis(), utc_offset_ms)
 }
 
 /// Pill / tray / frontend: show the app window on Home.

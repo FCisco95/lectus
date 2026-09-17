@@ -9,7 +9,7 @@ interface HistoryStats {
   words_7d: number;
   dictations_total: number;
   words_total: number;
-  streak_days?: number;
+  streak_days: number;
 }
 
 interface HomePanelProps {
@@ -43,7 +43,11 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
   const [osName, setOsName] = useState('');
 
   const loadStats = () => {
-    invoke<HistoryStats>('get_history_stats').then(setStats).catch(() => {});
+    // The streak's day boundaries are local midnight, which only the
+    // webview knows; getTimezoneOffset() is minutes behind UTC.
+    invoke<HistoryStats>('get_history_stats', { tzOffsetMin: new Date().getTimezoneOffset() })
+      .then(setStats)
+      .catch(() => {});
   };
 
   useEffect(() => {
