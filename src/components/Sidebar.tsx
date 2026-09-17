@@ -29,6 +29,7 @@ export function Sidebar({ active, onSelect, onOpenSettings, version }: SidebarPr
             key={s.id}
             type="button"
             className={`sidebar-item${active === s.id ? ' active' : ''}`}
+            aria-current={active === s.id ? 'page' : undefined}
             onClick={() => onSelect(s.id)}
           >
             <span className="sidebar-icon"><Icon name={s.icon} /></span>

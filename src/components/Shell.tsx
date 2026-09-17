@@ -48,24 +48,26 @@ export function Shell() {
 
   return (
     <div className="settings-app">
-      <Sidebar
-        active={surface}
-        onSelect={setSurface}
-        onOpenSettings={() => setSettingsTab('general')}
-        version={version}
-      />
+      <div className="shell-columns" inert={settingsTab !== null}>
+        <Sidebar
+          active={surface}
+          onSelect={setSurface}
+          onOpenSettings={() => setSettingsTab('general')}
+          version={version}
+        />
 
-      <main className="surface">
-        <UpdateBanner />
-        <div className="surface-body">
-          {surface === 'home' && <HomePanel config={config} onOpenTab={jump} />}
-          {surface === 'dictations' && <DictationsPanel config={config} />}
-          {surface === 'vocabulary' && <DictionaryPanel config={config} update={update} />}
-          {surface === 'membership' && <MembershipPanel />}
-        </div>
+        <main className="surface">
+          <UpdateBanner />
+          <div className="surface-body">
+            {surface === 'home' && <HomePanel config={config} onOpenTab={jump} />}
+            {surface === 'dictations' && <DictationsPanel config={config} />}
+            {surface === 'vocabulary' && <DictionaryPanel config={config} update={update} />}
+            {surface === 'membership' && <MembershipPanel />}
+          </div>
+        </main>
+      </div>
 
-        {status && <div className={`settings-autosave-status ${statusKind}`}>{status}</div>}
-      </main>
+      {status && <div className={`settings-autosave-status ${statusKind}`}>{status}</div>}
 
       {settingsTab && (
         <SettingsModal

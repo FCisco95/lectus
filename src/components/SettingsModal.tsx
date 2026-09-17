@@ -32,14 +32,32 @@ export function SettingsModal({ config, update, initialTab, version, onClose }: 
 
   useEffect(() => setTab(initialTab), [initialTab]);
 
-  // Esc closes from anywhere in the window, and focus returns to the gear that
-  // opened this so keyboard users are not dropped at the top of the document.
+  // Esc closes from anywhere in the window; Tab wraps inside the panel (the
+  // shell behind is also `inert`, so this is belt and braces); and focus
+  // returns to the gear that opened this so keyboard users are not dropped
+  // at the top of the document.
   useEffect(() => {
     panelRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
         onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !panelRef.current) return;
+      const nodes = panelRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === panelRef.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -68,6 +86,7 @@ export function SettingsModal({ config, update, initialTab, version, onClose }: 
               key={t.id}
               type="button"
               className={`sidebar-item${tab === t.id ? ' active' : ''}`}
+              aria-current={tab === t.id ? 'page' : undefined}
               onClick={() => setTab(t.id)}
             >
               <span className="sidebar-icon"><Icon name={t.icon} /></span>

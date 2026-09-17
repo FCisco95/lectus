@@ -7,8 +7,8 @@
 html, body, #root { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 
 .settings-app {
-  display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   width: 100%;
   font-family: var(--font-ui);
@@ -538,6 +538,17 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
    above the card; the whole titlebar row is the drag handle.
    ============================================================ */
 
+/* The two columns. A wrapper rather than .settings-app itself so the whole
+   shell can go `inert` under the Settings modal in one attribute. */
+.shell-columns {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+}
+
 /* ---- Sidebar ---- */
 .sidebar {
   position: relative;
@@ -818,6 +829,9 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
   box-shadow: var(--focus-ring);
 }
 .modal-panel:focus-visible { box-shadow: var(--shadow-2), var(--focus-ring); }
+.checkbox-row input:focus-visible,
+.radio-card input:focus-visible,
+.rule-cs input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Onboarding shares the frame: it sits under the titlebar, not over it. */
 .app-frame .onboarding-root { height: auto; flex: 1 1 auto; min-height: 0; }
