@@ -915,7 +915,7 @@ async fn run_pipeline(
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
     if gate_blocks_dictation(&app_handle).is_some() {
-        return Err("Lectus is locked: link a wallet holding ORGANIC.".into());
+        return Err("Lectus is locked: link a wallet holding ORGANIC or Mycel.".into());
     }
     let local = whisper_state.local.clone();
     let cloud = whisper_state.cloud.clone();
@@ -985,7 +985,17 @@ pub fn run() {
     let _ = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .try_init();
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            // A newer chirp.exe (local cargo target vs an older NSIS install)
+            // must actually replace this process. Otherwise the second launch
+            // just focuses the stale window and the user keeps seeing 0.6.0.
+            #[cfg(windows)]
+            if let Ok(running) = std::env::current_exe() {
+                if let Some(newer) = autostart::takeover_exe(&running, &args) {
+                    autostart::spawn_replacing(&newer);
+                    force_exit(0);
+                }
+            }
             user_opened_app(app);
         }))
         .plugin(tauri_plugin_shell::init())

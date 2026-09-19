@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type InputHTMLAttributes } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { isEnabled as autostartEnabled, enable as autostartEnable, disable as autostartDisable } from '@tauri-apps/plugin-autostart';
 import { IS_MAC } from './types';
@@ -63,14 +63,14 @@ export function GeneralPanel({ config, update }: PanelProps) {
             <b>Your name</b>
             <span>Used in the Home greeting. Leave empty to use your account name.</span>
           </div>
-          <input
+          <DebouncedInput
             className="input"
             type="text"
             style={{ maxWidth: 220 }}
             placeholder={osName || 'Your name'}
             aria-label="Your name"
             value={config.display_name ?? ''}
-            onChange={(e) => update({ display_name: e.target.value })}
+            onCommit={(display_name) => update({ display_name })}
           />
         </div>
         <div className="row">
@@ -166,28 +166,74 @@ export function GeneralPanel({ config, update }: PanelProps) {
           <>
             <div className="row">
               <div className="row-label"><b>Cloud base URL</b><span>Any OpenAI-compatible endpoint.</span></div>
-              <input
+              <DebouncedInput
                 className="input"
                 type="text"
                 style={{ maxWidth: 260 }}
                 value={config.cloud_base_url}
-                onChange={(e) => update({ cloud_base_url: e.target.value })}
+                onCommit={(cloud_base_url) => update({ cloud_base_url })}
               />
             </div>
             <div className="row">
               <div className="row-label"><b>Cloud API key</b></div>
-              <input
+              <DebouncedInput
                 className="input"
                 type="password"
                 style={{ maxWidth: 260 }}
                 placeholder="gsk_…"
                 value={config.cloud_api_key}
-                onChange={(e) => update({ cloud_api_key: e.target.value })}
+                onCommit={(cloud_api_key) => update({ cloud_api_key })}
               />
             </div>
           </>
         )}
       </div>
     </div>
+  );
+}
+
+/** Local draft so each keystroke does not re-render the shell (which was
+ *  stealing focus back to the dialog). Commits on pause or blur. */
+function DebouncedInput({
+  value,
+  onCommit,
+  commitMs = 400,
+  ...rest
+}: {
+  value: string;
+  onCommit: (value: string) => void;
+  commitMs?: number;
+} & InputHTMLAttributes<HTMLInputElement>) {
+  const [draft, setDraft] = useState(value);
+  const lastPushed = useRef(value);
+
+  useEffect(() => {
+    if (value !== lastPushed.current) {
+      setDraft(value);
+      lastPushed.current = value;
+    }
+  }, [value]);
+
+  useEffect(() => {
+    if (draft === lastPushed.current) return;
+    const t = window.setTimeout(() => {
+      lastPushed.current = draft;
+      onCommit(draft);
+    }, commitMs);
+    return () => window.clearTimeout(t);
+  }, [draft, commitMs, onCommit]);
+
+  return (
+    <input
+      {...rest}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        if (draft !== lastPushed.current) {
+          lastPushed.current = draft;
+          onCommit(draft);
+        }
+      }}
+    />
   );
 }

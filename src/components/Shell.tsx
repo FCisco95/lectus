@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getVersion } from '@tauri-apps/api/app';
@@ -24,6 +24,18 @@ export function Shell() {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [version, setVersion] = useState('');
   const [whatsNew, setWhatsNew] = useState<WhatsNew | null>(null);
+  const columnsRef = useRef<HTMLDivElement>(null);
+  const closeSettings = useCallback(() => setSettingsTab(null), []);
+  const closeWhatsNew = useCallback(() => setWhatsNew(null), []);
+  const blocking = settingsTab !== null || whatsNew !== null;
+
+  // Set inert as a DOM property when the overlay opens/closes — not as a
+  // JSX boolean on every config keystroke. Re-applying inert mid-type moves
+  // focus to the dialog and selects the whole General card.
+  useEffect(() => {
+    const el = columnsRef.current;
+    if (el) el.inert = blocking;
+  }, [blocking]);
 
   useEffect(() => {
     getVersion().then(setVersion).catch(() => {});
@@ -57,7 +69,7 @@ export function Shell() {
 
   return (
     <div className="settings-app">
-      <div className="shell-columns" inert={settingsTab !== null || whatsNew !== null}>
+      <div className="shell-columns" ref={columnsRef}>
         <Sidebar
           active={surface}
           onSelect={setSurface}
@@ -79,7 +91,7 @@ export function Shell() {
       {status && <div className={`settings-autosave-status ${statusKind}`}>{status}</div>}
 
       {whatsNew && !settingsTab && (
-        <WhatsNewModal info={whatsNew} onClose={() => setWhatsNew(null)} />
+        <WhatsNewModal info={whatsNew} onClose={closeWhatsNew} />
       )}
 
       {settingsTab && (
@@ -88,7 +100,7 @@ export function Shell() {
           update={update}
           initialTab={settingsTab}
           version={version}
-          onClose={() => setSettingsTab(null)}
+          onClose={closeSettings}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
@@ -81,7 +81,7 @@ export function useConfig() {
   }, []);
 
   /** Merge a patch into config and schedule the save. */
-  const update = (patch: Partial<Config>) => {
+  const update = useCallback((patch: Partial<Config>) => {
     const current = configRef.current;
     if (!current) return;
     const next = { ...current, ...patch };
@@ -101,7 +101,7 @@ export function useConfig() {
         setStatusKind('err');
       }
     }, 500);
-  };
+  }, []);
 
   return { config, update, status, statusKind };
 }

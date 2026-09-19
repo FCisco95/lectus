@@ -1,19 +1,84 @@
-//! Launch-at-login path repair.
+//! Launch-at-login path repair, and which `chirp.exe` should win.
 //!
-//! The autostart plugin registers `std::env::current_exe()`. Enabling it from a
-//! local cargo-target copy (`C:\lt\release\chirp.exe`) leaves that leftover on
-//! the HKCU Run key forever, so a reboot starts 0.4.0 even after the NSIS
-//! 0.5.0 install. Single-instance then keeps the old process when the user
-//! clicks the 0.5.0 shortcut.
+//! Two copies exist on a Windows dev machine: the NSIS install
+//! (`%LOCALAPPDATA%\Lectus\chirp.exe`) and the cargo target (`C:\lt\release\chirp.exe`).
+//! Login, Start Menu, and `tauri-plugin-single-instance` used to always keep the
+//! install, so a newer local build never became the running app — the old window
+//! just focused. Pick the strictly-newer file (mtime). An older leftover cargo
+//! target still loses to a newer NSIS install, which is the original 0.4.0 bug.
 
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 /// Run-key value names used across Lectus versions (`productName` vs crate name).
 pub const WINDOWS_VALUE_NAMES: &[&str] = &["Lectus", "chirp"];
 
-/// Prefer the NSIS-installed binary when it exists.
+/// Prefer the newer of `current_exe` and the NSIS install. Missing timestamps
+/// (fake paths in tests) keep the install, matching the old stable-path rule.
 pub fn preferred_exe(current_exe: &Path, installed_exe: Option<&Path>) -> PathBuf {
-    installed_exe.unwrap_or(current_exe).to_path_buf()
+    match installed_exe {
+        Some(installed) => pick_newer_path(current_exe, installed, file_mtime),
+        None => current_exe.to_path_buf(),
+    }
+}
+
+/// `current` wins only when it is strictly newer; otherwise `installed`.
+pub fn pick_newer_path(
+    current: &Path,
+    installed: &Path,
+    mtime: impl Fn(&Path) -> Option<SystemTime>,
+) -> PathBuf {
+    match (mtime(current), mtime(installed)) {
+        (Some(c), Some(i)) if c > i => current.to_path_buf(),
+        _ => installed.to_path_buf(),
+    }
+}
+
+fn file_mtime(p: &Path) -> Option<SystemTime> {
+    std::fs::metadata(p).and_then(|m| m.modified()).ok()
+}
+
+/// If a second-instance launch is a different, strictly-newer `chirp.exe`,
+/// return that path so the running process can hand off.
+pub fn takeover_exe(running_exe: &Path, incoming_args: &[String]) -> Option<PathBuf> {
+    takeover_exe_with(running_exe, incoming_args, file_mtime)
+}
+
+pub fn takeover_exe_with(
+    running_exe: &Path,
+    incoming_args: &[String],
+    mtime: impl Fn(&Path) -> Option<SystemTime>,
+) -> Option<PathBuf> {
+    let incoming = PathBuf::from(incoming_args.first()?);
+    if !incoming.is_absolute() {
+        return None;
+    }
+    let name = incoming.file_name()?.to_string_lossy();
+    if !name.eq_ignore_ascii_case("chirp.exe") {
+        return None;
+    }
+    if paths_eq(&incoming, running_exe) {
+        return None;
+    }
+    match (mtime(&incoming), mtime(running_exe)) {
+        (Some(i), Some(r)) if i > r => Some(incoming),
+        _ => None,
+    }
+}
+
+/// Start `exe` after this process is gone, so it does not bounce off the
+/// still-held single-instance mutex. Windows only.
+#[cfg(windows)]
+pub fn spawn_replacing(exe: &Path) {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    const DETACHED_PROCESS: u32 = 0x0000_0008;
+    let quoted = format!("\"{}\"", exe.display());
+    let script = format!("timeout /T 1 /NOBREAK >nul & start \"\" {quoted}");
+    let _ = std::process::Command::new("cmd")
+        .args(["/C", &script])
+        .creation_flags(CREATE_NO_WINDOW | DETACHED_PROCESS)
+        .spawn();
 }
 
 /// True for the cargo-target leftover that used to be the Windows deploy path.
@@ -205,11 +270,83 @@ mod tests {
 
     #[test]
     fn prefers_installed_over_current() {
+        // Fake paths have no mtime, so the install (stable path) still wins.
         let current = PathBuf::from(r"C:\lt\release\chirp.exe");
         let installed = PathBuf::from(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
         assert_eq!(
             preferred_exe(&current, Some(&installed)),
             installed
+        );
+    }
+
+    #[test]
+    fn pick_newer_path_prefers_strictly_newer_current() {
+        let current = Path::new(r"C:\lt\release\chirp.exe");
+        let installed = Path::new(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
+        let t0 = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1);
+        let t1 = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(2);
+        let mtime = |p: &Path| {
+            if p == current {
+                Some(t1)
+            } else {
+                Some(t0)
+            }
+        };
+        assert_eq!(pick_newer_path(current, installed, mtime), current);
+    }
+
+    #[test]
+    fn pick_newer_path_keeps_installed_when_equal_or_older() {
+        let current = Path::new(r"C:\lt\release\chirp.exe");
+        let installed = Path::new(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
+        let t0 = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1);
+        let mtime = |_p: &Path| Some(t0);
+        assert_eq!(pick_newer_path(current, installed, mtime), installed);
+    }
+
+    #[test]
+    fn takeover_skips_same_path_and_older_incoming() {
+        let running = PathBuf::from(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
+        let cargo = PathBuf::from(r"C:\lt\release\chirp.exe");
+        let t_old = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1);
+        let t_new = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(2);
+        let older_cargo = |p: &Path| {
+            if p == cargo.as_path() {
+                Some(t_old)
+            } else {
+                Some(t_new)
+            }
+        };
+        assert_eq!(
+            takeover_exe_with(
+                &running,
+                &[running.to_string_lossy().into()],
+                |_| Some(t_new)
+            ),
+            None
+        );
+        assert_eq!(
+            takeover_exe_with(&running, &[cargo.to_string_lossy().into()], older_cargo),
+            None
+        );
+    }
+
+    #[test]
+    fn takeover_hands_off_to_newer_different_exe() {
+        let running = PathBuf::from(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
+        let cargo = PathBuf::from(r"C:\lt\release\chirp.exe");
+        let t_old = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1);
+        let t_new = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(2);
+        let mtime = |p: &Path| {
+            if p == cargo.as_path() {
+                Some(t_new)
+            } else {
+                Some(t_old)
+            }
+        };
+        assert_eq!(
+            takeover_exe_with(&running, &[cargo.to_string_lossy().into()], mtime),
+            Some(cargo)
         );
     }
 

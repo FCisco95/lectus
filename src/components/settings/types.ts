@@ -46,16 +46,25 @@ export interface Config {
 // Mirrors `Status` in src-tauri/src/license/mod.rs (serde tag = "kind").
 export type LicenseStatus =
   | { kind: 'unlinked' }
-  | { kind: 'active'; pubkey: string; balance: number; usd: number }
-  | { kind: 'grace'; pubkey: string; usd: number; days_left: number }
-  | { kind: 'locked'; pubkey: string; usd: number };
+  | { kind: 'active'; pubkey: string; balance: number; usd: number; ticker?: string }
+  | { kind: 'grace'; pubkey: string; usd: number; days_left: number; ticker?: string }
+  | { kind: 'locked'; pubkey: string; usd: number; ticker?: string };
+
+export interface LicenseTokenQuote {
+  mint: string;
+  ticker: string;
+  name: string;
+  price_usd: number;
+  tokens_required: number | null;
+}
 
 // Reply from the `license_floor` command.
 export interface LicenseFloor {
   floor_usd: number;
-  price_usd: number;
-  tokens_required: number | null;
-  mint: string;
+  tokens?: LicenseTokenQuote[];
+  price_usd?: number;
+  tokens_required?: number | null;
+  mint?: string;
 }
 
 /** Whether the gate currently permits dictation. Mirrors

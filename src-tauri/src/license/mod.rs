@@ -1,9 +1,10 @@
 //! Organic token gate.
 //!
-//! Lectus is free software for people who hold ORGANIC. There is no account,
-//! no subscription and no card: you link a Solana wallet once by signing a
-//! nonce (no transfer, no spend), and the app re-reads that wallet's ORGANIC
-//! balance in the background.
+//! Lectus is free software for people who hold ORGANIC or Mycel. There is no
+//! account, no subscription and no card: you link a Solana wallet once by
+//! signing a nonce (no transfer, no spend), and the app re-reads that wallet's
+//! ORGANIC and Mycel balances in the background. Either token at the dollar
+//! floor is enough.
 //!
 //! This is a membership check, not DRM. The binary is public and patchable;
 //! the gate exists so "Organic holders get Lectus" is true, not to fight a
@@ -22,10 +23,31 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-/// ORGANIC (ORG) — SPL Token, 6 decimals, immutable.
-pub const ORGANIC_MINT: &str = "DuXugm4oTXrGDopgxgudyhboaf6uUg1GVbJ6jk6qbonk";
+/// A mint that can satisfy the membership floor on its own.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct GateToken {
+    pub mint: &'static str,
+    pub ticker: &'static str,
+    pub name: &'static str,
+}
 
-/// Dollar value of ORGANIC a wallet must hold to unlock dictation.
+/// ORGANIC (ORG) — SPL Token, 6 decimals, immutable.
+pub const ORGANIC: GateToken = GateToken {
+    mint: "DuXugm4oTXrGDopgxgudyhboaf6uUg1GVbJ6jk6qbonk",
+    ticker: "ORG",
+    name: "ORGANIC",
+};
+
+/// Mycel (MYCEL) — SPL Token, 6 decimals. Either this or ORGANIC clears the gate.
+pub const MYCEL: GateToken = GateToken {
+    mint: "HudkzEWpcUnTYFZMMcbNdwk1S5Am26J2SyEh4NfFworg",
+    ticker: "MYCEL",
+    name: "Mycel",
+};
+
+pub const GATE_TOKENS: &[GateToken] = &[ORGANIC, MYCEL];
+
+/// Dollar value of ORGANIC *or* Mycel a wallet must hold to unlock dictation.
 pub const FLOOR_USD: f64 = 20.0;
 
 /// How long a wallet that has dropped below the floor (or that we simply
@@ -55,12 +77,15 @@ pub struct License {
     pub last_ok_ms: i64,
     /// Last moment a check completed, successfully or not.
     pub last_checked_ms: i64,
-    /// ORGANIC held at the last successful check (UI amount, not lamports).
+    /// Tokens held at the last successful check (UI amount, not lamports).
     pub last_balance: f64,
     /// Dollar value of that balance.
     pub last_usd: f64,
-    /// ORGANIC/USD price used for it.
+    /// Token/USD price used for it.
     pub last_price: f64,
+    /// Ticker of the mint that produced `last_usd` (`ORG` or `MYCEL`). Empty
+    /// in license.json written before Mycel was added; treated as ORG.
+    pub last_ticker: String,
 }
 
 /// What the gate currently permits. `Active` and `Grace` both dictate.
@@ -73,15 +98,21 @@ pub enum Status {
         pubkey: String,
         balance: f64,
         usd: f64,
+        ticker: String,
     },
     /// Below the floor (or unverified) but still inside the grace window.
     Grace {
         pubkey: String,
         usd: f64,
         days_left: i64,
+        ticker: String,
     },
     /// Grace spent. Dictation is refused until the wallet is topped back up.
-    Locked { pubkey: String, usd: f64 },
+    Locked {
+        pubkey: String,
+        usd: f64,
+        ticker: String,
+    },
 }
 
 impl Status {
@@ -97,12 +128,15 @@ pub fn status_of(license: Option<&License>, now_ms: i64) -> Status {
         return Status::Unlinked;
     };
 
+    let ticker = display_ticker(&l.last_ticker);
+
     // Held at or above the floor as of the last successful read.
     if l.last_usd >= FLOOR_USD {
         return Status::Active {
             pubkey: l.pubkey.clone(),
             balance: l.last_balance,
             usd: l.last_usd,
+            ticker,
         };
     }
 
@@ -111,6 +145,7 @@ pub fn status_of(license: Option<&License>, now_ms: i64) -> Status {
         return Status::Locked {
             pubkey: l.pubkey.clone(),
             usd: l.last_usd,
+            ticker,
         };
     }
 
@@ -123,12 +158,22 @@ pub fn status_of(license: Option<&License>, now_ms: i64) -> Status {
             pubkey: l.pubkey.clone(),
             usd: l.last_usd,
             days_left,
+            ticker,
         }
     } else {
         Status::Locked {
             pubkey: l.pubkey.clone(),
             usd: l.last_usd,
+            ticker,
         }
+    }
+}
+
+fn display_ticker(stored: &str) -> String {
+    if stored.is_empty() {
+        ORGANIC.ticker.to_string()
+    } else {
+        stored.to_string()
     }
 }
 
@@ -148,12 +193,13 @@ pub fn is_check_due(license: &License, now_ms: i64) -> bool {
 }
 
 /// Fold a completed balance read into the stored record.
-pub fn apply_check(license: &mut License, balance: f64, price_usd: f64, now_ms: i64) {
+pub fn apply_check(license: &mut License, balance: f64, price_usd: f64, ticker: &str, now_ms: i64) {
     let usd = balance * price_usd;
     license.last_checked_ms = now_ms;
     license.last_balance = balance;
     license.last_price = price_usd;
     license.last_usd = usd;
+    license.last_ticker = ticker.to_string();
     if usd >= FLOOR_USD {
         license.last_ok_ms = now_ms;
     }
@@ -213,6 +259,7 @@ mod tests {
             last_balance: 10_000.0,
             last_usd: usd,
             last_price: 0.0025,
+            last_ticker: "ORG".into(),
         }
     }
 
@@ -280,13 +327,15 @@ mod tests {
     #[test]
     fn apply_check_marks_ok_only_above_floor() {
         let mut l = linked(0.0, 0);
-        apply_check(&mut l, 1_000.0, 0.0025, NOW); // $2.50
+        apply_check(&mut l, 1_000.0, 0.0025, "ORG", NOW); // $2.50
         assert_eq!(l.last_ok_ms, 0);
         assert_eq!(l.last_checked_ms, NOW);
+        assert_eq!(l.last_ticker, "ORG");
 
-        apply_check(&mut l, 100_000.0, 0.0025, NOW + 1); // $250
+        apply_check(&mut l, 100_000.0, 0.0002, "MYCEL", NOW + 1); // $20
         assert_eq!(l.last_ok_ms, NOW + 1);
-        assert!((l.last_usd - 250.0).abs() < 1e-9);
+        assert_eq!(l.last_ticker, "MYCEL");
+        assert!((l.last_usd - 20.0).abs() < 1e-9);
     }
 
     #[test]
@@ -294,7 +343,7 @@ mod tests {
         // Grace runs from last_ok_ms, which a failed read leaves untouched.
         let mut l = linked(50.0, NOW);
         let before = l.last_ok_ms;
-        apply_check(&mut l, 0.0, 0.0025, NOW + MS_PER_DAY);
+        apply_check(&mut l, 0.0, 0.0025, "ORG", NOW + MS_PER_DAY);
         assert_eq!(l.last_ok_ms, before);
         assert!(matches!(
             status_of(Some(&l), NOW + MS_PER_DAY),
@@ -317,6 +366,33 @@ mod tests {
         let l = linked(42.0, NOW);
         save_to(&path, &l).unwrap();
         assert_eq!(load_from(&path).unwrap(), l);
+    }
+
+    #[test]
+    fn old_license_without_ticker_still_loads() {
+        let json = r#"{
+            "pubkey":"Cisco1111111111111111111111111111111111111",
+            "linked_at_ms":1,
+            "last_ok_ms":1,
+            "last_checked_ms":1,
+            "last_balance":1000.0,
+            "last_usd":20.0,
+            "last_price":0.02
+        }"#;
+        let l: License = serde_json::from_str(json).unwrap();
+        assert_eq!(l.last_ticker, "");
+        match status_of(Some(&l), NOW) {
+            Status::Active { ticker, .. } => assert_eq!(ticker, "ORG"),
+            other => panic!("expected active, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn gate_accepts_organic_or_mycel() {
+        assert_eq!(ORGANIC.mint, "DuXugm4oTXrGDopgxgudyhboaf6uUg1GVbJ6jk6qbonk");
+        assert_eq!(GATE_TOKENS.len(), 2);
+        assert_eq!(MYCEL.mint, "HudkzEWpcUnTYFZMMcbNdwk1S5Am26J2SyEh4NfFworg");
+        assert_eq!(MYCEL.ticker, "MYCEL");
     }
 
     #[test]

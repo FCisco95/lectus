@@ -5,6 +5,7 @@ import '../styles/onboarding.css';
 import type { Config, LicenseFloor, LicenseStatus } from './settings/types';
 import { IS_MAC, allowsDictation, formatHotkey, shortAddress } from './settings/types';
 import { HotkeyCapture } from './settings/HotkeyCapture';
+import { BrandMark } from './BrandMark';
 
 type StepId = 'welcome' | 'wallet' | 'mic' | 'accessibility' | 'hotkey' | 'done';
 
@@ -82,7 +83,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
         {step === 'welcome' && (
           <>
-            <div className="onboarding-orb" />
+            <BrandMark className="onboarding-orb" />
             <h2>Welcome to <em>Lectus</em></h2>
             <p>
               Speak anywhere. Hold a key, talk, and your words land in whatever app you're using —
@@ -101,14 +102,17 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           <>
             <h2>Link your wallet</h2>
             <p>
-              Lectus is free for people who hold ORGANIC — no account, no subscription.
+              Lectus is free for people who hold ORGANIC or Mycel — no account, no subscription.
               Connect a Solana wallet once and sign a message. It moves no SOL, no tokens,
               and approves nothing.
             </p>
             <p>
-              You need {floor ? `$${floor.floor_usd}` : '$20'} of ORGANIC
-              {floor?.tokens_required
-                ? ` — about ${Math.round(floor.tokens_required).toLocaleString()} ORG today`
+              You need {floor ? `$${floor.floor_usd}` : '$20'} of ORGANIC or Mycel
+              {floor?.tokens?.length
+                ? ` — ${floor.tokens
+                    .filter((t) => t.tokens_required != null)
+                    .map((t) => `about ${Math.round(t.tokens_required as number).toLocaleString()} ${t.ticker}`)
+                    .join(', or ')} today`
                 : ''}
               .
             </p>
@@ -214,7 +218,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
         {step === 'done' && (
           <>
-            <div className="onboarding-orb" />
+            <BrandMark className="onboarding-orb" />
             <h2>You're all set</h2>
             <p>
               Lectus stays in your {IS_MAC ? 'menu bar' : 'system tray'} at login. Click the tray,

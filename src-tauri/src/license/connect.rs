@@ -198,8 +198,8 @@ const PAGE_TEMPLATE: &str = r##"<!doctype html>
 <body>
 <div class="card">
   <h1>Link your wallet</h1>
-  <p>Lectus checks that this wallet holds ORGANIC. You will sign a message — it
-     moves no SOL, no tokens, and approves nothing.</p>
+  <p>Lectus checks that this wallet holds ORGANIC or Mycel. You will sign a
+     message — it moves no SOL, no tokens, and approves nothing.</p>
   <div id="wallets"></div>
   <p class="note">Nothing is sent anywhere but your own machine: this page is served
      by Lectus on localhost.</p>

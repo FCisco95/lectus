@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getVersion } from '@tauri-apps/api/app';
 import type { PanelProps } from './types';
+import { BrandMark } from '../BrandMark';
 
 const SWATCHES = ['#1db584', '#17a2a2', '#3b82f6', '#e91e8c', '#ff6b5a', '#ffa500'];
 
@@ -145,7 +146,7 @@ export function ModelsPanel({ config }: PanelProps) {
       </div>
 
       <div className="about-card">
-        <div className="about-orb" />
+        <BrandMark className="about-orb" />
         <div>
           <span className="about-wordmark">Lectus</span>{' '}
           <span className="about-version">v{version}</span>

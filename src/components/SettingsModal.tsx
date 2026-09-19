@@ -29,19 +29,23 @@ interface SettingsModalProps {
 export function SettingsModal({ config, update, initialTab, version, onClose }: SettingsModalProps) {
   const [tab, setTab] = useState<SettingsTab>(initialTab);
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => setTab(initialTab), [initialTab]);
 
-  // Esc closes from anywhere in the window; Tab wraps inside the panel (the
-  // shell behind is also `inert`, so this is belt and braces); and focus
-  // returns to the gear that opened this so keyboard users are not dropped
-  // at the top of the document.
+  // Esc closes; Tab wraps. onClose is read from a ref so a parent re-render
+  // (each keystroke in General) does not re-run this and steal input focus.
   useEffect(() => {
-    panelRef.current?.focus();
+    const panel = panelRef.current;
+    const active = document.activeElement;
+    if (panel && (!active || !panel.contains(active))) {
+      panel.focus();
+    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab' || !panelRef.current) return;
@@ -66,7 +70,7 @@ export function SettingsModal({ config, update, initialTab, version, onClose }: 
       const trigger = document.querySelector<HTMLElement>('[data-settings-trigger]');
       trigger?.focus();
     };
-  }, [onClose]);
+  }, []);
 
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>

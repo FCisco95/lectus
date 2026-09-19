@@ -52,6 +52,7 @@
   /* ---- Scale ---- */
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
   --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 40px;
+  --titlebar-inset-left: var(--space-4);
   --radius-sm: 8px;   /* controls */
   --radius-md: 12px;  /* cards */
   --radius-lg: 18px;  /* surfaces */
@@ -90,6 +91,8 @@ html[data-theme="dark"] {
 /* ---- macOS ---- */
 html.platform-mac {
   --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  /* Overlay traffic lights occupy ~70px of the top-left; keep the brand clear. */
+  --titlebar-inset-left: 78px;
 }
 
 /* ---- Windows (Fluent-adjacent) ---- */

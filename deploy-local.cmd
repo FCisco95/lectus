@@ -1,48 +1,40 @@
 @echo off
-rem Dev-loop deploy: copy the freshly built release binaries (C:\lt\release, produced by
-rem build-release.cmd / the Vulkan recipe) over the installed app in %LOCALAPPDATA%\Lectus,
-rem so the desktop shortcut always runs the latest build. Handles a running instance by
-rem killing it first (UAC-elevated fallback when chirp.exe runs elevated), then relaunches.
-
-setlocal
-set BUILD_DIR=C:\lt\release
-set INSTALL_DIR=%LOCALAPPDATA%\Lectus
-set EXE=chirp.exe
-
-if not exist "%BUILD_DIR%\%EXE%" (
-  echo ERROR: %BUILD_DIR%\%EXE% not found. Run build-release.cmd first.
+REM Copy the cargo release into the NSIS install so Start Menu, tray, and
+REM login all launch the same binary the last build produced.
+set "SRC=C:\lt\release"
+set "DST=%LOCALAPPDATA%\Lectus"
+if not exist "%DST%\chirp.exe" (
+  echo No Lectus install at %DST% — skip deploy
+  exit /b 0
+)
+if not exist "%SRC%\chirp.exe" (
+  echo No build at %SRC%\chirp.exe
   exit /b 1
 )
-if not exist "%INSTALL_DIR%" (
-  echo ERROR: Install dir %INSTALL_DIR% not found. Install Lectus first.
+echo Deploying %SRC%\chirp.exe to %DST%
+copy /Y "%SRC%\chirp.exe" "%DST%\chirp.exe" >nul
+if errorlevel 1 (
+  echo ERROR: %DST%\chirp.exe is in use. Stop Lectus by PID, then rerun.
   exit /b 1
 )
-
-rem 1) Kill a running instance (normal kill, then UAC-elevated taskkill as fallback).
-for /f "tokens=2" %%p in ('tasklist /fi "imagename eq %EXE%" /fo list ^| findstr /b "PID:"') do (
-  taskkill /PID %%p /F >nul 2>&1
+if exist "%SRC%\chirp_lib.dll" copy /Y "%SRC%\chirp_lib.dll" "%DST%\chirp_lib.dll" >nul
+if exist "%SRC%\ggml.dll" copy /Y "%SRC%\ggml.dll" "%DST%\ggml.dll" >nul
+if exist "%SRC%\ggml-base.dll" copy /Y "%SRC%\ggml-base.dll" "%DST%\ggml-base.dll" >nul
+if exist "%SRC%\llama.dll" copy /Y "%SRC%\llama.dll" "%DST%\llama.dll" >nul
+if exist "%SRC%\llama-common.dll" copy /Y "%SRC%\llama-common.dll" "%DST%\llama-common.dll" >nul
+set "ICONS=%~dp0src-tauri\icons"
+if exist "%ICONS%\tray-idle.png" (
+  if not exist "%DST%\icons" mkdir "%DST%\icons"
+  copy /Y "%ICONS%\tray-idle.png" "%DST%\icons\" >nul
+  copy /Y "%ICONS%\tray-recording.png" "%DST%\icons\" >nul
+  copy /Y "%ICONS%\tray-transcribing.png" "%DST%\icons\" >nul
+  copy /Y "%ICONS%\tray-template-idle.png" "%DST%\icons\" >nul
+  copy /Y "%ICONS%\tray-template-recording.png" "%DST%\icons\" >nul
+  copy /Y "%ICONS%\tray-template-transcribing.png" "%DST%\icons\" >nul
+  if not exist "%SRC%\icons" mkdir "%SRC%\icons"
+  copy /Y "%ICONS%\tray-idle.png" "%SRC%\icons\" >nul
+  copy /Y "%ICONS%\tray-recording.png" "%SRC%\icons\" >nul
+  copy /Y "%ICONS%\tray-transcribing.png" "%SRC%\icons\" >nul
 )
-for /f "tokens=2" %%p in ('tasklist /fi "imagename eq %EXE%" /fo list ^| findstr /b "PID:"') do (
-  echo chirp.exe still running ^(PID %%p^) - killing with elevation...
-  powershell -Command "Start-Process taskkill -ArgumentList '/PID %%p /F' -Verb RunAs -Wait" >nul 2>&1
-)
-
-rem 2) Copy binaries: exe, llama/ggml DLLs, ggml backends. Icons/models are untouched.
-copy /y "%BUILD_DIR%\chirp.exe" "%INSTALL_DIR%\" >nul || goto copyfail
-copy /y "%BUILD_DIR%\chirp_lib.dll" "%INSTALL_DIR%\" >nul || goto copyfail
-copy /y "%BUILD_DIR%\ggml.dll" "%INSTALL_DIR%\" >nul || goto copyfail
-copy /y "%BUILD_DIR%\ggml-base.dll" "%INSTALL_DIR%\" >nul || goto copyfail
-copy /y "%BUILD_DIR%\llama.dll" "%INSTALL_DIR%\" >nul || goto copyfail
-copy /y "%BUILD_DIR%\llama-common.dll" "%INSTALL_DIR%\" >nul || goto copyfail
-for /d %%b in ("%BUILD_DIR%\build\llama-cpp-sys-2-*") do (
-  if exist "%%b\out\backends" xcopy /y /q "%%b\out\backends\*.dll" "%INSTALL_DIR%\backends\" >nul
-)
-
-rem 3) Relaunch.
-start "" "%INSTALL_DIR%\%EXE%"
-echo Deployed %BUILD_DIR% -> %INSTALL_DIR% and relaunched.
+echo Deployed to %DST%\chirp.exe
 exit /b 0
-
-:copyfail
-echo ERROR: copy failed — is chirp.exe still running?
-exit /b 1

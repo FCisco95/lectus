@@ -7,26 +7,27 @@ Transcription runs **on your own machine** by default — your audio does not le
 it. The name nods to *lect-* (dialect, lecture — speech); the mascot is an
 Eclectus parrot. Built with Tauri 2 (Rust) + React.
 
-## You need to hold ORGANIC
+## You need to hold ORGANIC or Mycel
 
-Lectus is free for people who hold **ORGANIC (ORG)**. There is no account, no
-subscription, no card, and no word limit.
+Lectus is free for people who hold **$20 of ORGANIC (ORG) or Mycel (MYCEL)**.
+Either token is enough. There is no account, no subscription, no card, and no
+word limit.
 
-| | |
-|---|---|
-| **Token** | ORGANIC (ORG) on Solana |
-| **Mint** | `DuXugm4oTXrGDopgxgudyhboaf6uUg1GVbJ6jk6qbonk` |
-| **You need** | **$20 worth**, held in a wallet you control |
-| **Wallets** | Phantom, Solflare, Backpack |
+| | ORGANIC | Mycel |
+|---|---|---|
+| **Ticker** | ORG | MYCEL |
+| **Mint** | `DuXugm4oTXrGDopgxgudyhboaf6uUg1GVbJ6jk6qbonk` | `HudkzEWpcUnTYFZMMcbNdwk1S5Am26J2SyEh4NfFworg` |
+| **You need** | **$20 worth** of either, held in a wallet you control | |
+| **Wallets** | Phantom, Solflare, Backpack | |
 
 You link a wallet **once**, by signing a message. That signature is free, it is
 not a transaction, and it **cannot move SOL, tokens, or approve anything** — it
-only proves the wallet is yours. Lectus then reads that wallet's ORGANIC balance
-directly from the Solana chain.
+only proves the wallet is yours. Lectus then reads that wallet's ORGANIC and
+Mycel balances directly from the Solana chain.
 
-The floor is in **dollars, not tokens**, so the number of ORG needed follows the
-live price. Nothing is ever sent anywhere: the balance check is a public
-read-only query, and the only thing stored is your wallet's public address.
+The floor is in **dollars, not tokens**, so the number of ORG or MYCEL needed
+follows the live price. Nothing is ever sent anywhere: the balance check is a
+public read-only query, and the only thing stored is your wallet's public address.
 
 **If you sell:** dictation keeps working for **7 more days**, with a banner. Top
 back up inside that window and nothing is interrupted. Lectus never cuts off a

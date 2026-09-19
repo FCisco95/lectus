@@ -2,7 +2,7 @@
 
 use super::{
     apply_check, chain, connect, license_file, load_from, save_to, verify, License, LicenseState,
-    Status, ORGANIC_MINT,
+    Status, GATE_TOKENS, ORGANIC,
 };
 use std::path::PathBuf;
 use tauri::{Emitter, Manager};
@@ -36,18 +36,29 @@ pub fn license_status(license_state: tauri::State<LicenseState>) -> Status {
     license_state.status(crate::now_millis())
 }
 
-/// Token floor, and what it costs in ORGANIC right now. Used by the UI to say
-/// "≈ 7,930 ORG" instead of only "$20".
+/// Token floor, and what it costs in ORGANIC and Mycel right now.
 #[tauri::command]
 pub async fn license_floor() -> Result<serde_json::Value, String> {
-    let price = chain::token_price_usd(ORGANIC_MINT)
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut tokens = Vec::new();
+    for token in GATE_TOKENS {
+        match chain::token_price_usd(token.mint).await {
+            Ok(price) => tokens.push(serde_json::json!({
+                "mint": token.mint,
+                "ticker": token.ticker,
+                "name": token.name,
+                "price_usd": price,
+                "tokens_required": super::tokens_required(price),
+            })),
+            Err(e) => log::warn!("price for {} failed: {e}", token.ticker),
+        }
+    }
+    let organic = tokens.iter().find(|t| t["ticker"] == ORGANIC.ticker);
     Ok(serde_json::json!({
         "floor_usd": super::FLOOR_USD,
-        "price_usd": price,
-        "tokens_required": super::tokens_required(price),
-        "mint": ORGANIC_MINT,
+        "tokens": tokens,
+        "price_usd": organic.and_then(|t| t["price_usd"].as_f64()),
+        "tokens_required": organic.and_then(|t| t["tokens_required"].as_f64()),
+        "mint": ORGANIC.mint,
     }))
 }
 
@@ -89,8 +100,8 @@ pub async fn link_wallet(
 
     // A link with an unreachable chain is still a link: the wallet is proven,
     // and the balance read retries in the background.
-    match chain::read_position(&proof.pubkey, ORGANIC_MINT).await {
-        Ok((balance, price)) => apply_check(&mut license, balance, price, now),
+    match chain::read_qualifying_position(&proof.pubkey).await {
+        Ok(pos) => apply_check(&mut license, pos.balance, pos.price, pos.ticker, now),
         Err(e) => log::warn!("wallet linked but the balance read failed: {e}"),
     }
 
@@ -128,12 +139,10 @@ pub async fn refresh_license(
         return Ok(Status::Unlinked);
     };
 
-    let (balance, price) = chain::read_position(&license.pubkey, ORGANIC_MINT)
-        .await
-        .map_err(|e| e.to_string())?;
+    let pos = chain::read_qualifying_position(&license.pubkey).await?;
 
     let now = crate::now_millis();
-    apply_check(&mut license, balance, price, now);
+    apply_check(&mut license, pos.balance, pos.price, pos.ticker, now);
     persist(&app_handle, &license);
     *license_state.license.lock().unwrap() = Some(license.clone());
 
@@ -158,10 +167,10 @@ pub fn spawn_background_check(app: tauri::AppHandle) {
             return;
         }
 
-        match chain::read_position(&license.pubkey, ORGANIC_MINT).await {
-            Ok((balance, price)) => {
+        match chain::read_qualifying_position(&license.pubkey).await {
+            Ok(pos) => {
                 let now = crate::now_millis();
-                apply_check(&mut license, balance, price, now);
+                apply_check(&mut license, pos.balance, pos.price, pos.ticker, now);
                 persist(&app, &license);
                 *state.license.lock().unwrap() = Some(license.clone());
                 let status = super::status_of(Some(&license), now);

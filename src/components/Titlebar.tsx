@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { IS_MAC } from './settings/types';
+import { BrandMark } from './BrandMark';
 
 /** The window's own titlebar.
  *
@@ -37,7 +38,7 @@ export function Titlebar() {
   return (
     <div className="titlebar" data-tauri-drag-region>
       <div className="titlebar-brand" data-tauri-drag-region>
-        <div className="titlebar-orb" />
+        <BrandMark className="titlebar-orb" />
         <span className="titlebar-name">Lectus</span>
       </div>
 

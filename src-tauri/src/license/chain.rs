@@ -1,5 +1,5 @@
-//! Reading the wallet's ORGANIC position: balance from a Solana RPC, price
-//! from Jupiter.
+//! Reading the wallet's ORGANIC and Mycel positions: balance from a Solana
+//! RPC, price from Jupiter.
 //!
 //! Both are plain public HTTP endpoints. No API key ships in the binary — the
 //! repo is public, so an embedded key would leak with every download. Users on
@@ -27,7 +27,85 @@ fn client() -> Result<reqwest::Client> {
         .build()?)
 }
 
-/// Total ORGANIC held by `owner`, as a UI amount.
+/// One mint's holding plus the price used to value it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TokenPosition {
+    pub mint: &'static str,
+    pub ticker: &'static str,
+    pub balance: f64,
+    pub price: f64,
+}
+
+impl TokenPosition {
+    pub fn usd(&self) -> f64 {
+        self.balance * self.price
+    }
+}
+
+/// Either token at/above the floor wins. If every mint was readable and all
+/// are below, the higher USD is returned so the UI can show a real number.
+/// A partial failure with nobody clearing the floor is an error — same rule
+/// as a bad RPC: do not pretend the wallet holds nothing.
+pub fn pick_qualifying_position(
+    results: &[Result<TokenPosition, String>],
+    floor_usd: f64,
+) -> Result<TokenPosition, String> {
+    let mut best_ok: Option<&TokenPosition> = None;
+    let mut best_any: Option<&TokenPosition> = None;
+    let mut first_err: Option<&str> = None;
+    let mut n_ok = 0usize;
+    for result in results {
+        match result {
+            Ok(position) => {
+                n_ok += 1;
+                if best_any.map(|best| position.usd() > best.usd()).unwrap_or(true) {
+                    best_any = Some(position);
+                }
+                if position.usd() >= floor_usd
+                    && best_ok.map(|best| position.usd() > best.usd()).unwrap_or(true)
+                {
+                    best_ok = Some(position);
+                }
+            }
+            Err(err) => {
+                if first_err.is_none() {
+                    first_err = Some(err);
+                }
+            }
+        }
+    }
+    if let Some(position) = best_ok {
+        return Ok(position.clone());
+    }
+    if n_ok == results.len() {
+        return best_any
+            .cloned()
+            .ok_or_else(|| "no token positions".to_string());
+    }
+    Err(first_err.unwrap_or("token position read failed").to_string())
+}
+
+async fn read_named(owner: &str, token: &super::GateToken) -> Result<TokenPosition, String> {
+    let (balance, price) = read_position(owner, token.mint)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(TokenPosition {
+        mint: token.mint,
+        ticker: token.ticker,
+        balance,
+        price,
+    })
+}
+
+/// Best ORGANIC-or-Mycel holding for `owner`.
+pub async fn read_qualifying_position(owner: &str) -> Result<TokenPosition, String> {
+    let organic = read_named(owner, &super::ORGANIC);
+    let mycel = read_named(owner, &super::MYCEL);
+    let (organic, mycel) = tokio::join!(organic, mycel);
+    pick_qualifying_position(&[organic, mycel], super::FLOOR_USD)
+}
+
+/// Total tokens of `mint` held by `owner`, as a UI amount.
 ///
 /// A wallet can hold the same mint across several token accounts, so every
 /// account is summed rather than taking the first.
@@ -162,6 +240,66 @@ mod tests {
     fn rejects_a_missing_or_zero_price() {
         assert!(parse_price(&json!({}), "MINT").is_err());
         assert!(parse_price(&json!({ "MINT": { "usdPrice": 0.0 } }), "MINT").is_err());
+    }
+
+    fn pos(ticker: &'static str, balance: f64, price: f64) -> TokenPosition {
+        TokenPosition {
+            mint: ticker,
+            ticker,
+            balance,
+            price,
+        }
+    }
+
+    #[test]
+    fn pick_prefers_the_mint_that_clears_the_floor() {
+        let organic = Ok(pos("ORG", 1_000.0, 0.002)); // $2
+        let mycel = Ok(pos("MYCEL", 200_000.0, 0.0002)); // $40
+        let picked = pick_qualifying_position(&[organic, mycel], 20.0).unwrap();
+        assert_eq!(picked.ticker, "MYCEL");
+    }
+
+    #[test]
+    fn pick_uses_organic_when_it_clears_and_mycel_does_not() {
+        let organic = Ok(pos("ORG", 20_000.0, 0.002)); // $40
+        let mycel = Ok(pos("MYCEL", 1_000.0, 0.0002)); // $0.20
+        let picked = pick_qualifying_position(&[organic, mycel], 20.0).unwrap();
+        assert_eq!(picked.ticker, "ORG");
+    }
+
+    #[test]
+    fn pick_takes_the_higher_usd_when_both_clear() {
+        let organic = Ok(pos("ORG", 20_000.0, 0.002)); // $40
+        let mycel = Ok(pos("MYCEL", 400_000.0, 0.0002)); // $80
+        let picked = pick_qualifying_position(&[organic, mycel], 20.0).unwrap();
+        assert_eq!(picked.ticker, "MYCEL");
+        assert!((picked.usd() - 80.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn pick_returns_the_higher_usd_when_both_are_below() {
+        let organic = Ok(pos("ORG", 1_000.0, 0.002)); // $2
+        let mycel = Ok(pos("MYCEL", 10_000.0, 0.0002)); // $2
+        let picked = pick_qualifying_position(&[organic.clone(), mycel], 20.0).unwrap();
+        assert!((picked.usd() - 2.0).abs() < 1e-9);
+        let mycel_higher = Ok(pos("MYCEL", 50_000.0, 0.0002)); // $10
+        let picked = pick_qualifying_position(&[organic, mycel_higher], 20.0).unwrap();
+        assert_eq!(picked.ticker, "MYCEL");
+    }
+
+    #[test]
+    fn pick_accepts_a_qualifying_mint_even_if_the_other_read_failed() {
+        let organic = Err("rpc down".into());
+        let mycel = Ok(pos("MYCEL", 200_000.0, 0.0002)); // $40
+        let picked = pick_qualifying_position(&[organic, mycel], 20.0).unwrap();
+        assert_eq!(picked.ticker, "MYCEL");
+    }
+
+    #[test]
+    fn pick_errors_on_partial_failure_when_nobody_clears_the_floor() {
+        let organic = Err("rpc down".into());
+        let mycel = Ok(pos("MYCEL", 1_000.0, 0.0002)); // $0.20
+        assert!(pick_qualifying_position(&[organic, mycel], 20.0).is_err());
     }
 
     #[test]

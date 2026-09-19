@@ -10,7 +10,7 @@ use ed25519_dalek::{Signature, VerifyingKey};
 /// confirmation sheet, so nobody signs something they can't parse.
 pub fn challenge_message(nonce: &str) -> String {
     format!(
-        "Lectus — verify ORGANIC holdings\n\n\
+        "Lectus — verify ORGANIC or Mycel holdings\n\n\
          Signing proves this wallet is yours. It is not a transaction: no SOL, \
          no tokens and no approvals are involved.\n\n\
          Nonce: {nonce}"

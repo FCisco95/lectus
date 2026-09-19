@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { Config, LicenseStatus } from './types';
 import { allowsDictation, formatHotkey } from './types';
+import { HistoryList } from './HistoryList';
 
 interface HistoryStats {
   dictations_7d: number;
@@ -23,19 +24,18 @@ function membershipNotice(status: LicenseStatus | null): string | null {
   if (!status) return null;
   switch (status.kind) {
     case 'unlinked':
-      return 'Link a wallet holding ORGANIC to start dictating.';
+      return 'Link a wallet holding ORGANIC or Mycel to start dictating.';
     case 'grace':
       return `Your wallet is below the $20 floor. Dictation keeps working for ${status.days_left} more ${status.days_left === 1 ? 'day' : 'days'}.`;
     case 'locked':
-      return 'Dictation is locked: this wallet no longer holds $20 of ORGANIC.';
+      return 'Dictation is locked: this wallet no longer holds $20 of ORGANIC or Mycel.';
     default:
       return null;
   }
 }
 
-/** Home fits on one screen: banner (when it applies) → greeting → three stat
- *  cards → one status line → empty-state hint. The dictation list lives under
- *  Dictations, which is the only surface that scrolls. */
+/** Greeting, week KPIs, then the dictation list so a prompt can be copied
+ *  without leaving Home. The list scrolls; the KPIs stay put. */
 export function HomePanel({ config, onOpenTab }: HomePanelProps) {
   const [stats, setStats] = useState<HistoryStats | null>(null);
   const [engineReady, setEngineReady] = useState(true);
@@ -83,55 +83,59 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
 
   return (
     <div className="home">
-      {notice && (
-        <div className="banner">
-          <span>{notice}</span>
-          <button className="btn btn-primary" type="button" onClick={() => onOpenTab('membership')}>
-            {license?.kind === 'unlinked' ? 'Connect wallet' : 'Membership'}
-          </button>
-        </div>
-      )}
+      <div className="home-top">
+        {notice && (
+          <div className="banner">
+            <span>{notice}</span>
+            <button className="btn btn-primary" type="button" onClick={() => onOpenTab('membership')}>
+              {license?.kind === 'unlinked' ? 'Connect wallet' : 'Membership'}
+            </button>
+          </div>
+        )}
 
-      <h2 className="settings-panel-title home-greeting">
-        {name ? `Welcome back, ${name}` : 'Welcome back'}
-      </h2>
-      <p className="settings-panel-sub">
-        {empty ? 'Your first dictation is one keypress away.' : 'Here is your week so far.'}
-      </p>
-
-      <div className="home-stats">
-        <div className="home-stat">
-          <div className="home-stat-value">{stats?.words_7d ?? '—'}</div>
-          <div className="home-stat-label">Words this week</div>
-        </div>
-        <div className="home-stat">
-          <div className="home-stat-value">{stats?.dictations_7d ?? '—'}</div>
-          <div className="home-stat-label">Dictations this week</div>
-        </div>
-        <div className="home-stat">
-          <div className="home-stat-value">{stats?.streak_days ?? '—'}</div>
-          <div className="home-stat-label">Day streak</div>
-        </div>
-      </div>
-
-      <div className="home-status">
-        <button className="home-link" type="button" onClick={() => onOpenTab('models')}>
-          {modelLabel || 'No model'}
-        </button>
-        <span aria-hidden="true">·</span>
-        <span>{hotkey}</span>
-        <span aria-hidden="true">·</span>
-        <span className={`home-state${!allowsDictation(license) ? ' locked' : engineReady ? ' ready' : ''}`}>
-          {!allowsDictation(license) ? 'Locked' : engineReady ? 'Ready' : 'Loading model…'}
-        </span>
-      </div>
-
-      {empty && (
-        <p className="home-hint">
-          Hold <span className="kbd">{hotkey}</span> and talk. Your words land in whatever field is
-          focused, and a copy shows up under Dictations.
+        <h2 className="settings-panel-title home-greeting">
+          {name ? `Welcome back, ${name}` : 'Welcome back'}
+        </h2>
+        <p className="settings-panel-sub">
+          {empty ? 'Your first dictation is one keypress away.' : 'Here is your week so far.'}
         </p>
-      )}
+
+        <div className="home-stats">
+          <div className="home-stat">
+            <div className="home-stat-value">{stats?.words_7d ?? '—'}</div>
+            <div className="home-stat-label">Words this week</div>
+          </div>
+          <div className="home-stat">
+            <div className="home-stat-value">{stats?.dictations_7d ?? '—'}</div>
+            <div className="home-stat-label">Dictations this week</div>
+          </div>
+          <div className="home-stat">
+            <div className="home-stat-value">{stats?.streak_days ?? '—'}</div>
+            <div className="home-stat-label">Day streak</div>
+          </div>
+        </div>
+
+        <div className="home-status">
+          <button className="home-link" type="button" onClick={() => onOpenTab('models')}>
+            {modelLabel || 'No model'}
+          </button>
+          <span aria-hidden="true">·</span>
+          <span>{hotkey}</span>
+          <span aria-hidden="true">·</span>
+          <span className={`home-state${!allowsDictation(license) ? ' locked' : engineReady ? ' ready' : ''}`}>
+            {!allowsDictation(license) ? 'Locked' : engineReady ? 'Ready' : 'Loading model…'}
+          </span>
+        </div>
+
+        {empty && (
+          <p className="home-hint">
+            Hold <span className="kbd">{hotkey}</span> and talk. Your words land in whatever field is
+            focused, and a copy shows up here so you can grab it again.
+          </p>
+        )}
+      </div>
+
+      <HistoryList config={config} heading={false} />
     </div>
   );
 }

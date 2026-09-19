@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import '../styles/pill.css';
+import { BrandMark } from './BrandMark';
 
 type PillState = 'idle' | 'recording' | 'transcribing';
 
@@ -149,15 +150,14 @@ export function Pill({ state }: PillProps) {
       onMouseDown={onMouseDown}
     >
       {state === 'idle' && (
-        // Idle: a small parrot-coloured orb. Drag to move, click to start.
-        <div
+        <BrandMark
           className={`pill-orb${warming ? ' pill-orb-warming' : ''}`}
           title={warming ? 'Lectus — loading your model…' : 'Lectus — drag to move, click for Home'}
         />
       )}
       {state === 'recording' && (
         <div className="pill-container">
-          <span className="pill-dot" />
+          <BrandMark className="pill-mark" />
           <div className="pill-wave">
             {BAR_COLORS.map((color, i) => (
               <span
@@ -172,8 +172,7 @@ export function Pill({ state }: PillProps) {
       )}
       {state === 'transcribing' && (
         <div className="pill-container">
-          {/* Same bars, no rAF driver — an indeterminate CSS shimmer instead
-              of the orb-swap this replaced (no jarring shape change). */}
+          <BrandMark className="pill-mark" />
           <div className="pill-wave pill-wave-thinking">
             {BAR_COLORS.map((color, i) => (
               <span key={i} style={{ background: color }} />

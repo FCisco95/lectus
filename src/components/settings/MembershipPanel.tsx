@@ -10,8 +10,20 @@ function usd(value: number): string {
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 }
 
-function org(value: number): string {
-  return `${Math.round(value).toLocaleString()} ORG`;
+function tokens(value: number, ticker = 'ORG'): string {
+  return `${Math.round(value).toLocaleString()} ${ticker}`;
+}
+
+function floorCopy(floor: LicenseFloor | null): string {
+  const usdFloor = usd(floor?.floor_usd ?? 20);
+  const quotes = (floor?.tokens ?? []).filter((t) => t.tokens_required != null);
+  if (quotes.length > 0) {
+    const amounts = quotes
+      .map((t) => `about ${Math.round(t.tokens_required as number).toLocaleString()} ${t.ticker} at ${usd(t.price_usd)}`)
+      .join(', or ');
+    return `${usdFloor} of ORGANIC or Mycel — ${amounts}. The dollar amount is fixed; the token count follows the live price.`;
+  }
+  return `${usdFloor} of ORGANIC or Mycel. The dollar amount is fixed; the token count follows the live price.`;
 }
 
 export function MembershipPanel() {
@@ -65,14 +77,14 @@ export function MembershipPanel() {
     }
   };
 
-  const required = floor?.tokens_required ?? null;
   const pubkey = status && status.kind !== 'unlinked' ? status.pubkey : '';
+  const ticker = status && status.kind !== 'unlinked' ? (status.ticker ?? 'ORG') : 'ORG';
 
   return (
     <div>
       <h2 className="settings-panel-title">Membership</h2>
       <p className="settings-panel-sub">
-        Lectus is free for people who hold ORGANIC. No account, no subscription.
+        Lectus is free for people who hold ORGANIC or Mycel. No account, no subscription.
       </p>
 
       <div className="card">
@@ -114,7 +126,7 @@ export function MembershipPanel() {
               <b>Holdings</b>
               <span>
                 {status.kind === 'active'
-                  ? `${org(status.balance)} — ${usd(status.usd)}`
+                  ? `${tokens(status.balance, ticker)} — ${usd(status.usd)}`
                   : `${usd(status.usd)} — below the ${usd(floor?.floor_usd ?? 20)} floor`}
               </span>
             </div>
@@ -133,9 +145,7 @@ export function MembershipPanel() {
           <div className="row-label">
             <b>What unlocks it</b>
             <span>
-              {floor
-                ? `${usd(floor.floor_usd)} of ORGANIC${required ? ` — about ${org(required)} at ${usd(floor.price_usd)} each` : ''}. The dollar amount is fixed; the token count follows the live price.`
-                : `$20 of ORGANIC. The dollar amount is fixed; the token count follows the live price.`}
+              {floorCopy(floor)}
             </span>
           </div>
         </div>
@@ -154,7 +164,7 @@ export function MembershipPanel() {
       {status?.kind === 'locked' && (
         <div className="banner">
           <span>
-            Dictation is locked: this wallet holds {usd(status.usd)} of ORGANIC. Top up to{' '}
+            Dictation is locked: this wallet holds {usd(status.usd)} of ORGANIC or Mycel. Top up to{' '}
             {usd(floor?.floor_usd ?? 20)} and hit Check again.
           </span>
         </div>

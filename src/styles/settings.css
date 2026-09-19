@@ -318,7 +318,7 @@ html, body, #root { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   color: var(--text-secondary);
 }
 /* ---- History / Home list ---- */
-.history-list { display: flex; flex-direction: column; gap: 8px; max-width: 560px; }
+.history-list { display: flex; flex-direction: column; gap: 8px; }
 .history-empty { color: var(--text-tertiary); font-size: var(--text-base); }
 .history-item {
   border: 1px solid var(--border);
@@ -419,10 +419,8 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
   height: 56px;
   flex-shrink: 0;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.6), transparent 42%),
-    var(--brand-conic);
-  box-shadow: 0 4px 18px rgba(233, 30, 140, 0.3);
+  object-fit: contain;
+  display: block;
 }
 .about-wordmark {
   font-size: var(--text-xl);
@@ -472,7 +470,7 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
   height: 38px;
   display: flex;
   align-items: center;
-  padding-left: var(--space-4);
+  padding-left: var(--titlebar-inset-left);
   gap: var(--space-2);
   user-select: none;
   -webkit-user-select: none;
@@ -491,10 +489,10 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
 }
 
 .titlebar-orb {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: var(--brand-conic);
+  object-fit: contain;
 }
 
 .titlebar-name {
@@ -635,8 +633,8 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
   overflow: hidden;
 }
 
-/* The scroll region. Home fits without scrolling; Dictations scrolls its
-   own list; long settings surfaces (Vocabulary) scroll here. */
+/* The scroll region. Home and Dictations scroll their own lists;
+   long settings surfaces (Vocabulary) scroll here. */
 .surface-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -679,6 +677,13 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
 .dictations-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--border-strong); }
 
 /* ---- Home additions ---- */
+.home {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.home-top { flex: 0 0 auto; }
 .home-greeting { margin-top: var(--space-2); }
 .home-stat-value { font-size: 28px; line-height: 1.1; }
 .home-link {
@@ -715,9 +720,9 @@ html[data-theme="dark"] .badge.warn { color: var(--lectus-gold); }
 .dictations-tools {
   display: flex;
   gap: 8px;
-  max-width: 560px;
   margin-bottom: var(--space-3);
 }
+.dictations-embedded { margin-top: var(--space-1); }
 .dictations-tools .input { flex: 1; }
 .dictations-scroll {
   flex: 1 1 auto;

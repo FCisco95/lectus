@@ -39,10 +39,8 @@ html.platform-mac .onboarding-step { padding-top: calc(var(--space-7) + 14px); }
   height: 64px;
   border-radius: 50%;
   margin-bottom: var(--space-5);
-  background:
-    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.6), transparent 42%),
-    var(--brand-conic);
-  box-shadow: 0 8px 24px rgba(233, 30, 140, 0.25);
+  object-fit: contain;
+  display: block;
 }
 
 .onboarding-step h2 {
