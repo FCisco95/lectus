@@ -8,7 +8,10 @@ production build passes. No product source files were changed.
 
 ## Setup completed
 
-- Repository: clean `master` tracking `origin/master` at `dfff2cb`.
+- Repository: `master` at the handoff commit; the local branch is ahead of
+  `origin/master` until the handoff commits are pushed.
+- The existing main checkout is registered in Orca as the `lectus` project,
+  linked to `github:fcisco95/lectus`; no separate Orca checkout was created.
 - Ran `npm ci` and `npm run build` successfully.
 - Ran `scripts/download_model.sh`; it placed the gitignored 74 MB fallback model
   at `models/ggml-tiny.en.bin`.

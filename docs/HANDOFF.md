@@ -21,6 +21,10 @@ passes, and `scripts/download_model.sh` downloaded the ignored 74 MB
 `models/ggml-tiny.en.bin` fallback model. Node 24.14.0, npm 11.19.1, Rust 1.94.0,
 and Xcode Command Line Tools are installed.
 
+The existing checkout is registered in Orca as the `lectus` project, linked to
+`github:fcisco95/lectus`. Its main `master` worktree is visible and marked
+in-progress; no duplicate checkout or child worktree was created.
+
 `cargo test --release --lib` compiles successfully but is **not fully green on
 macOS**: 111 tests pass, 4 are intentionally ignored, and two Windows-autostart
 tests fail. `src-tauri/src/autostart.rs` uses Windows-style backslash paths;
