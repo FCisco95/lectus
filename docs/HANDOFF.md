@@ -14,6 +14,21 @@ The **Organic token gate** is built, tested live, and shipped. Lectus is free fo
 people holding **$20 of ORGANIC**; the wallet is linked once by signing a nonce,
 and the balance is re-read every 12 h. No account, no subscription.
 
+## Mac development setup (2026-09-19)
+
+Fresh development clone is ready on macOS: `npm ci` completed, `npm run build`
+passes, and `scripts/download_model.sh` downloaded the ignored 74 MB
+`models/ggml-tiny.en.bin` fallback model. Node 24.14.0, npm 11.19.1, Rust 1.94.0,
+and Xcode Command Line Tools are installed.
+
+`cargo test --release --lib` compiles successfully but is **not fully green on
+macOS**: 111 tests pass, 4 are intentionally ignored, and two Windows-autostart
+tests fail. `src-tauri/src/autostart.rs` uses Windows-style backslash paths;
+on macOS `PathBuf::file_name()` treats each test fixture as one filename, so the
+expected Windows repair branch is not reached. This is a test-portability issue,
+not a setup failure. No source changes were made. Production npm audit reports
+zero vulnerabilities.
+
 Earlier the same morning: the Home window landed (tray / shortcut / pill open it,
 login silent via `--autostart`), and the repo was made public.
 
@@ -142,14 +157,20 @@ Only `chirp.exe` + `chirp_lib.dll` change between builds; the ggml/llama DLLs an
 - `babysit` — watching the v0.6.0 CI run
 - `superpowers:brainstorming` — Mycel dictionary / installer wizard, still unstarted
 
+## Generated artifacts this session
+
+| What | Where it lives | Notes |
+|---|---|---|
+| Local fallback Whisper model | `models/ggml-tiny.en.bin` | 74 MB, gitignored by design; download again on a fresh machine with `scripts/download_model.sh`. |
+
 ## Next-session prompt
 
-```text
-Lectus 2026-09-17 afternoon: token gate shipped, v0.6.0 released and public,
-vocabulary loaded. Read docs/HANDOFF.md first — it carries the decisions not
-to re-litigate (no subscription, no email accounts, signing parked).
-Next slice: spec the local transcription API (POST /v1/transcribe, per-install
-token, origin allowlist, off by default, no remote mic control) so Organic can
-call Lectus for speech-to-text. Spec before code. Do not touch the capture,
-injection, or shortcut pipeline.
+```
+Lectus is cloned and set up locally: frontend build passes; the fallback Whisper model is present. The next product slice remains the local transcription API; do not touch capture, injection, or shortcut handling. The two failing autostart unit tests are macOS path-portability issues only.
+
+Files: docs/HANDOFF.md, docs/superpowers/specs/2026-09-17-organic-token-gate.md, src-tauri/src/autostart.rs
+Model: Codex Sonnet 5 — focused Rust/Tauri product planning and implementation.
+Skills: handoff-memory
+
+Spec the local `POST /v1/transcribe` API before coding: per-install token, explicit Organic origin allowlist, off by default with visible activity state, and no remote microphone control in v1.
 ```
