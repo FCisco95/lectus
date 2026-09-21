@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Last Updated: 2026-09-17 afternoon (Windows PC)
+- Last Updated: 2026-09-19 evening (macOS)
 - Repository: `lectus` (github.com/FCisco95/lectus) — **public** since this morning
 - Branch: `master` at `d603a89`, pushed, clean
 - Version in manifests: `0.6.0`, **released and published** (updater feed live)
@@ -13,6 +13,31 @@
 The **Organic token gate** is built, tested live, and shipped. Lectus is free for
 people holding **$20 of ORGANIC**; the wallet is linked once by signing a nonce,
 and the balance is re-read every 12 h. No account, no subscription.
+
+The macOS app installation now runs the newer, unreleased **app-shell UX/UI**
+build with `fix/macos-accessibility-loop` at commit `03588a1`, based on
+`origin/feat/app-shell-canvas` (`c2ea774`), installed at `/Applications/Lectus.app`.
+Its manifests still report `0.6.0`; that is not a release identifier. The signed
+public v0.6.0 release and the old v0.5.0 app remain as local rollback bundles.
+
+## Mac development setup (2026-09-19)
+
+Fresh development clone is ready on macOS: `npm ci` completed, `npm run build`
+passes, and `scripts/download_model.sh` downloaded the ignored 74 MB
+`models/ggml-tiny.en.bin` fallback model. Node 24.14.0, npm 11.19.1, Rust 1.94.0,
+and Xcode Command Line Tools are installed.
+
+The existing checkout is registered in Orca as the `lectus` project, linked to
+`github:fcisco95/lectus`. Its main `master` worktree is visible and marked
+in-progress; no duplicate checkout or child worktree was created.
+
+`cargo test --release --lib` compiles successfully but is **not fully green on
+macOS**: 111 tests pass, 4 are intentionally ignored, and two Windows-autostart
+tests fail. `src-tauri/src/autostart.rs` uses Windows-style backslash paths;
+on macOS `PathBuf::file_name()` treats each test fixture as one filename, so the
+expected Windows repair branch is not reached. This is a test-portability issue,
+not a setup failure. No source changes were made. Production npm audit reports
+zero vulnerabilities.
 
 Earlier the same morning: the Home window landed (tray / shortcut / pill open it,
 login silent via `--autostart`), and the repo was made public.
@@ -27,6 +52,20 @@ Specs: `docs/superpowers/specs/2026-09-17-organic-token-gate.md`,
   deleted (tag kept). The locally-installed exe still reports 0.5.0 — it was copied
   in before the version bump — so **this machine can test the updater end to end**,
   which has never been proven.
+- **macOS install updated from v0.5.0 to v0.6.0** on 2026-09-19. The app launched
+  cleanly and its rendered Home view reports `v0.6.0`; no repository source changed.
+- **New app-shell UX/UI build installed locally** on 2026-09-19 from
+  `origin/feat/app-shell-canvas` commit `c2ea774`. It was built locally because
+  it has not been released. The running Home window was visually verified; it
+  has the redesigned navigation (Home, Dictations, Vocabulary, Membership,
+  Settings, Help) and welcome dashboard. It still labels itself `v0.6.0` because
+  the branch was never version-bumped.
+- **Repeated macOS Accessibility prompt fixed locally** in commit `03588a1`
+  (`fix/macos-accessibility-loop`): the startup keyboard hook now checks TCC
+  without invoking the system dialog on every launch. This machine's stale
+  Accessibility entry must still be removed and the current `/Applications/Lectus.app`
+  added once in System Settings; unsigned local builds are identified by code hash,
+  so macOS cannot transfer a grant from an earlier build automatically.
 - **README rewritten for holders, not developers** (commit `722d993`).
 - **Vocabulary + rules loaded** into `config.json` (64 terms, 30 rules). Two code
   constraints drove the shape, and both still apply to any future additions:
@@ -142,14 +181,21 @@ Only `chirp.exe` + `chirp_lib.dll` change between builds; the ggml/llama DLLs an
 - `babysit` — watching the v0.6.0 CI run
 - `superpowers:brainstorming` — Mycel dictionary / installer wizard, still unstarted
 
+## Generated artifacts this session
+
+| What | Where it lives | Notes |
+|---|---|---|
+| Local fallback Whisper model | `models/ggml-tiny.en.bin` | 74 MB, gitignored by design; download again on a fresh machine with `scripts/download_model.sh`. |
+| macOS rollback app bundles | `/Applications/Lectus.app.v0.6.0.release.backup`, `/Applications/Lectus.app.v0.5.0.backup`, `/Applications/Lectus.app.pre-permission-loop-fix.backup` | Local-only fallbacks retained after the app-shell build and its permission-loop fix were installed. |
+
 ## Next-session prompt
 
-```text
-Lectus 2026-09-17 afternoon: token gate shipped, v0.6.0 released and public,
-vocabulary loaded. Read docs/HANDOFF.md first — it carries the decisions not
-to re-litigate (no subscription, no email accounts, signing parked).
-Next slice: spec the local transcription API (POST /v1/transcribe, per-install
-token, origin allowlist, off by default, no remote mic control) so Organic can
-call Lectus for speech-to-text. Spec before code. Do not touch the capture,
-injection, or shortcut pipeline.
+```
+Lectus is cloned and set up locally; the macOS app installation runs the unreleased app-shell UX/UI build with `fix/macos-accessibility-loop` at `03588a1` (its manifest still says v0.6.0). The current app must be added once in macOS Accessibility after removing its stale entry; then the prompt will not repeat on relaunch. The next product slice remains the local transcription API; do not touch capture, injection, or shortcut handling.
+
+Files: docs/HANDOFF.md, src-tauri/src/hook/macos.rs, src-tauri/tauri.conf.json
+Model: Codex Sonnet 5 — focused Rust/Tauri product planning and implementation.
+Skills: handoff-memory, verify
+
+Spec the local `POST /v1/transcribe` API before coding: per-install token, explicit Organic origin allowlist, off by default with visible activity state, and no remote microphone control in v1.
 ```
