@@ -37,7 +37,7 @@ so a check that never got an answer costs you nothing.
 ## Install
 
 1. Download the newest installer from the
-   [**Releases**](https://github.com/FCisco95/lectus/releases) page:
+   [**Releases**](https://github.com/FCisco95/lectus-releases/releases) page:
    - **Windows** — `Lectus_x.y.z_x64-setup.exe` (or the `.msi`)
    - **macOS (Apple silicon)** — `Lectus_aarch64.app.tar.gz`; unpack it and drag
      `Lectus.app` into `/Applications`
@@ -134,7 +134,10 @@ install dir, so after this they run the fresh build.
 ### Releases
 
 Tag-driven: push a `v*` tag → GitHub Actions builds Windows + macOS, signs, and
-publishes a draft release with `latest.json` for the in-app updater.
+publishes a draft release with `latest.json` for the in-app updater — in the
+**public** [`lectus-releases`](https://github.com/FCisco95/lectus-releases) repo, so this
+one can stay private. CI writes there with the `RELEASES_TOKEN` secret (fine-grained PAT,
+Contents: write on `lectus-releases` only; it expires — renew it before tagging).
 
 ```sh
 node scripts/bump-version.mjs 0.5.1   # package.json + Cargo.toml + tauri.conf.json
@@ -146,3 +149,18 @@ The workflow fails early if the tag and the three manifests disagree. Review the
 release on GitHub, then publish it: installed apps pick it up on next launch (background
 download, "Restart now" banner in Settings). Windows bundling of the llama/ggml DLLs +
 `backends/` lives in `src-tauri/tauri.windows.conf.json`; macOS in `tauri.macos.conf.json`.
+
+**One-time bridge (the first release after the move only).** Installs of 0.6.0 and older
+look for updates in *this* repo. After publishing the first `lectus-releases` version, copy
+its `latest.json` here so they can find it:
+
+```sh
+gh release download v0.7.0 --repo FCisco95/lectus-releases --pattern latest.json
+gh release create v0.7.0 latest.json --repo FCisco95/lectus --title "Lectus v0.7.0" \
+  --notes "Releases moved to https://github.com/FCisco95/lectus-releases"
+```
+
+The download URLs inside that `latest.json` already point at `lectus-releases`.
+Keep this repo public until existing installations have updated to 0.7.0; verify the
+version on your Windows and Mac installs before changing visibility. Installs still on
+0.6.0 after this repo becomes private will need to update manually from `lectus-releases`.

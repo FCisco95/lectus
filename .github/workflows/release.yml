@@ -2,6 +2,8 @@ name: Release
 
 # Tag-driven: push v0.5.0 → build Windows + macOS, sign, draft release + latest.json for the updater.
 # Human gate: the workflow produces a DRAFT release; publish it in the GitHub UI to go live.
+# Releases land in the PUBLIC repo FCisco95/lectus-releases so this source repo can be private;
+# the RELEASES_TOKEN secret is a fine-grained PAT with Contents: write on that repo only.
 on:
   push:
     tags: ['v*']
@@ -135,15 +137,21 @@ jobs:
       - name: Build + publish release
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The default GITHUB_TOKEN can only write to this repo.
+          GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          owner: FCisco95
+          repo: lectus-releases
+          # The tag is created in lectus-releases, where this repo's commit SHA does not exist.
+          releaseCommitish: main
           tagName: ${{ github.ref_name }}
           releaseName: 'Lectus ${{ github.ref_name }}'
           releaseDraft: true
           prerelease: false
-          generateReleaseNotes: true
+          # Off: in lectus-releases it would only produce an empty compare link.
+          generateReleaseNotes: false
           updaterJsonPreferNsis: true
           # No --target: macos-15 is an arm64 host, so the default triple is aarch64-apple-darwin.
           # Per-OS args come from the matrix (a `cond && '' || x` expression always yields x —
