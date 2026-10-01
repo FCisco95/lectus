@@ -48,7 +48,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/FCisco95/lectus/releases/latest/download/latest.json"
+        "https://github.com/FCisco95/lectus-releases/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVCNzg2NDNBQjIwMjNCQzMKUldURE93S3lPbVI0NjdZVStBTlhlZXU5TkFFZmpzbzdEUzhlR3FYdEpsK09UdzQ2U2FJbnEzK1UK"
     },

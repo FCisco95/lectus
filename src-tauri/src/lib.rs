@@ -316,7 +316,7 @@ fn os_display_name() -> String {
 /// on purpose — the webview cannot ask for an arbitrary one.
 #[tauri::command]
 fn open_help() -> Result<(), String> {
-    license::connect::open_in_browser("https://github.com/FCisco95/lectus#readme")
+    license::connect::open_in_browser("https://github.com/FCisco95/lectus-releases#readme")
         .map_err(|e| e.to_string())
 }
 
