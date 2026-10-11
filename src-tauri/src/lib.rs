@@ -9,6 +9,7 @@ mod hotkey;
 mod injection;
 mod license;
 mod playback;
+mod remote_dictation;
 mod state;
 mod transcription;
 mod updates;
@@ -116,6 +117,9 @@ fn restart_preroll(app: &tauri::AppHandle, device: &str) {
     let preroll = app.state::<PreRoll>();
     let mut guard = preroll.0.lock().unwrap();
     *guard = None; // drop the old stream before opening the device again
+    if app.state::<remote_dictation::RemoteState>().mode() == remote_dictation::Mode::Receive {
+        return;
+    }
     match audio::PersistentCapture::start(Some(device)) {
         Ok(cap) => *guard = Some(cap),
         Err(e) => log::warn!("pre-roll capture unavailable, falling back to per-dictation stream: {e}"),
@@ -227,6 +231,7 @@ fn toggle_recording(
     activation: tauri::State<Activation>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
+    if receiver_blocks_capture(&app_handle) { return Ok(()); }
     let is_idle = *app_state.recording.lock().unwrap() == RecordingState::Idle;
     let start = is_idle;
     activation.recording_active.store(start, Ordering::SeqCst);
@@ -703,6 +708,8 @@ async fn do_pipeline(
     cloud: Arc<Mutex<Option<transcription::cloud::CloudWhisper>>>,
     cfg: config::Config,
 ) -> Result<String, String> {
+    let remote_destination = app_handle.state::<remote_dictation::RemoteState>()
+        .destination().map_err(|e| e.to_string())?;
     let use_cloud = cfg.use_cloud;
     // 1. Atomic claim: reject if another pipeline is already running.
     {
@@ -859,7 +866,20 @@ async fn do_pipeline(
         }
 
         let t_inject = std::time::Instant::now();
-        injection::inject_text(&transcript, &cfg.injection_mode).map_err(|e| e.to_string())?;
+        if let Some(code) = remote_destination {
+            let handle = app_handle.clone();
+            let text = transcript.clone();
+            let delivered = tokio::task::spawn_blocking(move || {
+                handle.state::<remote_dictation::RemoteState>().send(&handle, &code, Some(&text))
+                    .map_err(|e| e.to_string())
+            }).await.map_err(|e| e.to_string())?;
+            if let Err(error) = delivered {
+                remote_dictation::report_error(app_handle, &error);
+                return Err(error);
+            }
+        } else {
+            injection::inject_text(&transcript, &cfg.injection_mode).map_err(|e| e.to_string())?;
+        }
         log::info!("pipeline: injection took {} ms", t_inject.elapsed().as_millis());
     }
 
@@ -887,6 +907,19 @@ fn gate_blocks_dictation(app: &tauri::AppHandle) -> Option<license::Status> {
     }
 }
 
+/// A receive-only client must ignore the physical hotkey forwarded by Input Leap.
+fn receiver_blocks_capture(app: &tauri::AppHandle) -> bool {
+    if app.state::<remote_dictation::RemoteState>().mode() != remote_dictation::Mode::Receive {
+        return false;
+    }
+    let activation = app.state::<Activation>();
+    activation.recording_active.store(false, Ordering::SeqCst);
+    if let Some(hook) = activation.hook.lock().unwrap().as_ref() {
+        hook.set_toggle_state(false);
+    }
+    true
+}
+
 /// One dictation cycle: record → transcribe → inject.
 #[tauri::command]
 async fn run_pipeline(
@@ -895,6 +928,7 @@ async fn run_pipeline(
     activation: tauri::State<'_, Activation>,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
+    if receiver_blocks_capture(&app_handle) { return Ok(String::new()); }
     if gate_blocks_dictation(&app_handle).is_some() {
         return Err("Lectus is locked: link a wallet holding ORGANIC.".into());
     }
@@ -993,6 +1027,7 @@ pub fn run() {
             hook: Mutex::new(None),
         })
         .manage(PreRoll(Mutex::new(None)))
+        .manage(remote_dictation::RemoteState::new())
         .manage(playback::platform_ducker())
         .invoke_handler(tauri::generate_handler![
             list_input_devices,
@@ -1028,6 +1063,9 @@ pub fn run() {
             license::commands::refresh_license,
             updates::check_for_updates,
             updates::last_update_error,
+            remote_dictation::remote_get_settings,
+            remote_dictation::remote_save_settings,
+            remote_dictation::remote_test_connection,
             updates::restart_and_apply,
         ])
         .setup(|app| {
@@ -1140,6 +1178,8 @@ pub fn run() {
             if needs_onboarding || !launched_by_autostart() {
                 show_app_window(app.handle(), !needs_onboarding);
             }
+
+            remote_dictation::start_at_login(app.handle());
 
             // Start the always-on pre-roll capture stream (500 ms ring).
             {
@@ -1316,7 +1356,7 @@ pub fn run() {
                 let h = pipeline_handle.clone();
                 // Ahead of the chime and the ducker: a refusal must not mute
                 // the user's audio or click at them.
-                if gate_blocks_dictation(&h).is_some() {
+                if receiver_blocks_capture(&h) || gate_blocks_dictation(&h).is_some() {
                     return;
                 }
                 playback_on(&h, playback::PlaybackEvent::HoldStart);

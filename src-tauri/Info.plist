@@ -7,5 +7,9 @@
 <dict>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Lectus captures your voice while the dictation hotkey is held so it can transcribe what you say.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Lectus finds your paired computer on the local network to deliver dictated text.</string>
+	<key>NSBonjourServices</key>
+	<array><string>_lectus-text._tcp</string></array>
 </dict>
 </plist>

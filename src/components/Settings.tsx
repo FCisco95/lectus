@@ -1,3 +1,4 @@
+import { RemoteDeliveryNotice } from './settings/RemoteDictationPanel';
 import { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
@@ -151,6 +152,7 @@ export function Settings() {
       </div>
 
       <UpdateBanner />
+      <RemoteDeliveryNotice />
       <main className="settings-content">
         {tab === 'home' && <HomePanel config={config} onOpenTab={setTab} />}
         {tab === 'general' && <GeneralPanel config={config} update={update} />}
