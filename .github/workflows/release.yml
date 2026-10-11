@@ -105,6 +105,10 @@ jobs:
       - name: npm ci
         run: npm ci
 
+      # generate_context! embeds dist/ even when compiling the Rust test binary.
+      - name: Build frontend for native tests
+        run: npm run build
+
       - name: MSVC env (Windows)
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1

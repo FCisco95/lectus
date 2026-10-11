@@ -40,3 +40,7 @@ permission on the actual updated Mac. Do not claim end-to-end Mac insertion unti
 The LAN test caught Windows accepted sockets inheriting the nonblocking listener flag;
 transport now explicitly restores blocking mode and bounds the total handshake/request time.
 Remote paste now requires clipboard read-back confirmation before issuing the paste shortcut.
+
+The first tag `v0.7.0` failed CI: the added native tests ran before the frontend
+`dist/` was generated. Add `npm run build` before native compilation. Continue
+with `v0.7.1`; the failed tag is retained and no existing tag is rewritten.

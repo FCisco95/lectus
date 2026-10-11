@@ -1,6 +1,6 @@
 # Dictate on one computer, type on another
 
-Requires Lectus 0.7.0 or newer on both computers, with normal membership and OS permissions.
+Requires Lectus 0.7.1 or newer on both computers, with normal membership and OS permissions.
 No audio driver, streaming app or separate purchase is required for this feature.
 
 1. **Mac:** open Settings > General > Dictation destination, choose **Receive from another computer**, then **Save destination** and **Copy connection code**.

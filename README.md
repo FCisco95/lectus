@@ -65,12 +65,12 @@ look for updates in *this* repo. After publishing the first `lectus-releases` ve
 its `latest.json` here so they can find it:
 
 ```sh
-gh release download v0.7.0 --repo FCisco95/lectus-releases --pattern latest.json
-gh release create v0.7.0 latest.json --repo FCisco95/lectus --title "Lectus v0.7.0" \
+gh release download v0.7.1 --repo FCisco95/lectus-releases --pattern latest.json
+gh release create v0.7.1 latest.json --repo FCisco95/lectus --title "Lectus v0.7.1" \
   --notes "Releases moved to https://github.com/FCisco95/lectus-releases"
 ```
 
 The download URLs inside that `latest.json` already point at `lectus-releases`.
-Keep this repo public until existing installations have updated to 0.7.0; verify the
+Keep this repo public until existing installations have updated to 0.7.1; verify the
 version on your Windows and Mac installs before changing visibility. Installs still on
 0.6.0 after this repo becomes private will need to update manually from `lectus-releases`.

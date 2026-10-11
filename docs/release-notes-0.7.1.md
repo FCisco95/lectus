@@ -1,4 +1,4 @@
-# Lectus 0.7.0
+# Lectus 0.7.1
 
 Dictate with the microphone on your Windows PC and insert the finished text on a paired Mac.
 
