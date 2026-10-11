@@ -128,3 +128,16 @@ Do not claim real Mac insertion until tested. Do not add paid audio apps or lose
 - Mac: `Lectus_aarch64.app.tar.gz`, SHA256 `fdeefd91a4a66b283e97e454a184ed188558e857dc0849f2f9b89ba29a724d77`.
 - Windows: `Lectus_0.7.1_x64-setup.exe`, SHA256 `77a0defa815885f6c132054ec0d110f0fe7201c2abeb8e708bb6643294660915`.
 - Signing keys were not read; validation used the embedded public key. The source tag is `f4627f2`; a later housekeeping commit aligns only the root package version in Cargo.lock plus this checkpoint.
+
+## Intermittent-volume follow-up
+
+User reports the first real dictation after installing the patch preserved volume,
+but explicitly warns that the old failure was intermittent. Do NOT mark the issue
+fully resolved. User also reports that manually increasing volume sometimes causes
+it to fall back again. Read-only Core Audio enumeration confirmed the current
+Windows default multimedia render endpoint is Logi Z407 over Bluetooth (friendly
+category Headphones). Nahimic services are running; no causal connection established.
+No audio settings changed during this investigation.
+Pending diagnostic question: does manual volume also fall back when Lectus is fully
+exited, including its tray process? No answer yet. This isolates an app-independent
+failure from dictation restoration. The source of the volume drop remains unknown.

@@ -66,3 +66,16 @@ saved in the Input Leap workspace at
 No new public release; UI still reports 0.7.1. Settings/history were not replaced.
 Next: one real dictation with a known Windows volume to verify restoration.
 The earlier pending-install instructions in this snapshot are superseded.
+
+## Intermittent-volume follow-up
+
+User reports the first real dictation after installing the patch preserved volume,
+but explicitly warns that the old failure was intermittent. Do NOT mark the issue
+fully resolved. User also reports that manually increasing volume sometimes causes
+it to fall back again. Read-only Core Audio enumeration confirmed the current
+Windows default multimedia render endpoint is Logi Z407 over Bluetooth (friendly
+category Headphones). Nahimic services are running; no causal connection established.
+No audio settings changed during this investigation.
+Pending diagnostic question: does manual volume also fall back when Lectus is fully
+exited, including its tray process? No answer yet. This isolates an app-independent
+failure from dictation restoration. The source of the volume drop remains unknown.
