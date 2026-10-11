@@ -9,7 +9,7 @@ Goal: the existing Windows hotkey records the Alias; the paired Mac Lectus inser
 - [x] Implement opt-in paired receiver, encrypted text transport and mDNS discovery.
 - [x] Integrate destination selection, receive-only capture suppression, delivery errors and history recovery.
 - [x] Run frontend/native checks and transport integration tests (156 passed; explicit LAN discovery/delivery passed).
-- [ ] Build signed Windows/macOS draft release and updater bridge.
+- [x] Build signed Windows/macOS draft release and updater bridge (v0.7.1; CI successful; signatures and identical bridge feed verified).
 - [ ] Pair both running builds and validate real insertion on the Mac (requires Mac access).
 
 ## Ownership
