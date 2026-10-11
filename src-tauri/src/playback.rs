@@ -83,22 +83,38 @@ impl<V: OutputVolume> PlaybackDucker<V> {
                 DuckAction::VolumeZero
             }
         };
-        log::info!("playback: ducked default output ({action:?})");
+        log::info!(
+            "playback: ducked default output ({action:?}), saved {:.0}%",
+            snapshot.volume * 100.0
+        );
         *slot = Some(Ducked { snapshot, action });
     }
 
-    /// Restore the pre-duck mute/volume. Idempotent; safe if never ducked.
+    /// Restore the pre-duck mute AND volume. Keep the snapshot on failure
+    /// so the next stop/idle/exit event can retry instead of forgetting it.
     pub fn restore(&self) {
-        let Some(ducked) = self.ducked.lock().unwrap().take() else {
+        // Serialize OS writes with duck(): otherwise a new recording can
+        // snapshot the lowered volume while restoration is still in flight.
+        let mut slot = self.ducked.lock().unwrap();
+        let Some(ducked) = slot.as_ref() else {
             return;
         };
-        let result = match ducked.action {
-            DuckAction::Mute => self.volume.set_muted(false),
-            DuckAction::VolumeZero => self.volume.set_volume(ducked.snapshot.volume),
+        // Restore the level while still muted to avoid a loud transient.
+        // Always try to unmute even if restoring the level fails.
+        let volume_result = self.volume.set_volume(ducked.snapshot.volume);
+        let mute_result = match ducked.action {
+            DuckAction::Mute => self.volume.set_muted(ducked.snapshot.muted),
+            DuckAction::VolumeZero => Ok(()),
         };
-        match result {
-            Ok(()) => log::info!("playback: restored default output"),
-            Err(e) => log::warn!("playback: restore failed: {e}"),
+        match volume_result.and(mute_result) {
+            Ok(()) => {
+                log::info!(
+                    "playback: restored output to {:.0}%",
+                    ducked.snapshot.volume * 100.0
+                );
+                *slot = None;
+            }
+            Err(e) => log::warn!("playback: restore failed (snapshot retained for retry): {e}"),
         }
     }
 }
@@ -153,12 +169,16 @@ impl OutputVolume for PlatformOutput {
 mod win {
     use super::{OutputVolume, VolumeSnapshot};
     use windows::Win32::Media::Audio::Endpoints::IAudioEndpointVolume;
-    use windows::Win32::Media::Audio::{eMultimedia, eRender, IMMDeviceEnumerator, MMDeviceEnumerator};
+    use windows::Win32::Media::Audio::{
+        eMultimedia, eRender, IMMDeviceEnumerator, MMDeviceEnumerator,
+    };
     use windows::Win32::System::Com::{
         CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED,
     };
 
-    fn with_endpoint<T>(f: impl FnOnce(&IAudioEndpointVolume) -> Result<T, String>) -> Result<T, String> {
+    fn with_endpoint<T>(
+        f: impl FnOnce(&IAudioEndpointVolume) -> Result<T, String>,
+    ) -> Result<T, String> {
         unsafe {
             // Already-initialized STA/MTA is fine; ignore the HRESULT.
             let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
@@ -178,7 +198,10 @@ mod win {
     impl OutputVolume for super::PlatformOutput {
         fn get(&self) -> Result<VolumeSnapshot, String> {
             with_endpoint(|vol| unsafe {
-                let muted = vol.GetMute().map_err(|e| format!("GetMute: {e}"))?.as_bool();
+                let muted = vol
+                    .GetMute()
+                    .map_err(|e| format!("GetMute: {e}"))?
+                    .as_bool();
                 let volume = vol
                     .GetMasterVolumeLevelScalar()
                     .map_err(|e| format!("GetMasterVolumeLevelScalar: {e}"))?;
@@ -219,6 +242,7 @@ mod tests {
         volume: f32,
         mute_ok: bool,
         get_ok: bool,
+        volume_ok: bool,
     }
 
     impl FakeOutput {
@@ -229,6 +253,7 @@ mod tests {
                     volume,
                     mute_ok: true,
                     get_ok: true,
+                    volume_ok: true,
                 })),
             }
         }
@@ -269,7 +294,11 @@ mod tests {
         }
 
         fn set_volume(&self, volume: f32) -> Result<(), String> {
-            self.inner.lock().unwrap().volume = volume;
+            let mut s = self.inner.lock().unwrap();
+            if !s.volume_ok {
+                return Err("volume unavailable".into());
+            }
+            s.volume = volume;
             Ok(())
         }
     }
@@ -282,6 +311,49 @@ mod tests {
         assert_eq!(fake.snapshot(), (true, 0.7));
         ducker.restore();
         assert_eq!(fake.snapshot(), (false, 0.7));
+    }
+
+    #[test]
+    fn restores_original_volume_when_level_drops_during_mute() {
+        for reduced in [0.01, 0.04] {
+            let fake = FakeOutput::new(false, 0.7);
+            let ducker = PlaybackDucker::new(fake.clone());
+            ducker.duck();
+            // Model an external level change while muted. Its source is not
+            // known; dictation must still restore the pre-recording level.
+            fake.set_volume(reduced).unwrap();
+            ducker.restore();
+            assert_eq!(fake.snapshot(), (false, 0.7));
+        }
+    }
+
+    #[test]
+    fn failed_volume_restore_keeps_snapshot_for_idle_retry() {
+        let fake = FakeOutput::new(false, 0.65);
+        fake.fail_mute();
+        let ducker = PlaybackDucker::new(fake.clone());
+        ducker.duck();
+        fake.inner.lock().unwrap().volume_ok = false;
+        on_event(&ducker, true, PlaybackEvent::HoldStop);
+        assert_eq!(fake.snapshot(), (false, 0.0));
+        // A new start must not replace the saved level with the ducked zero.
+        ducker.duck();
+        fake.inner.lock().unwrap().volume_ok = true;
+        on_event(&ducker, true, PlaybackEvent::Idle);
+        assert_eq!(fake.snapshot(), (false, 0.65));
+    }
+
+    #[test]
+    fn failed_unmute_keeps_snapshot_for_idle_retry() {
+        let fake = FakeOutput::new(false, 0.6);
+        let ducker = PlaybackDucker::new(fake.clone());
+        ducker.duck();
+        fake.fail_mute();
+        on_event(&ducker, true, PlaybackEvent::HoldStop);
+        assert_eq!(fake.snapshot(), (true, 0.6));
+        fake.inner.lock().unwrap().mute_ok = true;
+        on_event(&ducker, true, PlaybackEvent::Idle);
+        assert_eq!(fake.snapshot(), (false, 0.6));
     }
 
     #[test]
