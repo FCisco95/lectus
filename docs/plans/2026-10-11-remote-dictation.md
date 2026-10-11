@@ -6,9 +6,10 @@ Goal: the existing Windows hotkey records the Alias; the paired Mac Lectus inser
 
 ## Steps
 - [x] Confirm Windows hotkey works while controlling Mac; normal clipboard transfer works but automatic paste uses stale text.
-- [ ] Implement opt-in paired receiver, encrypted text transport and mDNS discovery.
-- [ ] Integrate destination selection, receive-only capture suppression, delivery errors and history recovery.
-- [ ] Run frontend/native checks and transport integration tests; prepare Windows build and portable Mac build instructions.
+- [x] Implement opt-in paired receiver, encrypted text transport and mDNS discovery.
+- [x] Integrate destination selection, receive-only capture suppression, delivery errors and history recovery.
+- [x] Run frontend/native checks and transport integration tests (156 passed; explicit LAN discovery/delivery passed).
+- [ ] Build signed Windows/macOS draft release and updater bridge.
 - [ ] Pair both running builds and validate real insertion on the Mac (requires Mac access).
 
 ## Ownership
@@ -25,3 +26,17 @@ The primary agent owns all changed files: new remote_dictation modules, settings
 
 ## Verification
 Protocol tests cover wrong secrets, tampering, replay, size limits, successful delivery, failed insertion and lost acknowledgement. Frontend build and repository Windows native tests/build are required. macOS insertion and mDNS across the actual two devices remain explicitly unverified until tested there.
+
+## Release decision
+The user chose to retain the current app-shell interface. The release therefore stays on
+`feat/remote-dictation`, based on `be97b7f` (the existing app-shell/membership/release-routing
+work). The alternative master-based adaptation is preserved locally in
+`feat/remote-dictation-release` and is not the release source.
+
+The Mac handoff on master mentions a local-only accessibility fix at `03588a1`;
+that commit is unavailable in the remote branches. Re-check Accessibility and local-network
+permission on the actual updated Mac. Do not claim end-to-end Mac insertion until it passes.
+
+The LAN test caught Windows accepted sockets inheriting the nonblocking listener flag;
+transport now explicitly restores blocking mode and bounds the total handshake/request time.
+Remote paste now requires clipboard read-back confirmation before issuing the paste shortcut.

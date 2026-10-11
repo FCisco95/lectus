@@ -134,6 +134,10 @@ jobs:
         continue-on-error: true
         run: cargo build --release --keep-going
 
+      - name: Test remote dictation protocol
+        working-directory: src-tauri
+        run: cargo test --release --lib remote_dictation::transport
+
       - name: Build + publish release
         uses: tauri-apps/tauri-action@v0
         env:
