@@ -54,3 +54,15 @@ The local build passed. Arrange a safe Lectus restart, then verify that a
 real dictation restores the Windows master volume. Do not claim the original
 source of the volume drop is known. Resume Mac pairing after this issue.
 ```
+
+## Deployment follow-up — 2026-10-11 14:45 Lisbon
+
+User confirmed both apps updated and authorized the Windows restart. Local volume
+patch installed at the normal Windows Lectus path. Installed SHA256 matches
+`E83CD527774730187FBAD1428DD14B16F18E1941A83CEEEFA7151B4A3353438C`;
+process 41560 remained running after the launch check. The former executable was
+saved in the Input Leap workspace at
+`setup-downloads/lectus-volume-fix/backup-20261011-144521/chirp.exe`.
+No new public release; UI still reports 0.7.1. Settings/history were not replaced.
+Next: one real dictation with a known Windows volume to verify restoration.
+The earlier pending-install instructions in this snapshot are superseded.

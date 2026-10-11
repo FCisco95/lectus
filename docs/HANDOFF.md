@@ -4,7 +4,7 @@
 
 User confirms that the **Windows master volume** sometimes remains at 1 or 4 after
 Lectus mutes playback for dictation. Installed Windows binary now reports **0.7.1**;
-Mac update/pairing is still unverified.
+User confirms both computers are updated. Mac pairing and actual remote insertion remain unverified.
 
 `src-tauri/src/playback.rs` now restores both the saved level and mute state, retains
 its snapshot after failed writes for the next stop/idle/exit retry, and serializes
@@ -21,12 +21,18 @@ Validation: 12 isolated playback tests passed; native suite 158 passed, 0 failed
 `test_set_clipboard_text`, was excluded to avoid overwriting the user's clipboard.
 Both real Windows endpoint tests passed. Existing compiler warnings remain.
 
-The patch is not in the published 0.7.1 packages or installed application.
+The patch is now installed locally on Windows after the user authorized a restart
+("Je reinitiai", in response to the explicit restart prompt). It is NOT in the
+published 0.7.1 packages. The installed binary SHA256 matches the staged build below;
+process 41560 was verified running from the standard Lectus install path after launch.
+The original executable is backed up in the Input Leap workspace at
+`setup-downloads/lectus-volume-fix/backup-20261011-144521/chirp.exe`.
+An initial copy hit a transient file lock after process termination; retry after the
+process had exited succeeded. No settings, history, or pairing data were replaced.
 A local Windows release executable compiled successfully (56.71 s), without automatic deployment.
 The staged executable is in the Input Leap workspace at
 `setup-downloads/lectus-volume-fix/chirp.exe` (still version 0.7.1, local patch only).
-SHA256: `E83CD527774730187FBAD1428DD14B16F18E1941A83CEEEFA7151B4A3353438C`. Ask for a safe
-restart moment before replacing the running app: the user dictates through it.
+SHA256: `E83CD527774730187FBAD1428DD14B16F18E1941A83CEEEFA7151B4A3353438C`. Restart and replacement are complete; do not ask for authorization again.
 Do not claim that the user's intermittent issue is resolved until a real dictation
 preserves the selected Windows volume. No new release or version bump yet.
 
@@ -41,7 +47,7 @@ passed; both updater signatures were independently verified. The matching old-en
 bridge is also published. Both public latest/download/latest.json endpoints return 0.7.1;
 Windows and Mac download URLs return HTTP 200. Next: guide in-app installation and pairing
 on the two devices.
-Actual Windows-to-Mac insertion remains unverified until both installed apps are updated.
+The user confirms both apps are updated. Actual Windows-to-Mac insertion remains unverified.
 
 ## Source and release state
 
@@ -83,7 +89,7 @@ VB-Cable on the Mac is unused by this route. Voicemeeter was downloaded but not 
 
 ## Next actions
 
-1. Windows is confirmed on 0.7.1. Finish the local volume-fix build and arrange a safe restart/test. Verify Mac version via its update button; publication and public endpoint checks are already complete, so do not ask to republish 0.7.1.
+1. Windows now runs the local volume-fix build (still version 0.7.1). Have the user set a known Windows volume, dictate once, and verify the level returns unchanged. Both apps are updated per user confirmation; do not repeat the installation steps.
 2. Guide Mac Receive / Windows Send pairing, connection test, and one real dictated sentence. Keep source public.
 3. Resolve the original Input Leap changing-IP setup separately; don't add paid audio apps.
 
