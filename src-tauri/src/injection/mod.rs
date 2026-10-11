@@ -43,6 +43,15 @@ pub fn inject_text(text: &str, mode: &str) -> Result<()> {
 /// Confirming the write before pasting fixes slow/deferred-read apps (Electron),
 /// replacing the old fixed 50 ms guess.
 pub fn inject_via_clipboard(text: &str) -> Result<()> {
+    inject_via_clipboard_inner(text, false)
+}
+
+/// Remote delivery must never acknowledge a paste of stale clipboard contents.
+pub fn inject_remote_text(text: &str) -> Result<()> {
+    inject_via_clipboard_inner(text, true)
+}
+
+fn inject_via_clipboard_inner(text: &str, require_confirmation: bool) -> Result<()> {
     let previous = {
         let mut cb = arboard::Clipboard::new()?;
         cb.get_text().ok()
@@ -59,6 +68,9 @@ pub fn inject_via_clipboard(text: &str) -> Result<()> {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    if !confirmed && require_confirmation {
+        anyhow::bail!("Clipboard did not accept the dictation; nothing was pasted");
     }
     if !confirmed {
         // Proceed anyway — better to attempt the paste than to drop the text.

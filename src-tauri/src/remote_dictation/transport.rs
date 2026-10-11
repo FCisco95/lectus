@@ -8,7 +8,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
     io::{Read, Write},
     net::{SocketAddr, TcpStream},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 const MAGIC: &[u8; 8] = b"LECTXT01";
@@ -30,11 +30,18 @@ fn random<const N: usize>() -> Result<[u8; N]> {
 
 impl Pairing {
     pub fn generate() -> Result<Self> {
-        Ok(Self { id: bs58::encode(random::<12>()?).into_string(), key: random()? })
+        Ok(Self {
+            id: bs58::encode(random::<12>()?).into_string(),
+            key: random()?,
+        })
     }
 
     pub fn code(&self) -> String {
-        format!("LECTUS1.{}.{}", self.id, bs58::encode(self.key).into_string())
+        format!(
+            "LECTUS1.{}.{}",
+            self.id,
+            bs58::encode(self.key).into_string()
+        )
     }
 
     pub fn parse(code: &str) -> Result<Self> {
@@ -42,14 +49,20 @@ impl Pairing {
         if parts.len() != 3 || parts[0] != "LECTUS1" {
             bail!("Paste the complete connection code from the receiving computer");
         }
-        let id = bs58::decode(parts[1]).into_vec().map_err(|_| anyhow!("Invalid connection code"))?;
-        let key = bs58::decode(parts[2]).into_vec().map_err(|_| anyhow!("Invalid connection code"))?;
+        let id = bs58::decode(parts[1])
+            .into_vec()
+            .map_err(|_| anyhow!("Invalid connection code"))?;
+        let key = bs58::decode(parts[2])
+            .into_vec()
+            .map_err(|_| anyhow!("Invalid connection code"))?;
         if id.len() != 12 || key.len() != 32 {
             bail!("Invalid connection code");
         }
         Ok(Self {
             id: parts[1].to_owned(),
-            key: key.try_into().map_err(|_| anyhow!("Invalid connection code"))?,
+            key: key
+                .try_into()
+                .map_err(|_| anyhow!("Invalid connection code"))?,
         })
     }
 }
@@ -77,25 +90,44 @@ fn seal<T: Serialize>(pairing: &Pairing, kind: &[u8], value: &T) -> Result<Vec<u
     let nonce = random::<24>()?;
     let plain = serde_json::to_vec(value)?;
     let cipher = XChaCha20Poly1305::new((&pairing.key).into());
-    let encrypted = cipher.encrypt(XNonce::from_slice(&nonce), Payload { msg: &plain, aad: kind })
+    let encrypted = cipher
+        .encrypt(
+            XNonce::from_slice(&nonce),
+            Payload {
+                msg: &plain,
+                aad: kind,
+            },
+        )
         .map_err(|_| anyhow!("Unable to encrypt delivery"))?;
     let mut frame = nonce.to_vec();
     frame.extend(encrypted);
-    if frame.len() > MAX_FRAME { bail!("Dictation is too long to send"); }
+    if frame.len() > MAX_FRAME {
+        bail!("Dictation is too long to send");
+    }
     Ok(frame)
 }
 
 fn open<T: DeserializeOwned>(pairing: &Pairing, kind: &[u8], frame: &[u8]) -> Result<T> {
-    if frame.len() < 40 || frame.len() > MAX_FRAME { bail!("Invalid message size"); }
+    if frame.len() < 40 || frame.len() > MAX_FRAME {
+        bail!("Invalid message size");
+    }
     let cipher = XChaCha20Poly1305::new((&pairing.key).into());
-    let plain = cipher.decrypt(XNonce::from_slice(&frame[..24]),
-        Payload { msg: &frame[24..], aad: kind })
+    let plain = cipher
+        .decrypt(
+            XNonce::from_slice(&frame[..24]),
+            Payload {
+                msg: &frame[24..],
+                aad: kind,
+            },
+        )
         .map_err(|_| anyhow!("The connection code does not match"))?;
     serde_json::from_slice(&plain).context("Invalid delivery message")
 }
 
 fn write_frame(stream: &mut impl Write, frame: &[u8]) -> Result<()> {
-    if frame.len() > MAX_FRAME { bail!("Message too large"); }
+    if frame.len() > MAX_FRAME {
+        bail!("Message too large");
+    }
     stream.write_all(&(frame.len() as u32).to_be_bytes())?;
     stream.write_all(frame)?;
     Ok(())
@@ -105,21 +137,64 @@ fn read_frame(stream: &mut impl Read) -> Result<Vec<u8>> {
     let mut size = [0; 4];
     stream.read_exact(&mut size)?;
     let size = u32::from_be_bytes(size) as usize;
-    if !(40..=MAX_FRAME).contains(&size) { bail!("Invalid message size"); }
+    if !(40..=MAX_FRAME).contains(&size) {
+        bail!("Invalid message size");
+    }
     let mut data = vec![0; size];
     stream.read_exact(&mut data)?;
     Ok(data)
 }
 
 fn prepare(stream: &TcpStream) -> Result<()> {
+    // Accepted sockets can inherit the nonblocking listener mode on Windows.
+    stream.set_nonblocking(false)?;
     stream.set_read_timeout(Some(IO_TIMEOUT))?;
     stream.set_write_timeout(Some(IO_TIMEOUT))?;
     stream.set_nodelay(true)?;
     Ok(())
 }
 
+/// A total phase deadline prevents slow peers from occupying receiver workers indefinitely.
+struct TimedStream {
+    stream: TcpStream,
+    deadline: Instant,
+}
+impl TimedStream {
+    fn new(stream: TcpStream) -> Self {
+        Self {
+            stream,
+            deadline: Instant::now() + IO_TIMEOUT,
+        }
+    }
+    fn remaining(&self) -> std::io::Result<Duration> {
+        self.deadline
+            .checked_duration_since(Instant::now())
+            .filter(|d| !d.is_zero())
+            .ok_or_else(|| {
+                std::io::Error::new(std::io::ErrorKind::TimedOut, "Delivery phase timed out")
+            })
+    }
+}
+impl Read for TimedStream {
+    fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+        self.stream.set_read_timeout(Some(self.remaining()?))?;
+        self.stream.read(buffer)
+    }
+}
+impl Write for TimedStream {
+    fn write(&mut self, buffer: &[u8]) -> std::io::Result<usize> {
+        self.stream.set_write_timeout(Some(self.remaining()?))?;
+        self.stream.write(buffer)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.stream.flush()
+    }
+}
+
 fn validate_request(request: &Request, challenge: &[u8; 32]) -> Result<()> {
-    if request.challenge != *challenge { bail!("Expired delivery challenge"); }
+    if request.challenge != *challenge {
+        bail!("Expired delivery challenge");
+    }
     if let Some(text) = &request.text {
         if text.trim().is_empty() || text.len() > MAX_TEXT {
             bail!("Dictation is empty or too long");
@@ -131,34 +206,56 @@ fn validate_request(request: &Request, challenge: &[u8; 32]) -> Result<()> {
 /// One connection, one request. Fresh server challenge prevents replay across connections.
 /// The callback must not queue a later paste: returning success means the paste completed.
 pub fn receive(
-    mut stream: TcpStream,
+    stream: TcpStream,
     pairing: &Pairing,
     deliver: impl FnOnce(Option<&str>) -> Result<()>,
 ) -> Result<()> {
     prepare(&stream)?;
+    let mut stream = TimedStream::new(stream);
     let mut magic = [0; 8];
     stream.read_exact(&mut magic)?;
-    if &magic != MAGIC { bail!("Not a Lectus connection"); }
+    if &magic != MAGIC {
+        bail!("Not a Lectus connection");
+    }
     let mut client = [0; 32];
     stream.read_exact(&mut client)?;
     let server = random()?;
-    write_frame(&mut stream, &seal(pairing, b"hello", &Hello { client, server })?)?;
+    write_frame(
+        &mut stream,
+        &seal(pairing, b"hello", &Hello { client, server })?,
+    )?;
     let request: Request = open(pairing, b"request", &read_frame(&mut stream)?)?;
     validate_request(&request, &server)?;
     // Authenticated errors go to the paired sender only. Never log text or the secret.
-    let error = deliver(request.text.as_deref()).err().map(|e| e.to_string());
-    write_frame(&mut stream, &seal(pairing, b"reply", &Reply { id: request.id, error })?)?;
+    let error = deliver(request.text.as_deref())
+        .err()
+        .map(|e| e.to_string());
+    stream.deadline = Instant::now() + IO_TIMEOUT;
+    write_frame(
+        &mut stream,
+        &seal(
+            pairing,
+            b"reply",
+            &Reply {
+                id: request.id,
+                error,
+            },
+        )?,
+    )?;
     Ok(())
 }
 
-fn connect(address: SocketAddr, pairing: &Pairing) -> Result<(TcpStream, [u8; 32])> {
-    let mut stream = TcpStream::connect_timeout(&address, Duration::from_millis(900))?;
+fn connect(address: SocketAddr, pairing: &Pairing) -> Result<(TimedStream, [u8; 32])> {
+    let stream = TcpStream::connect_timeout(&address, Duration::from_millis(900))?;
     prepare(&stream)?;
+    let mut stream = TimedStream::new(stream);
     let client = random()?;
     stream.write_all(MAGIC)?;
     stream.write_all(&client)?;
     let hello: Hello = open(pairing, b"hello", &read_frame(&mut stream)?)?;
-    if hello.client != client { bail!("Receiver authentication failed"); }
+    if hello.client != client {
+        bail!("Receiver authentication failed");
+    }
     Ok((stream, hello.server))
 }
 
@@ -166,7 +263,9 @@ fn connect(address: SocketAddr, pairing: &Pairing) -> Result<(TcpStream, [u8; 32
 /// A missing acknowledgement after submission must never cause a duplicate paste.
 pub fn send(addresses: &[SocketAddr], pairing: &Pairing, text: Option<&str>) -> Result<()> {
     if let Some(text) = text {
-        if text.trim().is_empty() || text.len() > MAX_TEXT { bail!("Dictation is empty or too long"); }
+        if text.trim().is_empty() || text.len() > MAX_TEXT {
+            bail!("Dictation is empty or too long");
+        }
     }
     let mut connected = None;
     for address in addresses.iter().take(6) {
@@ -177,14 +276,23 @@ pub fn send(addresses: &[SocketAddr], pairing: &Pairing, text: Option<&str>) -> 
     }
     let (mut stream, challenge) = connected
         .ok_or_else(|| anyhow!("Cannot reach the paired computer. Open Lectus there in Receive mode and check the connection code and local-network permission."))?;
-    let request = Request { challenge, id: random()?, text: text.map(str::to_owned) };
+    stream.deadline = Instant::now() + IO_TIMEOUT;
+    let request = Request {
+        challenge,
+        id: random()?,
+        text: text.map(str::to_owned),
+    };
     let frame = seal(pairing, b"request", &request)?;
     // From this point onward the receiver may have inserted text. Never auto-retry.
     let result = (|| -> Result<()> {
         write_frame(&mut stream, &frame)?;
         let reply: Reply = open(pairing, b"reply", &read_frame(&mut stream)?)?;
-        if reply.id != request.id { bail!("Unexpected delivery acknowledgement"); }
-        if let Some(error) = reply.error { return Err(anyhow!("Receiving computer: {error}")); }
+        if reply.id != request.id {
+            bail!("Unexpected delivery acknowledgement");
+        }
+        if let Some(error) = reply.error {
+            return Err(anyhow!("Receiving computer: {error}"));
+        }
         Ok(())
     })();
     result.map_err(|e| anyhow!(
@@ -195,14 +303,35 @@ pub fn send(addresses: &[SocketAddr], pairing: &Pairing, text: Option<&str>) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{net::TcpListener, sync::{Arc, Mutex}, thread};
+    use std::{
+        net::TcpListener,
+        sync::{Arc, Mutex},
+        thread,
+    };
 
-    fn server(pair: Pairing, callback: impl FnOnce(Option<&str>) -> Result<()> + Send + 'static)
-        -> (SocketAddr, thread::JoinHandle<Result<()>>) {
+    fn server(
+        pair: Pairing,
+        callback: impl FnOnce(Option<&str>) -> Result<()> + Send + 'static,
+    ) -> (SocketAddr, thread::JoinHandle<Result<()>>) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         let handle = thread::spawn(move || receive(listener.accept().unwrap().0, &pair, callback));
         (address, handle)
+    }
+
+    #[test]
+    fn total_deadline_expires_even_when_bytes_keep_arriving() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let socket = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+        let (mut peer, _) = listener.accept().unwrap();
+        peer.write_all(&[1]).unwrap();
+        let mut stream = TimedStream::new(socket);
+        stream.deadline = Instant::now() + Duration::from_millis(50);
+        stream.read_exact(&mut [0]).unwrap();
+        thread::sleep(Duration::from_millis(80));
+        peer.write_all(&[2]).unwrap();
+        let error = stream.read_exact(&mut [0]).unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::TimedOut);
     }
 
     #[test]
@@ -228,7 +357,11 @@ mod tests {
 
     #[test]
     fn replay_is_rejected_with_a_new_connection_challenge() {
-        let request = Request { challenge: [1; 32], id: [2; 16], text: Some("hello".into()) };
+        let request = Request {
+            challenge: [1; 32],
+            id: [2; 16],
+            text: Some("hello".into()),
+        };
         assert!(validate_request(&request, &[1; 32]).is_ok());
         assert!(validate_request(&request, &[3; 32]).is_err());
     }
@@ -237,7 +370,12 @@ mod tests {
     fn rejects_oversized_frame_before_allocating() {
         let mut input = std::io::Cursor::new(u32::MAX.to_be_bytes());
         assert!(read_frame(&mut input).is_err());
-        assert!(send(&[], &Pairing::generate().unwrap(), Some(&"x".repeat(MAX_TEXT + 1))).is_err());
+        assert!(send(
+            &[],
+            &Pairing::generate().unwrap(),
+            Some(&"x".repeat(MAX_TEXT + 1))
+        )
+        .is_err());
     }
 
     #[test]
@@ -246,7 +384,8 @@ mod tests {
         let captured = Arc::new(Mutex::new(Vec::new()));
         let dest = captured.clone();
         let (addr, task) = server(p.clone(), move |text| {
-            dest.lock().unwrap().push(text.unwrap().to_owned()); Ok(())
+            dest.lock().unwrap().push(text.unwrap().to_owned());
+            Ok(())
         });
         send(&[addr], &p, Some("Olá João — ditado no Mac")).unwrap();
         task.join().unwrap().unwrap();
@@ -256,7 +395,10 @@ mod tests {
     #[test]
     fn connection_check_does_not_insert_text() {
         let p = Pairing::generate().unwrap();
-        let (addr, task) = server(p.clone(), |text| { assert!(text.is_none()); Ok(()) });
+        let (addr, task) = server(p.clone(), |text| {
+            assert!(text.is_none());
+            Ok(())
+        });
         send(&[addr], &p, None).unwrap();
         task.join().unwrap().unwrap();
     }
@@ -287,21 +429,35 @@ mod tests {
         let task = thread::spawn(move || {
             let (mut stream, _) = listener.accept().unwrap();
             prepare(&stream).unwrap();
-            let mut header = [0; 40]; stream.read_exact(&mut header).unwrap();
+            let mut header = [0; 40];
+            stream.read_exact(&mut header).unwrap();
             let client = header[8..].try_into().unwrap();
             let server = random().unwrap();
-            write_frame(&mut stream, &seal(&receiver_pair, b"hello", &Hello {client, server}).unwrap()).unwrap();
-            let request: Request = open(&receiver_pair, b"request", &read_frame(&mut stream).unwrap()).unwrap();
+            write_frame(
+                &mut stream,
+                &seal(&receiver_pair, b"hello", &Hello { client, server }).unwrap(),
+            )
+            .unwrap();
+            let request: Request = open(
+                &receiver_pair,
+                b"request",
+                &read_frame(&mut stream).unwrap(),
+            )
+            .unwrap();
             validate_request(&request, &server).unwrap();
             // Simulate a successful insertion followed by a lost response.
             drop(stream);
             listener.set_nonblocking(true).unwrap();
             thread::sleep(Duration::from_millis(100));
-            assert!(listener.accept().is_err(), "sender must not reconnect after submission");
+            assert!(
+                listener.accept().is_err(),
+                "sender must not reconnect after submission"
+            );
         });
-        let error = send(&[addr, addr], &p, Some("once")).unwrap_err().to_string();
+        let error = send(&[addr, addr], &p, Some("once"))
+            .unwrap_err()
+            .to_string();
         assert!(error.contains("not confirmed"));
         task.join().unwrap();
     }
 }
-
