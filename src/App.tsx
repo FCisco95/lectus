@@ -10,6 +10,7 @@ import { ResizeHandles } from './components/ResizeHandles';
 import { IS_MAC } from './components/settings/types';
 import type { Config } from './components/settings/types';
 import './styles/tokens.css';
+import { RemoteDeliveryNotice } from './components/settings/RemoteDictationPanel';
 
 type AppState = 'idle' | 'recording' | 'transcribing';
 
@@ -86,6 +87,7 @@ export default function App() {
     <div className="app-frame">
       <Titlebar />
       <ResizeHandles />
+      <RemoteDeliveryNotice />
       {onboardingDone === null ? null : !onboardingDone ? (
         <Onboarding onComplete={() => setOnboardingDone(true)} />
       ) : (

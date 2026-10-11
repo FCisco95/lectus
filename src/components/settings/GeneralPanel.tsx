@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { isEnabled as autostartEnabled, enable as autostartEnable, disable as autostartDisable } from '@tauri-apps/plugin-autostart';
 import { IS_MAC } from './types';
 import type { PanelProps } from './types';
+import { RemoteDictationPanel } from './RemoteDictationPanel';
 
 const THEMES: Array<{ id: 'system' | 'light' | 'dark'; label: string }> = [
   { id: 'system', label: 'System' },
@@ -40,6 +41,8 @@ export function GeneralPanel({ config, update }: PanelProps) {
     <div>
       <h2 className="settings-panel-title">General</h2>
       <p className="settings-panel-sub">Appearance, microphone and how text is inserted.</p>
+
+      <RemoteDictationPanel />
 
       {IS_MAC && !accessible && (
         <div className="banner">
