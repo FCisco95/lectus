@@ -1,148 +1,90 @@
+<img src="docs/portfolio/media/lectus-logo.png" alt="Lectus Eclectus parrot logo" width="80">
+
 # Lectus
 
-> Voice dictation for any app. Hold a key, speak, and your words land in whatever text field you were already in.
+**Speak into the text field you already use.**
 
-**Lectus** (by Organic) is a Whisper-powered dictation app for Windows and macOS.
-Transcription runs **on your own machine** by default — your audio does not leave
-it. The name nods to *lect-* (dialect, lecture — speech); the mascot is an
-Eclectus parrot. Built with Tauri 2 (Rust) + React.
+Writing a message, note, or draft should not require switching to a transcription app and copying the result back. Lectus records from a global shortcut, transcribes your speech, and inserts the text into the focused field. Local Whisper transcription is the default; cloud processing is optional.
 
-## You need to hold ORGANIC
+**Access before installation:** the distributed app requires a linked Solana wallet holding **at least $20 worth of either ORGANIC (ORG) or Mycel (MYCEL)**. The threshold follows the token price. Wallet linking signs an ownership message; it is not a token transfer. See the [membership and installation guide](https://github.com/FCisco95/lectus-releases#readme) before downloading.
 
-Lectus is free for people who hold **ORGANIC (ORG)**. There is no account, no
-subscription, no card, and no word limit.
+[Download v0.7.1](https://github.com/FCisco95/lectus-releases/releases/tag/v0.7.1) · [User guide](https://github.com/FCisco95/lectus-releases#readme) · [v0.7.1 source](https://github.com/FCisco95/lectus/tree/v0.7.1)
 
-| | |
+## Try it
+
+The public distribution checked on **4 November 2026** is **v0.7.1**, published on 11 October. Installers are hosted in **lectus-releases**; the release in this source repository contains only an updater feed. The default `master` branch and the release tag differ: use the tag when inspecting this version.
+
+| Platform | v0.7.1 asset | Requirements |
+|---|---|---|
+| Windows x64 | `Lectus_0.7.1_x64-setup.exe` or `Lectus_0.7.1_x64_en-US.msi` | Microphone access; an editable target field |
+| macOS, Apple silicon | `Lectus_aarch64.app.tar.gz` | Microphone and Accessibility permissions; an editable target field |
+
+The distribution guide documents OS security prompts for apps without Microsoft/Apple publisher signing. Updater signature files are a separate mechanism. No Intel Mac or Linux installer is listed in this release.
+
+1. Read the access requirements above, download the matching asset, and follow the user guide. Keep the app in the system tray or menu bar.
+2. Complete wallet linking and OS permissions. Choose your dictation shortcut in Settings and wait for the selected model to be ready. Model downloads and membership verification need network access.
+3. Focus a blank note, hold your configured shortcut, say “The project review is on Thursday,” and release. In toggle mode, press once to start and again to stop. Check the inserted text before using it.
+
+Insertion depends on the target app, focus, and OS permissions. Recognition varies with microphone, language, and model; names, numbers, and negation need review.
+
+## What v0.7.1 includes
+
+- **Dictation in your existing apps:** hold or toggle recording, a floating status pill, and local Whisper models.
+- **Vocabulary and language controls:** recognition hints for names and jargon, exact replacement rules, language selection, and per-app overrides.
+- **Local history:** browse, copy, and filter previous transcripts by text; this is substring search.
+- **Optional processing:** Groq cloud transcription and optional AI cleanup. Local cleanup needs its model; remote cleanup needs its provider setup. Cleanup can change wording, so review the result.
+- **Paired-computer text delivery:** v0.7.1 adds encrypted LAN delivery of the finished transcript, with local dictation remaining the default. Both computers need this version and permissions. [The versioned guide](https://github.com/FCisco95/lectus/blob/v0.7.1/docs/REMOTE-DICTATION.md) records the remaining Windows-to-Mac insertion and installation checks; published packages do not establish end-to-end acceptance on every setup.
+
+New ChatGPT/Claude connection cards, explicit translation controls, and a local HTTP API under development are outside this release description. Development screenshots and mocked UI checks are not demonstrations of the downloadable version.
+
+## Privacy depends on the backend
+
+Local transcription does not make every configuration offline.
+
+| Configuration | What is processed where |
 |---|---|
-| **Token** | ORGANIC (ORG) on Solana |
-| **Mint** | `DuXugm4oTXrGDopgxgudyhboaf6uUg1GVbJ6jk6qbonk` |
-| **You need** | **$20 worth**, held in a wallet you control |
-| **Wallets** | Phantom, Solflare, Backpack |
+| Local Whisper, cleanup off | Speech recognition runs on your machine. The pipeline stores transcript text in local history. |
+| Local Whisper with local cleanup | Recognition and cleanup run on your machine, after the required models are downloaded. |
+| Groq cloud transcription | Recorded audio is sent to the configured transcription endpoint. An API key and network access are required; provider usage may incur charges. |
+| Remote cleanup | Transcript text is sent through the configured cloud chat endpoint or Claude Code CLI. Even with local recognition, this text leaves the local inference path; provider terms and usage limits apply. |
+| Paired-computer mode | The finished transcript is delivered to the paired computer over the local network. Audio processing still follows the sender's selected transcription backend. Keep the connection code private. |
 
-You link a wallet **once**, by signing a message. That signature is free, it is
-not a transaction, and it **cannot move SOL, tokens, or approve anything** — it
-only proves the wallet is yours. Lectus then reads that wallet's ORGANIC balance
-directly from the Solana chain.
+Membership verification queries external services for wallet balances and token prices; model downloads and update checks also use the network. History is stored as `history.json` in the app's data directory. The membership guide describes the seven-day grace policy and unlinking. This is a description of data paths in the release source, not a claim about a provider's retention policy or an independent security audit.
 
-The floor is in **dollars, not tokens**, so the number of ORG needed follows the
-live price. Nothing is ever sent anywhere: the balance check is a public
-read-only query, and the only thing stored is your wallet's public address.
+## Engineering
 
-**If you sell:** dictation keeps working for **7 more days**, with a banner. Top
-back up inside that window and nothing is interrupted. Lectus never cuts off a
-dictation in progress, and an internet outage cannot lock you out — the 7 days
-are counted from the last time your wallet was actually *seen* above the floor,
-so a check that never got an answer costs you nothing.
+Lectus uses **Tauri 2, Rust, React, TypeScript, and Vite**. Rust owns audio capture, model inference, global input handling, text insertion, persistence, and paired delivery. React provides the settings and status UI through Tauri commands and events.
 
-## Install
+```text
+Configured shortcut → microphone capture → local Whisper / cloud transcription
+                    → vocabulary + replacement rules → optional cleanup
+                    → local history → focused text field / paired computer
+```
 
-1. Download the newest installer from the
-   [**Releases**](https://github.com/FCisco95/lectus/releases) page:
-   - **Windows** — `Lectus_x.y.z_x64-setup.exe` (or the `.msi`)
-   - **macOS (Apple silicon)** — `Lectus_aarch64.app.tar.gz`; unpack it and drag
-     `Lectus.app` into `/Applications`
-2. Run it. Lectus lives in the **system tray** (Windows) / **menu bar** (macOS)
-   and starts with your computer, silently.
-3. Follow the setup flow:
-   - **Link your wallet** — opens your browser, where your wallet extension
-     lives, and asks for one signature.
-   - **Microphone access** — grant it when your OS asks.
-   - **Accessibility** (macOS only) — required to type into other apps.
-   - **Pick your dictation key** — the default is **hold Right Ctrl**.
+Local speech recognition uses `whisper-rs`; local cleanup uses `llama-cpp-2`. The release configures Vulkan on Windows and Metal on macOS. Native inference avoids uploading audio in local mode, at the cost of model downloads, memory use, and hardware-dependent latency. Clipboard/keyboard insertion integrates with existing apps but depends on their input permissions and focus.
 
-On first run Lectus downloads the multilingual Whisper model (~140 MB) in the
-background. Until it lands, a smaller English-only model that ships with the app
-covers you.
+The [v0.7.1 remote-dictation guide](https://github.com/FCisco95/lectus/blob/v0.7.1/docs/REMOTE-DICTATION.md#release-and-validation) records a frontend build, 156 native tests with five environment-dependent tests excluded, and a LAN discovery/delivery check. Those are historical, scoped results, not a fresh test run or proof of every installation path.
 
-Updates install themselves: Lectus checks on launch, downloads in the background,
-and offers a **Restart now** banner. Nothing happens without your click.
+## Development
 
-## Using it
+Inspect [the v0.7.1 source](https://github.com/FCisco95/lectus/tree/v0.7.1) to reproduce the version described here. The native build needs Node/npm, Rust, and the platform's Tauri tooling. The release workflow uses Node 22 and stable Rust; Windows also configures MSVC, Vulkan SDK, and Ninja. A frontend preview alone does not exercise microphone capture or native text insertion.
 
-**Hold your key, talk, let go.** The text appears where your cursor already was —
-any app, any field. That is the whole product.
+In a separate development checkout with those prerequisites installed:
 
-- **Hold mode** (default) — push-to-talk. Hold Right Ctrl while you speak.
-- **Toggle mode** — tap once to start, tap again to stop, for long dictations.
-- Click the **floating pill** or the tray icon to open **Home**: your word counts
-  for the week and every past dictation, searchable and copyable.
+```sh
+npm ci
+```
 
-Worth turning on, under Settings:
+Provision the bundled English model using `scripts/download_model.ps1` on Windows or `bash scripts/download_model.sh` on macOS. This downloads a model; inspect the script before running it. Then:
 
-- **Vocabulary** — names and jargon you want spelled right ("Mycel", not "my cell"),
-  plus find/replace rules applied after every transcription.
-- **AI cleanup** — punctuation, capitals, and filler removal. Runs through the
-  Claude Code CLI on your own subscription, or locally with Gemma.
-- **Language** — auto-detect by default; force one (e.g. English inside a code
-  editor) globally or per app.
-- **Mute while dictating** — silences background playback while your key is held.
-- **Cloud backend** — optional Groq `whisper-large-v3-turbo` for more accuracy.
-  Off by default; your audio stays local unless you turn it on and add a key.
-
-## Membership questions
-
-**Where do I see my status?** Settings → **Membership**. It shows the linked
-wallet, what it holds, what $20 is in ORG today, and a **Check again** button.
-
-**How often is it checked?** Every 12 hours in the background. Your wallet is
-never asked to sign again.
-
-**I hold ORG but it says locked.** Hit **Check again**. If the public Solana RPC
-is rate-limiting you, point Lectus at your own node by setting the environment
-variable `LECTUS_RPC_URL` (for example, a Helius URL).
-
-**What is stored about me?** Your wallet's public address, its last known
-balance, and when it was last checked — in `license.json` on your own machine.
-Nothing is uploaded. **Unlink** in Settings deletes it.
-
-**Is this DRM?** No. Lectus is open source and the binary can be patched. The
-gate exists so that "Organic holders get Lectus" is actually true — not to fight
-anyone. See
-[the spec](docs/superpowers/specs/2026-09-17-organic-token-gate.md) for exactly
-how it behaves, including every failure path.
-
----
-
-## For developers
-
-```bash
-npm install
+```sh
 npm run tauri dev
 ```
 
-The multilingual model downloads on first run; `scripts/download_model.sh`
-(or `.ps1`) fetches it ahead of time.
+These commands are documented from the versioned source and were not executed for this documentation update. Native dependency/resource staging may require the platform steps in the [versioned build workflow](https://github.com/FCisco95/lectus/blob/v0.7.1/.github/workflows/release.yml). Running the app can use the normal Lectus configuration and request OS permissions; use a controlled development environment. `build-release.cmd` and `deploy-local.cmd` are machine-specific operational helpers that can replace and restart an installed app; they are not a general setup path.
 
-**Tech:** Tauri 2 · Rust (cpal, whisper-rs, llama-cpp-2, ed25519-dalek, reqwest,
-arboard, enigo) · React 18 + TypeScript · Vite.
+For contributions, distinguish the branch, release tag, and platform you tested. Never include API keys, wallet connection codes, or personal dictation history in an issue or pull request.
 
-### Build & deploy (Windows)
+## Distribution and licensing
 
-```cmd
-rem 1. Release build into C:\lt\release (vcvars + Vulkan SDK env)
-build-release.cmd
-
-rem 2. Deploy that build over the installed app and relaunch it
-deploy-local.cmd
-```
-
-`deploy-local.cmd` kills any running `chirp.exe` (UAC-elevated kill as fallback — an
-elevated instance refuses a normal `taskkill`), copies exe + DLLs from `C:\lt\release`
-into `%LocalAppData%\Lectus`, and relaunches. Desktop shortcuts always target the
-install dir, so after this they run the fresh build.
-
-### Releases
-
-Tag-driven: push a `v*` tag → GitHub Actions builds Windows + macOS, signs, and
-publishes a draft release with `latest.json` for the in-app updater.
-
-```sh
-node scripts/bump-version.mjs 0.5.1   # package.json + Cargo.toml + tauri.conf.json
-git commit -am "chore: bump to 0.5.1"
-git tag v0.5.1 && git push origin master v0.5.1
-```
-
-The workflow fails early if the tag and the three manifests disagree. Review the draft
-release on GitHub, then publish it: installed apps pick it up on next launch (background
-download, "Restart now" banner in Settings). Windows bundling of the llama/ggml DLLs +
-`backends/` lives in `src-tauri/tauri.windows.conf.json`; macOS in `tauri.macos.conf.json`.
+Use [lectus-releases](https://github.com/FCisco95/lectus-releases) for installation guidance and [published release notes](https://github.com/FCisco95/lectus-releases/releases) for distribution changes. This repository contains the application source. No top-level license file was found at the reviewed `v0.7.1` source tag; do not infer a permissive license from public visibility.

@@ -1,0 +1,51 @@
+{
+  "checked_date": "2026-11-04",
+  "tag": "v0.7.1",
+  "published_at": "2026-10-11T12:14:56Z",
+  "html_url": "https://github.com/FCisco95/lectus-releases/releases/tag/v0.7.1",
+  "body": "# Lectus 0.7.1\r\n\r\nDictate with the microphone on your Windows PC and insert the finished text on a paired Mac.\r\n\r\n- In Settings > General, choose Receive on the Mac and copy its connection code to Send on Windows.\r\n- The computers find each other on the local network, including after an IP address changes.\r\n- Text delivery is encrypted. Receive mode disables the local microphone; failed delivery is shown and the Windows dictation history remains available.\r\n- No virtual audio cable or paid audio receiver is needed. Local dictation remains the default.\r\n- Includes the existing app-shell interface and membership improvements from the development branch, preserving that interface for users already running it.\r\n\r\nBoth computers need this version. Allow Lectus on the local network and grant Accessibility on the Mac if prompted. Keep the target text field focused.\r\n\r\n## Draft validation\r\n\r\nWindows frontend/native checks and a real local-network discovery/delivery test passed.\r\nRelease CI also runs the transport tests on Windows and macOS. Actual cross-computer paste,\r\nthe Mac permission prompts and installation through the old updater endpoint remain to be\r\nchecked on the user's computers. This draft is not an end-to-end verification claim.\r\n",
+  "assets": [
+    {
+      "name": "latest.json",
+      "size": 2994,
+      "digest": "sha256:aee2d12b068fc65be6649ba042a433a746784962bcf1d77ee608cf926352d4ef",
+      "browser_download_url": "https://github.com/FCisco95/lectus-releases/releases/download/v0.7.1/latest.json"
+    },
+    {
+      "name": "Lectus_0.7.1_x64-setup.exe",
+      "size": 86234567,
+      "digest": "sha256:77a0defa815885f6c132054ec0d110f0fe7201c2abeb8e708bb6643294660915",
+      "browser_download_url": "https://github.com/FCisco95/lectus-releases/releases/download/v0.7.1/Lectus_0.7.1_x64-setup.exe"
+    },
+    {
+      "name": "Lectus_0.7.1_x64-setup.exe.sig",
+      "size": 416,
+      "digest": "sha256:40fd22adc17653bbf3d155421c420dc65216aedcf7f16410b643b380530af89e",
+      "browser_download_url": "https://github.com/FCisco95/lectus-releases/releases/download/v0.7.1/Lectus_0.7.1_x64-setup.exe.sig"
+    },
+    {
+      "name": "Lectus_0.7.1_x64_en-US.msi",
+      "size": 117260288,
+      "digest": "sha256:9301cb293e658f5e428b2f6c1af5abeda43faa81effddbbd0275fb273ccfd980",
+      "browser_download_url": "https://github.com/FCisco95/lectus-releases/releases/download/v0.7.1/Lectus_0.7.1_x64_en-US.msi"
+    },
+    {
+      "name": "Lectus_0.7.1_x64_en-US.msi.sig",
+      "size": 416,
+      "digest": "sha256:a76a89df78069a6fe0ef43e23e2602712d1b75ea9538c74c224a0ea74ece95c6",
+      "browser_download_url": "https://github.com/FCisco95/lectus-releases/releases/download/v0.7.1/Lectus_0.7.1_x64_en-US.msi.sig"
+    },
+    {
+      "name": "Lectus_aarch64.app.tar.gz",
+      "size": 83840341,
+      "digest": "sha256:fdeefd91a4a66b283e97e454a184ed188558e857dc0849f2f9b89ba29a724d77",
+      "browser_download_url": "https://github.com/FCisco95/lectus-releases/releases/download/v0.7.1/Lectus_aarch64.app.tar.gz"
+    },
+    {
+      "name": "Lectus_aarch64.app.tar.gz.sig",
+      "size": 404,
+      "digest": "sha256:be4a3b63747b620c3e2e371a404eafec50e67cc4755d41eb6595f757fa7fa6bd",
+      "browser_download_url": "https://github.com/FCisco95/lectus-releases/releases/download/v0.7.1/Lectus_aarch64.app.tar.gz.sig"
+    }
+  ]
+}
