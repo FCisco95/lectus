@@ -1,15 +1,22 @@
 # AGENTS.md — Lectus
 
-**Project:** Lectus — Organic-branded voice dictation app (Tauri 2 · Rust · React + TS). Hotkey → speak → Whisper transcribe (local `whisper-rs` or Groq cloud) → inject text into the focused field of any app. Repo renamed from `chirp` (internal crate may still read `chirp`/`chirp_lib`). Strategy/plans live in the cisco-brain vault: `docs/superpowers/plans/2026-06-01-chirp-voice-app-phase*.md`.
-
-Keep this file short and execution-focused.
-
-**Session state lives in `docs/HANDOFF.md`** (canonical, refreshed each session; dated snapshots in `docs/handoffs/`). Read it before acting.
+Lectus: voice dictation app (Tauri 2, Rust, React + TS). The repo was renamed from `chirp`; the crate, lib and binary still read `chirp` / `chirp_lib` / `chirp.exe`. Strategy and plans live in the cisco-brain vault, not here.
 
 ## Non-negotiables
-- API keys live in env/config only — never paste into chat or commit.
-- `tauri-plugin-global-shortcut`/muda CANNOT register a bare modifier (e.g. Right Ctrl) — it panics. Default hotkey is `Ctrl+Shift+Space`.
-- Prefer small, focused diffs. Ask before changing the capture/injection or shortcut pipeline.
+- API keys live in env/config only. Never paste them into chat or commit them.
+- `tauri-plugin-global-shortcut`/muda cannot register a bare modifier (e.g. Right Ctrl): it panics. Default hotkey is `Ctrl+Shift+Space`.
+- Ask before changing the capture/injection or shortcut pipeline.
+- Ask before pushing a `v*` tag (it publishes a release via `release.yml`) or replacing the installed app in `%LocalAppData%\Lectus`.
 
-## Repo tooling
-- **Agent-driven UI debug / visual verification** → `tauri-plugin-mcp` (Codex screenshots, inspects DOM, drives input on the running Tauri app — Playwright can't reach a Tauri webview). **NOT wired yet:** requires `npm i -g tauri-plugin-mcp-server` + adding the crate to `src-tauri/Cargo.toml` + registering it in the Tauri builder (dev builds only). Do in a dedicated Lectus session. Registry: cisco-brain `40 - RESOURCES/Codex Tooling — Install Registry.md`.
+## Commands
+- Frontend: `npm run build` (tsc + vite). CI uses Node 22.
+- Native tests (Windows): `test-release.cmd` (`cargo test --release --lib` with the Vulkan/Ninja/vcvars env, target dir `C:\lt`).
+- Native build: `build-release.cmd`. It also runs `deploy-local.cmd`, which copies the build over the installed app. For a build only, run `cargo build --release` in `src-tauri` with the same env.
+- No git hooks exist. CI runs only on `v*` tags, so nothing gates a push: run the build and tests yourself.
+
+## Where docs go
+- `docs/HANDOFF.md`: current state, next step, blockers, open questions. About 80 lines, rewritten whenever state changes. Read it first. Archive an overlong one to `docs/handoffs/archive/`, never delete it.
+- `docs/handoffs/`: a dated snapshot only for a major event.
+- Plans, specs, audits, mockups: temporary. Delete them once the outcome is in `docs/HANDOFF.md` or the code. Git history is the archive.
+- Guides users read (`docs/REMOTE-DICTATION.md`, `docs/LOCAL-API.md`) and benchmark results the code cites (`docs/benchmarks/`) stay.
+- Generated output (logs, screenshots, eval runs, diagnostics, downloaded models) is never committed. Delete it when the run is done.

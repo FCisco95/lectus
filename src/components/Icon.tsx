@@ -1,6 +1,6 @@
 // Inline-SVG stroke icon set (SF-Symbols-like weight) replacing the old
 // emoji nav glyphs — renders identically on both platforms and themes
-// (uses currentColor). Paths are lifted from docs/mockups/settings.html.
+// (uses currentColor). Paths were lifted from the retired mockup docs/mockups/settings.html (restore: git show pre-cleanup-2026-11:docs/mockups/settings.html).
 
 export type IconName =
   | 'home'

@@ -191,3 +191,7 @@ Skills: handoff-memory, systematic-debugging, verification-before-completion.
 Resolve whether the user authorizes the prepared Bluetooth setting test; do not
 claim the Z407 is faulty or reboot the PC without permission.
 ```
+
+## Repo prune (2026-11-11)
+Deleted 31 tracked files: 20 of 23 dated handoffs, LECTUS-NEXT-PROMPT, phase2.5 plan, deploy-pipeline and app-shell specs, remote-dictation plan, docs/mockups, release-notes-0.7.1. Restore any file: `git show pre-cleanup-2026-11:<path>`. Open item carried from the deleted remote-dictation plan: real Windows-to-Mac insertion test not yet done. Kept pending a decision: two volume-bug handoffs, home-window and organic-token-gate specs, .claude/workflows/deep-research.js, mobile icons. Untracked artefacts (.context, scripts/diagnostics, docs/reviews) not touched.
+
