@@ -89,9 +89,7 @@ approval. Use verify/computer-use only for separately authorized native acceptan
 ## Next-session prompt
 
 ```text
-Continue Lectus access-model and Android design from docs/HANDOFF.md. Keep the completed wizard work and unrelated dirty files intact; do not implement billing/auth/mobile before the full design is approved.
-Files: docs/HANDOFF.md, src/components/settings/MembershipPanel.tsx, src-tauri/src/license/mod.rs, src-tauri/src/license/commands.rs, legal/manifest.json.
-Model: gpt-6-astra xhigh (cross-platform access, authentication and billing design).
-Skills: handoff-memory, brainstorming, grill-me; writing-plans after design approval.
-Carry forward the confirmed EUR 5/local-AI direction, gift durations, email access, two devices, offline use and Android-only mobile scope. Resolve distribution and remaining material decisions one at a time. Keep legal publication and installation gates closed; never infer that a fairlaunch label establishes a regulatory exemption.
+Act as the central Lectus architect and Orca coordinator. Read and follow docs/handoffs/2026-11-13-orca-architect-prompt.md and docs/HANDOFF.md, then inspect the current state and dispatch the independent discovery frontier. Do not repeat completed wizard work or infer that a billing/mobile implementation design is already approved.
+Model: gpt-6-astra xhigh (cross-platform architecture, authentication and billing supervision).
+Skills: task-observer, model-router, orca-cli, orchestration, parallel-feature-development; brainstorming/grill-me for material gaps.
 ```
