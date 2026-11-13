@@ -14,6 +14,9 @@ export function ShortcutStep({ state, next, back }: StepProps) {
   const field = toggle ? 'toggle_hotkey' : 'hold_hotkey';
   const shortcut = state.config?.[field] || '';
   useEffect(() => {
+    if (mic.error) { active.current = false; held.current.clear(); }
+  }, [mic.error]);
+  useEffect(() => {
     const keys = shortcut.split('+');
     const finish = () => { void mic.finish(false).then(result => { if (result) setText(text => `${text}${text ? ' ' : ''}${result.text}`); }); };
     const down = (event: KeyboardEvent) => {

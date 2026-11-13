@@ -24,7 +24,7 @@ export function MicStep({ state, next, back }: StepProps) {
     return () => { active = false; window.clearInterval(timer); };
   }, []);
   const model = state.models.find(model => model.name === state.modelName);
-  const ready = !!model?.downloaded && !model.loading && !state.modelBusy;
+  const ready = !!model?.downloaded && model.active && !model.loading && !state.modelBusy;
   const chooseDevice = async (device: string) => {
     setBusy(true); setActionError('');
     try { await mic.cancel(); await state.savePatch({ input_device: device }); }
@@ -54,6 +54,7 @@ export function MicStep({ state, next, back }: StepProps) {
     </div>
     {state.modelBusy && <><p role="status">Preparing the speech model. The level bar works while it downloads.</p>{model && <ModelDownloadProgress name={model.name} label={model.display_name} download={model.download} />}</>}
     {!state.modelBusy && !model?.downloaded && <p className="field-hint">The speech model is not downloaded yet. You can test later in Home.</p>}
+    {state.modelError && <p role="alert" className="inline-error">{state.modelError}</p>}
     {heard && <div className="wizard-callout"><strong>Heard:</strong><p>{heard.text}</p></div>}
     {heard && isFast(testModel, heard.audio_ms, heard.elapsed_ms) && !state.models.some(model => model.name === ACCURATE_MODEL && model.active) && <div className="wizard-callout"><p>This computer is fast. Use the most accurate model (574 MB)?</p>
       <button type="button" className="btn" disabled={state.modelBusy} onClick={() => void state.downloadAndSelect(ACCURATE_MODEL)}>Use the most accurate model</button></div>}

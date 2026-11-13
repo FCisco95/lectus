@@ -27,6 +27,8 @@ export function useWizardState(onComplete: () => void) {
   const [attempt, setAttempt] = useState(0);
   const alive = useRef(true);
   const downloading = useRef(false);
+  const pendingModel = useRef<string | null>(null);
+  const currentModel = useRef<string | null>(null);
   const requested = useRef('');
   const refreshModels = useCallback(async () => {
     const current = await invoke<WizardModel[]>('get_models_status');
@@ -44,7 +46,7 @@ export function useWizardState(onComplete: () => void) {
     invoke<LicenseFloor>('license_floor').then(value => { if (alive.current) setFloor(value); }).catch(() => {});
     const refresh = () => { refreshModels().catch(() => { if (alive.current) setModelError('Could not check speech models. You can set one up later in Models.'); }); };
     refresh();
-    const unlistens = ['model-download-state', 'model-ready', 'model-active', 'model-load-failed'].map(event => listen(event, refresh));
+    const unlistens = ['model-download-state', 'model-ready', 'model-loading', 'model-active', 'model-load-failed'].map(event => listen(event, refresh));
     const timer = window.setInterval(refresh, 1500);
     return () => { alive.current = false; window.clearInterval(timer); unlistens.forEach(unlisten => { unlisten.then(fn => fn()); }); };
   }, [attempt, refreshModels]);
@@ -59,14 +61,33 @@ export function useWizardState(onComplete: () => void) {
     return result;
   };
   const downloadAndSelect = useCallback(async (name: string) => {
+    pendingModel.current = currentModel.current === name ? null : name;
     if (downloading.current) return;
-    downloading.current = true; setModelName(name); setModelBusy(true); setModelError('');
+    downloading.current = true;
+    if (alive.current) setModelBusy(true);
+    const waitForIdle = async () => {
+      let models = await refreshModels();
+      while (models.some(model => model.loading)) {
+        await new Promise(resolve => window.setTimeout(resolve, 100));
+        models = await refreshModels();
+      }
+      return models;
+    };
     try {
-      const current = await refreshModels();
-      if (!current.find(model => model.name === name)?.downloaded) await invoke('download_model', { modelName: name });
-      await invoke('select_model', { modelName: name }); await refreshModels();
-    } catch (error) { if (alive.current) setModelError(String(error)); }
-    finally { downloading.current = false; if (alive.current) setModelBusy(false); }
+      while (pendingModel.current) {
+        const target = pendingModel.current;
+        pendingModel.current = null; currentModel.current = target;
+        if (alive.current) { setModelName(target); setModelError(''); }
+        try {
+          let models = await waitForIdle();
+          if (!models.find(model => model.name === target)?.downloaded) await invoke('download_model', { modelName: target });
+          models = await waitForIdle();
+          if (!models.find(model => model.name === target)?.active) await invoke('select_model', { modelName: target });
+          models = await waitForIdle();
+          if (!models.find(model => model.name === target)?.active) throw new Error('The speech model could not be activated. Try again in Models.');
+        } catch (error) { if (alive.current) setModelError(String(error)); }
+      }
+    } finally { currentModel.current = null; downloading.current = false; if (alive.current) setModelBusy(false); }
   }, [refreshModels]);
   useEffect(() => {
     if (!legalReady) return;

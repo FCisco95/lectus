@@ -6,6 +6,7 @@ export interface WizardTranscript { text: string; language: string | null; audio
 // Serialize stream ownership across steps. A late result must not stop a newer test.
 let streamQueue: Promise<void> = Promise.resolve();
 let streamOwner: symbol | null = null;
+let sessionNumber = 0;
 function serialize<T>(action: () => Promise<T>): Promise<T> {
   const work = streamQueue.then(action);
   streamQueue = work.then(() => {}, () => {});
@@ -25,6 +26,8 @@ export function useWizardMic() {
   const [error, setError] = useState('');
   const alive = useRef(true);
   const id = useRef<symbol | null>(null);
+  const session = useRef('');
+  const listenersReady = useRef<Promise<unknown>>(Promise.resolve());
   const phase = useRef<'idle' | 'starting' | 'recording' | 'finishing'>('idle');
   const pendingStart = useRef<Promise<void> | null>(null);
   const cancel = useCallback(async () => {
@@ -35,9 +38,11 @@ export function useWizardMic() {
   const start = useCallback(async (device?: string) => {
     if (phase.current !== 'idle') return;
     const current = Symbol('wizard capture'); id.current = current; phase.current = 'starting'; setError('');
+    const tag = `${Date.now()}-${++sessionNumber}`; session.current = tag;
     const work = serialize(async () => {
       streamOwner = current;
-      await invoke('wizard_mic_start', { device: device || null });
+      await listenersReady.current;
+      await invoke('wizard_mic_start', { device: device || null, session: tag });
       if (!alive.current || id.current !== current) {
         await invoke('wizard_mic_stop'); streamOwner = null; return;
       }
@@ -70,10 +75,16 @@ export function useWizardMic() {
     const unLevel = listen<number>('wizard-audio-level', event => {
       if (alive.current && id.current && streamOwner === id.current && phase.current === 'recording') setLevel(Number.isFinite(event.payload) ? Math.max(0, Math.min(1, event.payload)) : 0);
     });
+    const unError = listen<{ session: string | null; message: string }>('wizard-mic-error', event => {
+      if (!alive.current || !id.current || streamOwner !== id.current || event.payload.session !== session.current) return;
+      setError(event.payload.message);
+      void cancel();
+    });
     const close = () => { void cancel(); };
     const unClose = listen('tauri://close-requested', close);
+    listenersReady.current = Promise.all([unLevel, unError, unClose]);
     window.addEventListener('pagehide', close);
-    return () => { alive.current = false; void cancel(); window.removeEventListener('pagehide', close); unLevel.then(fn => fn()); unClose.then(fn => fn()); };
+    return () => { alive.current = false; void cancel(); window.removeEventListener('pagehide', close); unLevel.then(fn => fn()); unError.then(fn => fn()); unClose.then(fn => fn()); };
   }, [cancel]);
   return { level, recording, error, start, finish, cancel };
 }

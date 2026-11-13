@@ -117,7 +117,7 @@ export function WordsStep({ state, next, back }: StepProps) {
         onKeyUp={event => { if (['Space', 'Enter'].includes(event.code)) { event.preventDefault(); void release(); } }}>
         {checking ? 'Listening back...' : mic.recording ? 'Release to hear it' : 'Hold to say word'}
       </button>
-      {!canCheck && <p className="field-hint">A speech model is needed for this check. You can try it later in Dictionary.</p>}
+      {!canCheck && <p className="field-hint">A speech model is needed for this check. You can add sound-alikes manually in Dictionary.</p>}
       {kind === 'correct' && <p role="status">Heard correctly.</p>}
       {kind === 'invalid' && <p role="status">Could not hear a single word. Try again.</p>}
       {kind === 'different' && !ruleSaved && <div className="wizard-alike"><p>Heard '{heard}'. Write '{word}' instead when I dictate in:</p>

@@ -62,7 +62,7 @@ impl PersistentCapture {
             if recording_cb.load(Ordering::Relaxed) {
                 live_cb.lock().unwrap().extend_from_slice(resampled);
             }
-        })?;
+        }, None)?;
         stream.play()?;
 
         Ok(Self { ring, live, recording, device_name: resolved_name, _stream: stream })
@@ -121,6 +121,7 @@ fn resolve_input_device(device_name: Option<&str>) -> Result<cpal::Device> {
 fn build_16k_mono_stream(
     device: &cpal::Device,
     mut on_chunk: impl FnMut(&[f32]) + Send + 'static,
+    on_error: Option<Arc<dyn Fn(String) + Send + Sync>>,
 ) -> Result<cpal::Stream> {
     let supported = device.default_input_config()?;
     let native_rate = supported.sample_rate().0;
@@ -162,10 +163,19 @@ fn build_16k_mono_stream(
 
             on_chunk(&resampled);
         },
-        |err| eprintln!("audio stream error: {err}"),
+        input_error_callback(on_error),
         None,
     )?;
     Ok(stream)
+}
+
+fn input_error_callback(
+    observer: Option<Arc<dyn Fn(String) + Send + Sync>>,
+) -> impl FnMut(cpal::StreamError) + Send + 'static {
+    move |error| {
+        eprintln!("audio stream error: {error}");
+        if let Some(observer) = &observer { observer(error.to_string()); }
+    }
 }
 
 /// Names of all available input devices, for the settings mic picker.
@@ -176,11 +186,40 @@ pub fn list_input_devices() -> Vec<String> {
         .unwrap_or_default()
 }
 
+#[cfg(test)]
+mod stream_error_tests {
+    use super::*;
+    #[test]
+    fn stream_error_observer_receives_the_cpal_failure_once() {
+        let observed = Arc::new(Mutex::new(Vec::new()));
+        let target = observed.clone();
+        let mut callback = input_error_callback(Some(Arc::new(move |message| {
+            target.lock().unwrap().push(message);
+        })));
+        callback(cpal::StreamError::DeviceNotAvailable);
+        let messages = observed.lock().unwrap();
+        assert_eq!(messages.len(), 1);
+        assert!(!messages[0].is_empty());
+    }
+}
+
 impl AudioCapture {
     /// Start capturing mic audio. Resamples to 16kHz mono f32 for Whisper compatibility.
     /// `device_name` of `None`/empty selects the system default input; an unknown
     /// name falls back to the default with a warning (device may be unplugged).
     pub fn start(device_name: Option<&str>) -> Result<Self> {
+        Self::start_inner(device_name, None)
+    }
+
+    /// Optional observer for the wizard; existing callers keep log-only errors.
+    pub fn start_with_error_handler(
+        device_name: Option<&str>,
+        observer: impl Fn(String) + Send + Sync + 'static,
+    ) -> Result<Self> {
+        Self::start_inner(device_name, Some(Arc::new(observer)))
+    }
+
+    fn start_inner(device_name: Option<&str>, observer: Option<Arc<dyn Fn(String) + Send + Sync>>) -> Result<Self> {
         let device = resolve_input_device(device_name)?;
         log::info!("recording from input device: {:?}", device.name().unwrap_or_default());
 
@@ -188,7 +227,7 @@ impl AudioCapture {
         let samples_clone = samples.clone();
         let stream = build_16k_mono_stream(&device, move |resampled| {
             samples_clone.lock().unwrap().extend_from_slice(resampled);
-        })?;
+        }, observer)?;
         stream.play()?;
 
         Ok(Self { samples, _stream: stream })
@@ -198,6 +237,13 @@ impl AudioCapture {
     pub fn drain(&self) -> Vec<f32> {
         let mut buf = self.samples.lock().unwrap();
         std::mem::take(&mut *buf)
+    }
+
+    /// Drop the stream first so the final callback cannot outlive its snapshot.
+    pub fn stop_and_drain(self) -> Vec<f32> {
+        drop(self._stream);
+        let mut samples = self.samples.lock().unwrap();
+        std::mem::take(&mut *samples)
     }
 
     /// Returns current number of buffered samples.

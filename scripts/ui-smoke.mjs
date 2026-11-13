@@ -164,6 +164,7 @@ function installFixture(windowLabel = 'main') {
         case 'license_floor': return { floor_usd: 20, tokens: [] };
         case 'microphone_status': return 'granted';
         case 'wizard_mic_start':
+          state.wizardSession = args.session;
           if (state.wizardMicError) throw new Error(state.wizardMicError);
           state.wizardRecording = true; return;
         case 'wizard_mic_stop': state.wizardRecording = false; state.emit('wizard-audio-level', 0); return;
@@ -218,6 +219,12 @@ function installFixture(windowLabel = 'main') {
             state.wizardDownloads.push(args.modelName);
             if (state.wizardDownloadError) throw new Error(state.wizardDownloadError);
             const model = state.models.find(m => m.name === args.modelName);
+            if (state.deferWizardDownload) {
+              state.deferWizardDownload = false;
+              model.download = { downloading: true, progress: 0.4, error: null };
+              state.emit('model-download-state', { name: model.name, status: clone(model.download) });
+              await new Promise(resolve => { state.resolveWizardDownload = resolve; });
+            }
             model.downloaded = true;
             model.download = { downloading: false, progress: 1, error: null };
             state.emit('model-download-state', { name: model.name, status: clone(model.download) });
@@ -227,6 +234,19 @@ function installFixture(windowLabel = 'main') {
           if (state.deferModelDownload) return new Promise((_, reject) => { state.rejectPendingDownload = reject; });
           return;
         case 'select_model':
+          if (state.wizard && state.models.some(model => model.loading)) throw new Error('A model is still loading.');
+          if (state.deferWizardSelection) {
+            state.deferWizardSelection = false;
+            state.models.find(model => model.name === args.modelName).loading = true;
+            state.emit('model-loading', args.modelName);
+            state.resolveWizardSelection = () => {
+              state.models.find(model => model.name === args.modelName).loading = false;
+              state.config.model_name = args.modelName;
+              for (const model of state.models) model.active = model.name === args.modelName;
+              state.emit('model-active', args.modelName);
+            };
+            return;
+          }
           state.config.model_name = args.modelName;
           for (const model of state.models) model.active = model.name === args.modelName;
           state.emit('model-active', args.modelName); return;

@@ -27,11 +27,15 @@ pub struct WizardTranscript {
     pub elapsed_ms: u64,
 }
 
+#[derive(Clone, Serialize)]
+struct WizardMicError { session: Option<String>, message: String }
+
 /// Managed state: the shared sample buffer, the running flag and the capture thread.
 pub struct WizardCapture {
     buffer: Arc<Mutex<Vec<f32>>>,
     running: Arc<AtomicBool>,
     thread: Mutex<Option<JoinHandle<()>>>,
+    failure: Arc<Mutex<Option<String>>>,
 }
 
 impl WizardCapture {
@@ -40,15 +44,24 @@ impl WizardCapture {
             buffer: Arc::new(Mutex::new(Vec::new())),
             running: Arc::new(AtomicBool::new(false)),
             thread: Mutex::new(None),
+            failure: Arc::new(Mutex::new(None)),
         }
     }
 
     fn stop(&self) {
+        let _ = self.take_for_transcription();
+    }
+
+    fn take_for_transcription(&self) -> Result<Vec<f32>, String> {
         self.running.store(false, Ordering::SeqCst);
         if let Some(handle) = self.thread.lock().unwrap().take() {
             let _ = handle.join();
         }
-        self.buffer.lock().unwrap().clear();
+        let samples = std::mem::take(&mut *self.buffer.lock().unwrap());
+        match self.failure.lock().unwrap().take() {
+            Some(message) => Err(message),
+            None => Ok(samples),
+        }
     }
 }
 
@@ -84,6 +97,7 @@ pub fn wizard_mic_start(
     app: tauri::AppHandle,
     capture: tauri::State<WizardCapture>,
     device: Option<String>,
+    session: Option<String>,
 ) -> Result<(), String> {
     if capture.running.load(Ordering::SeqCst) {
         return Ok(());
@@ -96,9 +110,11 @@ pub fn wizard_mic_start(
         let _ = handle.join();
     }
     capture.buffer.lock().unwrap().clear();
+    *capture.failure.lock().unwrap() = None;
 
     let buffer = capture.buffer.clone();
     let running = capture.running.clone();
+    let failure = capture.failure.clone();
     running.store(true, Ordering::SeqCst);
     let (ready_tx, ready_rx) = std::sync::mpsc::channel::<Result<(), String>>();
     let emitter = app.clone();
@@ -106,7 +122,13 @@ pub fn wizard_mic_start(
         .name("wizard-capture".into())
         .spawn(move || {
             // The cpal stream is not Send, so it is created, polled and dropped here.
-            let audio = match crate::audio::AudioCapture::start(device.as_deref()) {
+            let error_emitter = emitter.clone();
+            let error_running = running.clone();
+            let audio = match crate::audio::AudioCapture::start_with_error_handler(device.as_deref(), move |message| {
+                *failure.lock().unwrap() = Some(message.clone());
+                error_running.store(false, Ordering::SeqCst);
+                let _ = error_emitter.emit("wizard-mic-error", WizardMicError { session: session.clone(), message });
+            }) {
                 Ok(audio) => {
                     let _ = ready_tx.send(Ok(()));
                     audio
@@ -124,7 +146,8 @@ pub fn wizard_mic_start(
                 push_capped(&mut buffer.lock().unwrap(), &chunk, MAX_SAMPLES);
                 let _ = emitter.emit("wizard-audio-level", level);
             }
-            drop(audio);
+            let tail = audio.stop_and_drain();
+            push_capped(&mut buffer.lock().unwrap(), &tail, MAX_SAMPLES);
             let _ = emitter.emit("wizard-audio-level", 0.0f32);
         })
         .map_err(|e| format!("Could not start the microphone test: {e}"))?;
@@ -162,11 +185,12 @@ pub async fn wizard_transcribe(
     capture: tauri::State<'_, WizardCapture>,
     raw: bool,
 ) -> Result<WizardTranscript, String> {
+    let samples = capture.take_for_transcription()?;
+    let _ = app.emit("wizard-audio-level", 0.0f32);
     let local = app.state::<WhisperState>().local.clone();
     if local.lock().unwrap().is_none() {
         return Err("The speech model is not ready yet.".into());
     }
-    let samples = std::mem::take(&mut *capture.buffer.lock().unwrap());
     if samples.len() < MIN_SAMPLES {
         return Err("Nothing was recorded.".into());
     }
@@ -213,6 +237,32 @@ pub async fn wizard_transcribe(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn finishing_joins_the_capture_and_keeps_its_final_tail() {
+        let capture = WizardCapture::new();
+        capture.running.store(true, Ordering::SeqCst);
+        capture.buffer.lock().unwrap().push(1.0);
+        let running = capture.running.clone();
+        let buffer = capture.buffer.clone();
+        *capture.thread.lock().unwrap() = Some(std::thread::spawn(move || {
+            while running.load(Ordering::SeqCst) { std::thread::yield_now(); }
+            buffer.lock().unwrap().push(2.0);
+        }));
+        assert_eq!(capture.take_for_transcription().unwrap(), vec![1.0, 2.0]);
+        assert!(!capture.running.load(Ordering::SeqCst));
+        assert!(capture.thread.lock().unwrap().is_none());
+        assert!(capture.buffer.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn failed_capture_discards_partial_audio_and_reports_the_error_once() {
+        let capture = WizardCapture::new();
+        capture.buffer.lock().unwrap().push(1.0);
+        *capture.failure.lock().unwrap() = Some("Fixture input disconnected".into());
+        assert_eq!(capture.take_for_transcription().unwrap_err(), "Fixture input disconnected");
+        assert!(capture.take_for_transcription().unwrap().is_empty());
+    }
 
     #[test]
     fn push_capped_keeps_the_newest_samples() {

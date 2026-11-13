@@ -65,6 +65,29 @@ export async function runWizardSmoke({ checked, pageFixture, output, results }) 
       assert.equal(await page.evaluate(() => fixture.calls.includes('wizard_mic_start')), false);
     });
   }
+  await checked('Changing language during a background download selects the latest recommendation', async page => {
+    await openWizard(page);
+    await page.evaluate(() => { fixture.deferWizardDownload = true; });
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.waitForFunction(() => typeof fixture.resolveWizardDownload === 'function');
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await page.getByRole('radio', { name: 'English', exact: true }).check();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('heading', { name: 'Privacy & terms', exact: true }).waitFor();
+    await page.evaluate(() => fixture.resolveWizardDownload());
+    await page.waitForFunction(() => fixture.wizardDownloads.includes('ggml-base.bin') && fixture.config.model_name === 'ggml-base.bin');
+  });
+  await checked('Changing language during native activation waits for loading to finish', async page => {
+    await openWizard(page);
+    await page.evaluate(() => { fixture.deferWizardSelection = true; });
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.waitForFunction(() => typeof fixture.resolveWizardSelection === 'function');
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await page.getByRole('radio', { name: 'English', exact: true }).check();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.evaluate(() => fixture.resolveWizardSelection());
+    await page.waitForFunction(() => fixture.models.some(model => model.name === 'ggml-base.bin' && model.active));
+  });
   await checked('Wizard completes without a wallet and Home offers the real shortcut once', async page => {
     await page.evaluate(() => { const old = window.__TAURI_INTERNALS__.invoke; window.__TAURI_INTERNALS__.invoke = (cmd, args) => cmd === 'license_status' ? Promise.resolve({ kind: 'unlinked' }) : old(cmd, args); });
     await toTrial(page);
@@ -95,6 +118,32 @@ export async function runWizardSmoke({ checked, pageFixture, output, results }) 
 }
 
 export async function runMicSmoke({ checked, output }) {
+  await checked('Toggle shortcut can restart on the first press after a stream error', async page => {
+    await page.evaluate(() => { fixture.config.trigger_mode = 'toggle'; fixture.config.toggle_hotkey = 'RControl'; });
+    await toMic(page);
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('button', { name: 'Skip', exact: true }).click();
+    await page.getByLabel('Try it', { exact: true }).focus();
+    await page.keyboard.press('ControlRight');
+    await page.waitForFunction(() => fixture.wizardRecording === true);
+    await page.evaluate(() => fixture.emit('wizard-mic-error', { session: fixture.wizardSession, message: 'Fixture stream failed' }));
+    await page.getByRole('alert').filter({ hasText: 'Fixture stream failed' }).waitFor();
+    await page.waitForFunction(() => fixture.wizardRecording === false);
+    await page.keyboard.press('ControlRight');
+    await page.waitForFunction(() => fixture.wizardRecording === true);
+  });
+  await checked('Mid-stream failure stops the test and ignores a stale session error', async page => {
+    await toMic(page);
+    await page.getByRole('button', { name: 'Test my microphone', exact: true }).click();
+    await page.waitForFunction(() => fixture.wizardRecording === true);
+    await page.evaluate(() => fixture.emit('wizard-mic-error', { session: 'old-session', message: 'Stale error' }));
+    assert.equal(await page.getByText('Stale error', { exact: true }).count(), 0);
+    await page.evaluate(() => fixture.emit('wizard-mic-error', { session: fixture.wizardSession, message: 'Fixture input disconnected' }));
+    await page.getByRole('alert').filter({ hasText: 'Fixture input disconnected' }).waitFor();
+    await page.waitForFunction(() => fixture.wizardRecording === false);
+    await page.getByRole('button', { name: 'Set up later', exact: true }).click();
+    await page.getByRole('heading', { name: 'Your words', exact: true }).waitFor();
+  });
   await checked('Wizard microphone level follows events and shows its transcript', async page => {
     await toMic(page);
     await page.getByLabel('Input device', { exact: true }).selectOption('Fixture microphone');
