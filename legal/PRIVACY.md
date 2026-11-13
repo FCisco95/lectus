@@ -8,6 +8,12 @@ This notice describes the implementation being prepared. Publisher identity, con
 
 First-run setup must be completed before dictation and the persistent microphone buffer start. After setup, except in Receive mode, Lectus keeps approximately half a second of audio in a rolling memory buffer to avoid clipping the first word. During dictation it collects the spoken audio for recognition. Normal dictation does not save a recording file. Local recognition and local text processing run on the device.
 
+During first-run setup the microphone opens only when you start the microphone test or a word check, and that audio is kept in memory and discarded after it is transcribed.
+
+## Vocabulary folder scan
+
+If you choose a folder during setup, Lectus reads its text files on your device to suggest vocabulary. Only the words you select are saved. File contents are not stored and do not leave your device.
+
 ## Optional external processing
 
 When you enable a configured speech provider, captured audio is uploaded to its audio endpoint. Configured cloud cleanup or translation sends transcript text to its text endpoint, even if recognition was local. You must explicitly allow processing by that configured provider. Changing the provider requires a new choice. Provider retention, training, region and account terms must be checked with the provider; Lectus cannot promise zero retention by third parties.

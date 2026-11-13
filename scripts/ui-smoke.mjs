@@ -170,6 +170,10 @@ function installFixture(windowLabel = 'main') {
         case 'wizard_transcribe':
           state.wizardRawRequests ??= []; state.wizardRawRequests.push(args.raw);
           return clone(state.wizardTranscript || { text: 'Testing Lectus.', language: 'en', audio_ms: 3000, elapsed_ms: 100 });
+        case 'plugin:dialog|open': return state.wizardFolder === undefined ? 'C:/Fixture/vocabulary' : state.wizardFolder;
+        case 'scan_folder_for_terms':
+          state.wizardScanPaths ??= []; state.wizardScanPaths.push(args.path);
+          return clone(state.wizardScanReport || { candidates: [{ term: 'Mycel', count: 4, score: 4 }, { term: 'DexScreener', count: 3, score: 3 }], files_read: 4, truncated: false });
         case 'request_microphone_access': return;
         case 'complete_onboarding':
           if (state.finishError) throw new Error(state.finishError);
@@ -270,6 +274,7 @@ try {
     const wizard = await import('./wizard-smoke.mjs');
     await wizard.runWizardSmoke({ checked, pageFixture, output, results });
     await wizard.runMicSmoke({ checked, output });
+    await wizard.runWordsSmoke({ checked, output });
   }
   if (subscriptionMode) {
     const aiSettings = async page => { await settings(page); await page.getByRole('button', { name: 'AI cleanup', exact: true }).click(); };

@@ -48,10 +48,14 @@ export function useWizardState(onComplete: () => void) {
     const timer = window.setInterval(refresh, 1500);
     return () => { alive.current = false; window.clearInterval(timer); unlistens.forEach(unlisten => { unlisten.then(fn => fn()); }); };
   }, [attempt, refreshModels]);
-  const savePatch = async (patch: Partial<Config>) => {
+  const savePatch = async (patch: Partial<Config> | ((current: Config) => Partial<Config>)) => {
     const current = await invoke<Config>('get_config');
-    const result = await invoke<Config>('save_config', { newConfig: { ...current, ...patch } });
-    if (alive.current) setConfig(result);
+    const changes = typeof patch === 'function' ? patch(current) : patch;
+    const result = await invoke<Config>('save_config', { newConfig: { ...current, ...changes } });
+    if (alive.current) setConfig(previous => ({ ...result,
+      hold_hotkey: changes.hold_hotkey ?? previous?.hold_hotkey ?? result.hold_hotkey,
+      toggle_hotkey: changes.toggle_hotkey ?? previous?.toggle_hotkey ?? result.toggle_hotkey,
+    }));
     return result;
   };
   const downloadAndSelect = useCallback(async (name: string) => {

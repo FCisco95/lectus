@@ -167,3 +167,111 @@ export async function runMicSmoke({ checked, output }) {
     });
   }
 }
+
+async function toWords(page) {
+  await toMic(page);
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('heading', { name: 'Your words', exact: true }).waitFor();
+}
+async function pickWords(page) {
+  await page.getByRole('button', { name: 'Choose a folder', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Mycel', exact: true }).waitFor();
+}
+async function addMycel(page) {
+  await toWords(page); await pickWords(page);
+  await page.getByRole('checkbox', { name: 'Mycel', exact: true }).check();
+  await page.getByRole('button', { name: 'Add 1 word', exact: true }).click();
+  await page.getByText('Say: Mycel', { exact: true }).waitFor();
+}
+async function sayWord(page, text) {
+  await page.evaluate(text => { fixture.wizardTranscript = { text, language: 'pt', audio_ms: 2000, elapsed_ms: 100 }; }, text);
+  await page.getByRole('button', { name: 'Hold to say word', exact: true }).hover();
+  await page.mouse.down();
+  await page.waitForFunction(() => fixture.wizardRecording === true);
+  await page.mouse.up();
+}
+
+export async function runWordsSmoke({ checked, output }) {
+  await checked('Only explicitly ticked vocabulary chips are saved', async page => {
+    await toWords(page); await pickWords(page);
+    for (const name of ['Mycel', 'DexScreener']) assert(!(await page.getByRole('checkbox', { name, exact: true }).isChecked()));
+    await page.getByRole('checkbox', { name: 'Mycel', exact: true }).check();
+    await page.screenshot({ path: path.join(output, 'words-selected.png'), animations: 'disabled' });
+    await page.getByRole('button', { name: 'Add 1 word', exact: true }).click();
+    await page.waitForFunction(() => fixture.config.dictionary_words.includes('Mycel'));
+    assert.deepEqual(await page.evaluate(() => fixture.config.dictionary_words), ['Mycel']);
+  });
+  await checked('Vocabulary merges into a fresh snapshot without case-insensitive duplicates', async page => {
+    await toWords(page); await pickWords(page);
+    await page.evaluate(() => { fixture.config.dictionary_words = ['mycel', 'ConcurrentWord']; });
+    for (const name of ['Mycel', 'DexScreener']) await page.getByRole('checkbox', { name, exact: true }).check();
+    await page.getByRole('button', { name: 'Add 2 words', exact: true }).click();
+    await page.waitForFunction(() => fixture.config.dictionary_words.includes('DexScreener'));
+    assert.deepEqual(await page.evaluate(() => fixture.config.dictionary_words), ['mycel', 'ConcurrentWord', 'DexScreener']);
+  });
+  await checked('Sound-alike confirmation defaults to Portuguese and saves only after explicit confirmation', async page => {
+    await addMycel(page); await sayWord(page, 'myself.');
+    await page.getByText("Heard 'myself'. Write 'Mycel' instead when I dictate in:", { exact: true }).waitFor();
+    assert(await page.getByRole('checkbox', { name: 'Portuguese', exact: true }).isChecked());
+    assert(!(await page.getByRole('checkbox', { name: 'English', exact: true }).isChecked()));
+    assert.deepEqual(await page.evaluate(() => fixture.config.sound_alikes), []);
+    for (const width of [960, 720]) for (const theme of ['light', 'dark']) {
+      await page.setViewportSize({ width, height: width === 960 ? 680 : 540 });
+      await page.evaluate(theme => { fixture.config.theme = theme; fixture.emit('theme-changed', theme); }, theme);
+      await page.getByRole('button', { name: 'Save', exact: true }).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: path.join(output, `words-soundalike-${theme}-${width}.png`), animations: 'disabled' });
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    }
+    await page.getByRole('checkbox', { name: 'Portuguese', exact: true }).uncheck();
+    assert(await page.getByRole('button', { name: 'Save', exact: true }).isDisabled());
+    await page.getByRole('checkbox', { name: 'Portuguese', exact: true }).check();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.waitForFunction(() => fixture.config.sound_alikes.length === 1);
+    assert.deepEqual(await page.evaluate(() => fixture.config.sound_alikes), [{ heard: 'myself', word: 'Mycel', languages: ['pt'] }]);
+    assert.equal(await page.evaluate(() => fixture.wizardRawRequests.at(-1)), true);
+  });
+  for (const [heard, message] of [['mycel.', 'Heard correctly.'], ['one two three four five six', 'Could not hear a single word. Try again.']]) {
+    await checked(`Word check never saves a rule for ${heard}`, async page => {
+      await addMycel(page);
+      const before = await page.evaluate(() => fixture.saves.length);
+      await sayWord(page, heard);
+      await page.getByText(message, { exact: true }).waitFor();
+      assert.equal(await page.getByRole('button', { name: 'Save', exact: true }).count(), 0);
+      assert.deepEqual(await page.evaluate(() => fixture.config.sound_alikes), []);
+      assert.equal(await page.evaluate(() => fixture.saves.length), before);
+    });
+  }
+  await checked('Skipping vocabulary advances without saving or scanning', async page => {
+    await toWords(page);
+    const before = await page.evaluate(() => fixture.saves.length);
+    await page.getByRole('button', { name: 'Skip', exact: true }).click();
+    await page.getByRole('heading', { name: 'Choose your dictation shortcut', exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => fixture.saves.length), before);
+    assert.equal(await page.evaluate(() => fixture.calls.includes('scan_folder_for_terms')), false);
+  });
+  await checked('Empty and truncated scans explain their result without saving', async page => {
+    await toWords(page);
+    await page.evaluate(() => { fixture.wizardScanReport = { candidates: [], files_read: 12, truncated: true }; });
+    await page.getByRole('button', { name: 'Choose a folder', exact: true }).click();
+    await page.getByText('12 files read', { exact: true }).waitFor();
+    await page.getByText('No unusual words found. You can add words later in Dictionary.', { exact: true }).waitFor();
+    await page.getByText('Large folder: showing the best matches from the first files.', { exact: true }).waitFor();
+  });
+  await checked('Adding vocabulary after going Back preserves the unsaved shortcut choice', async page => {
+    await toWords(page);
+    await page.getByRole('button', { name: 'Skip', exact: true }).click();
+    await page.getByRole('button', { name: 'Right Ctrl', exact: true }).click();
+    await page.keyboard.down('AltRight'); await page.keyboard.up('AltRight');
+    await page.getByRole('button', { name: 'Right Alt', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await pickWords(page);
+    await page.getByRole('checkbox', { name: 'Mycel', exact: true }).check();
+    await page.getByRole('button', { name: 'Add 1 word', exact: true }).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('button', { name: 'Right Alt', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('button', { name: 'Finish setup', exact: true }).click();
+    await page.waitForFunction(() => fixture.config.onboarding_completed);
+    assert.equal(await page.evaluate(() => fixture.config.hold_hotkey), 'RAlt');
+  });
+}
