@@ -1,104 +1,83 @@
 # Lectus - handoff
 
-Updated: 2026-11-13. Branch: feat/remote-dictation. No push, tag or installation.
+Updated: 2026-11-13. Branch: feat/remote-dictation. No push/tag/installation.
 
-## Active work: discovery received; design pending
+## Active work
 
-Run: `run_db09bc5a3181`; integration source base: `3b17365`.
-Four discovery reports are received/read; material premises were spot-checked.
-See `docs/handoffs/2026-11-13-access-android-coordination.md` for evidence and ownership.
-No product implementation or complete design is approved. Owner choice remains
-pending: Play with in-app subscription (coordinator recommendation), Play only
-consuming web access, or APK first. No answer has been recorded.
-Independent review `task_82059cb3e1e4` and policy clarification `task_5d630d994181`
-failed before execution at `agent-hooks-review-prompt`: five new/changed hooks.
-Owner was asked to choose "Continue without trusting" in both tabs; no answer yet.
-Next: inspect the retained attempts after that action, recover the same Tasks,
-close material design gaps, then obtain review and approval of the full design.
-## Confirmed owner decisions and facts
+Run `run_db09bc5a3181`. Initial four discovery reports are complete and read.
+The owner requested more aggressive parallel execution. Seven follow-up assignments
+are submitted: review, policy, auth, receipts, grant races, Android UI and tooling.
+Five launches are confirmed; auth and policy returned `outcome_unknown` after
+input acceptance. Do not resend or infer failure; follow their Orca receipts.
+Earlier hook menus cleared: both retained sessions were observed Ready before
+reuse. The coordinator did not trust hooks or send worker-terminal input.
+Next: consume reports, verify results, inspect the Android screenshots, and dispatch
+newly ready independent work. Complete design/review/owner approval precedes product code.
 
-- The owner has no registered company. Individual publishing is a provisional
-  preference for a personal portfolio/CV; public legal identity remains unset.
-- The owner created Organic and Mycel and describes both as public fairlaunches
-  starting at zero on launchpads, traded on DEXs. This does not establish a legal
-  classification, a free-offer exemption or compliance with MiCA.
-- Lectus is a benefit for holders/community contributors, with a proposed normal
-  subscription around EUR 5/month for users who do not want cryptocurrency.
-- The paid price covers local AI, not publisher-funded cloud inference. Existing
-  bring-your-own-API functionality stays available; provider usage belongs to the
-  user's provider account and needs explicit processing consent.
-- Gift codes offer 1, 3 or 12 months to friends/other people. Selling them was not decided.
-- Paid/gift access uses an email account without a crypto wallet. Passwordless email
-  was proposed and accepted; Wispr Flow is the reference for browser sign-in and
-  account recovery across devices, not proof that it uses the same auth method.
-- Up to two personal devices per account, including computer plus phone.
-- After activation, local use should work offline for the paid or gifted period.
-- Android only for the first mobile version. iPhone is outside the current scope.
+## Authoritative pointers
 
-## Proposed defaults, not separate owner decisions
+- `docs/handoffs/2026-11-13-orca-architect-prompt.md`: authorization and boundaries.
+- `docs/handoffs/2026-11-13-access-android-coordination.md`: DAG, identities and evidence.
+- `docs/designs/2026-11-13-access-and-android.md`: engineering draft, NOT approval packet.
+- `.context/lectus-access-android-20261113/`: ignored reports/labs/receipts; not portable.
+  Initial source base `3b17365`; subsequent coordinator commits only change docs.
 
-Same features for each valid access route. Unique one-use gift codes, duration
-starting on redemption, no bank card needed for a gift, no automatic charge when
-it expires. A normal subscription or holder eligibility can continue access.
-Retain the existing seven-day trial unless the new design explicitly changes it.
+## Settled product requirements
 
-## Open design branches and feasibility gates
+- Local AI target about EUR 5/month; no publisher-funded inference. Existing BYO
+  providers stay with user billing and explicit processing consent.
+- Paid/gift access uses passwordless email without requiring crypto. Gifts grant
+  1/3/12 months to friends/others; selling gift cards was not decided.
+- Community/holder access remains an alternative. Two personal devices can include
+  desktop+Android; paid/gift access works offline for the activated period.
+- Android first; iOS excluded. Wispr Flow is a browser-login/recovery UX reference,
+  not evidence of its implementation or permission to clone it.
+- No registered company; individual publishing provisional; public identity unset.
+  Owner describes Organic/Mycel fairlaunches traded on DEXs, not a legal classification
+  or proof of any MiCA/free-offer exemption.
 
-- Android distribution: Google Play as primary channel, direct APK beta, or another
-  combination. This affects purchase UI, billing and review requirements.
-- Trial sign-in timing, account/wallet association and account recovery details.
-- Device replacement/revocation while old devices remain offline; a hard immediate
-  two-device limit cannot be assumed alongside long offline receipts.
-- Payment-provider eligibility, taxes/final consumer price and token-related
-  business review. No merchant, hosting or authentication service was activated.
-- Android dictation integration and local-model performance need a real-device
-  prototype. The current desktop Tauri implementation is not an Android build.
+## Proposals and pending decisions
 
-Google Play permits consumption-only apps to use existing access bought elsewhere;
-in-app digital purchases have billing requirements and regional/program exceptions.
-This does not pre-approve our holder/voucher model or allow hidden review behavior.
-Source: https://support.google.com/googleplay/android-developer/answer/10281818
-Blockchain policy: https://support.google.com/googleplay/android-developer/answer/13607354
-Apple has separate crypto/license unlocking restrictions; iOS was parked, not solved.
+Proposed defaults: equal features across access routes; one-use gifts start on
+redemption, need no card and never autocharge; retain the seven-day trial.
+Pending owner question: Play with in-app subscription (coordinator recommendation),
+Play consumption-only plus website subscription, or APK first. No answer recorded.
+Still material: long offline validity versus replacement/strict two-device use;
+holder identity/freshness migration, trial/recovery, time uncertainty and gift overlap.
+A positive holder cache currently has no age-based expiry; seven days would change behavior.
+Android requires native IME/device proof; local cleanup/translation parity is unproved.
+Provider eligibility, jurisdiction/taxes/final price and publication identity remain open.
 
-## Completed source and verification
+## Existing source and acceptance
 
-Setup wizard, seven-day trial, sound-alikes/prompt budget, bounded local folder scan
-and branded NSIS art are complete through ca23c01; authorized review fixes: 061a023.
-Last full checks: 310 native passed, 0 failed, 13 ignored; frontend build passed;
-25 wizard scenarios, 11 guided scenarios and 18 legal tests passed. UI IPC is mocked.
-No physical microphone unplug/permissions, fresh install or installer acceptance
-was performed. macOS is uncompiled; real Windows-to-Mac insertion remains pending.
-Detailed implementation history and review scope are preserved in
-docs/handoffs/archive/HANDOFF-2026-11-13-setup-complete.md.
-Generated smoke output was removed; unrelated .context/reviews/diagnostics preserved.
+Wizard, trial, sound-alikes/prompt budget, bounded scan and NSIS art are complete
+through ca23c01; review fixes 061a023. Historical checks: 310 native passes/13 ignored;
+frontend build, 25 wizard, 11 guided and 18 legal tests. UI IPC is mocked.
+No fresh installer/microphone-permission acceptance; macOS uncompiled and real
+Windows-to-Mac insertion pending. Discovery did not repeat unchanged full suites.
+History/art paths: `docs/handoffs/archive/HANDOFF-2026-11-13-setup-complete.md`.
 
-## Release and earlier acceptance still pending
+## Release gates
 
-legal/manifest.json is unchanged/unapproved. Final publisher details, licence/support
-terms, identity disclosures and third-party obligations are unresolved. Generic
-approval of product rules does not fill missing facts or approve publication.
-The microphone privacy sentence needs to include shortcut practice/permission tests
-when the legal drafts are finalized. No legal publication flags were changed.
-Record four owner WAVs and run the bias benchmark before changing prompt wording.
-English-sentence myself/Mycel ambiguity and automatic word learning remain separate.
-Official ChatGPT/Claude login and real inference are still pending; historical
-candidate receipts predate the wizard. A fresh build/readiness is needed for live tests.
+`legal/manifest.json` is unchanged/unapproved. Publisher, licence/support, identity
+disclosures and third-party obligations remain unresolved. Privacy wording must
+include shortcut practice/permission tests when legal drafts are finalized.
+Four owner WAVs and bias benchmark precede prompt changes; myself/Mycel ambiguity
+and automatic word learning remain separate. Official ChatGPT/Claude login and
+real inference still need a fresh candidate/readiness check and native acceptance.
+No capture/injection/shortcut change or installed-app replacement is authorized.
 
-## Generated artifacts and suggested skills
+## Artifacts and suggested skills
 
-Canonical art: src-tauri/icons/installer-header.bmp and installer-sidebar.bmp;
-generator: scripts/gen_installer_art.ps1. This session created the Orca Run/tasks,
-local ignored briefs/receipts and the portable coordination snapshot above.
-No new keys, accounts or deployed services. Use orchestration/orca-cli and
-parallel-feature-development; brainstorming/grill-me for material design gaps.
-Use writing-plans only after approval; verify/computer-use only for separately
-authorized native acceptance. Task Observer and model-router remain applicable.
+Only docs plus ignored disposable synthetic labs are authorized in this phase.
+No keys/accounts/services/deployments created by the coordinator. Usage totals unavailable.
+Use task-observer, model-router, orca-cli, orchestration, parallel-feature-development;
+brainstorming/grill-me for material gaps. Writing-plans only after full design approval.
 
 ## Next-session prompt
 
 ```text
-Resume central Lectus coordination. Read docs/HANDOFF.md, docs/handoffs/2026-11-13-orca-architect-prompt.md and docs/handoffs/2026-11-13-access-android-coordination.md. Inspect and resume Run run_db09bc5a3181; do not duplicate its discovery workers. Four discovery reports are received. Two existing follow-up Tasks failed before execution at the changed-hooks prompt; recover their exact identities after the owner handles that prompt. Close material design gaps and obtain independent review and owner approval before implementation.
-Model: gpt-6-astra xhigh (cross-platform architecture, authentication and billing supervision).
-Skills: task-observer, model-router, orca-cli, orchestration, parallel-feature-development; brainstorming/grill-me for material gaps.
+Resume Lectus Run run_db09bc5a3181. Read docs/HANDOFF.md, docs/handoffs/2026-11-13-orca-architect-prompt.md, docs/handoffs/2026-11-13-access-android-coordination.md and docs/designs/2026-11-13-access-and-android.md. Initial discovery is complete; seven follow-up assignments were submitted. Inspect existing identities, handle reports/questions and dispatch the ready independent frontier without duplicating unknown launches. The Android-channel question and full design approval remain pending.
+Model: gpt-6-astra xhigh — cross-platform architecture and auth/billing supervision.
+Skills: task-observer, model-router, orca-cli, orchestration, parallel-feature-development, brainstorming, grill-me.
 ```

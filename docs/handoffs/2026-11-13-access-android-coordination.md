@@ -79,7 +79,7 @@ branches. Use writing-plans only after the complete design is approved.
 ## Next-session prompt
 
 ```text
-Resume Lectus Run run_db09bc5a3181 as the central Orca coordinator. Discovery is in progress; no account/billing/Android product design has been approved.
+Resume Lectus Run run_db09bc5a3181 as the central Orca coordinator. Initial discovery is complete; an expanded follow-up frontier is submitted. No account/billing/Android product design is approved.
 Files: docs/HANDOFF.md, docs/handoffs/2026-11-13-orca-architect-prompt.md, docs/handoffs/2026-11-13-access-android-coordination.md.
 Model: gpt-6-astra xhigh — cross-platform architecture and auth/billing supervision.
 Skills: task-observer, model-router, orca-cli, orchestration, parallel-feature-development, brainstorming, grill-me.
@@ -128,7 +128,7 @@ or strictly two physical devices in simultaneous offline use. The proposed
 replacement throttle, holder TTL, mandatory holder email and clock-failure policy
 have not been accepted on the owner's behalf.
 
-## Follow-up DAG and startup blocker
+## Historical follow-up startup blocker
 
 Independent review depends on the four original completed Tasks. The policy
 clarification reuses the billing Dispatch mailbox. Both new starts failed before
@@ -166,3 +166,59 @@ After the prompts: finish evidence review, close the offline/device tradeoff and
 other material branches, write the full design, obtain its independent review and
 owner approval, then freeze contracts and dispatch implementation. No complete
 design or implementation plan has been represented as approved.
+## Latest: expanded independent frontier
+
+The owner explicitly requested more aggressive agent parallelism. The coordinator
+expanded work to seven follow-up assignments while keeping production implementation
+behind design approval. The earlier hook menus were no longer present: both exact
+retained sessions showed Ready. No coordinator hook-trust change or terminal input
+was used; the existing Tasks were recovered through worker-start.
+
+| Existing Task | Current Dispatch | Launch evidence |
+|---|---|---|
+| `task_82059cb3e1e4` review | `ctx_76e92f87d028` | ready; retained Astra xhigh session |
+| `task_5d630d994181` policy | `ctx_10a469b72615` | input accepted; turn_start_unobserved/outcome_unknown, retained Sol high |
+
+| New lane / Task | Dispatch | Model / effort | Exact ownership |
+|---|---|---|---|
+| Auth `task_6e09f5a20133` | `ctx_ee7eecf17a88` | Astra high | `auth-lab/` |
+| Receipts `task_7fdeab05b636` | `ctx_4cdba1e87c90` | Sol high | `receipt-lab/` |
+| Gift/event races `task_0e7efc83bd09` | `ctx_74113e23eac0` | Sol high | `grant-lab/` |
+| Android interaction `task_2e945f88dead` | `ctx_760322cbe728` | Terra high | `android-ui/` |
+| Tooling inventory `task_e4b6bff6b4ea` | `ctx_e8f1c5ee72fd` | Luna medium | `toolchain-inventory/` |
+
+Owned directories are under `.context/lectus-access-android-20261113/`.
+Briefs/receipts remain coordinator-owned. No product source, shared contracts,
+manifests or lockfiles are assigned to these lanes. Auth/receipts depend on completed
+contracts+lifecycle discovery; grants on billing+lifecycle; Android UI on
+Android+contracts; tooling on Android discovery. All dependencies were ready.
+
+Receipt/grant labs must produce runnable synthetic adversarial tests with negative
+controls. Auth may produce a local handoff/PKCE state-machine probe. Android UI is
+an interactive browser simulation with screenshots, not a native Android build.
+Tooling is narrow read-only inventory beyond the Windows locations already inspected.
+Only existing tools/private outputs are permitted; no downloads, hardware, external
+accounts, actual charges or messages. This separates experiment evidence from
+approved production contracts and real platform acceptance.
+
+The four new non-auth launches were ready; auth returned outcome_unknown after input
+acceptance. Together with the recovered workers: five confirmed starts and two accepted
+inputs whose turn start was not observed. Follow the receipt: do not resend/abandon
+from silence; yield, process wake messages, and inspect the exact Dispatch if nothing
+arrives. These are launch states, not completion claims.
+
+Resource evidence at expansion: about 12.9 GiB free RAM; lightweight Node/Python
+experiments plus one browser prototype, with no native builds/shared targets.
+Model routing follows the manifest's per-lane rationale; cost/usage remains unavailable.
+
+A first inline command for writing briefs was refused by the WSL PreToolUse guard
+because it matched command-like prose inside the brief. It performed no task creation.
+The coordinator then wrote the data with a structured patch and used short CLI commands
+reading spec files; the guard was not disabled. Exact task and launch receipts are
+retained in each owned directory and expansion-tasks.json.
+
+The coordinator also wrote `docs/designs/2026-11-13-access-and-android.md` as an
+explicitly incomplete engineering draft to collect these results. It is not a final
+approval packet or frozen contract. The outstanding Android purchase-channel question
+was not answered by the request for more parallelism. Continue material questions one
+at a time while these independent assignments run.
