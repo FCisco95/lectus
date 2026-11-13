@@ -65,6 +65,9 @@
     "windows": {
       "nsis": {
         "installerIcon": "icons/icon.ico",
+        "headerImage": "icons/installer-header.bmp",
+        "sidebarImage": "icons/installer-sidebar.bmp",
+        "uninstallerHeaderImage": "icons/installer-header.bmp",
         "installMode": "currentUser",
         "languages": ["English", "Portuguese", "SimpChinese", "TradChinese"],
         "displayLanguageSelector": true
