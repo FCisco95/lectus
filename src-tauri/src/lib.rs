@@ -26,6 +26,7 @@ mod subscriptions;
 mod transcription;
 mod translation;
 mod updates;
+mod vocabulary_scan;
 mod worker;
 
 use state::{AppState, RecordingState};
@@ -1231,6 +1232,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--autostart"]),
@@ -1277,6 +1279,7 @@ pub fn run() {
             download_translation_model,
             save_config,
             complete_onboarding,
+            vocabulary_scan::scan_folder_for_terms,
             engine_ready,
             setup_wizard::wizard_mic_start,
             setup_wizard::wizard_mic_stop,
