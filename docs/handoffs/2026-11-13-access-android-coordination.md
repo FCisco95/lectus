@@ -1,6 +1,6 @@
 # Lectus access and Android coordination
 
-Updated: 2026-11-13. Discovery is in progress; no product design is approved.
+Updated: 2026-11-13. Four discovery reports received; no product design is approved.
 Next: consume this Run's reports, verify consequential claims, consolidate the
 design and close one material owner decision at a time before design approval.
 
@@ -85,3 +85,84 @@ Model: gpt-6-astra xhigh — cross-platform architecture and auth/billing superv
 Skills: task-observer, model-router, orca-cli, orchestration, parallel-feature-development, brainstorming, grill-me.
 Inspect the Run and current consumer before resuming it; process reports/questions, verify evidence and dispatch newly ready work without duplicating discovery. Present the consolidated design for approval before product implementation.
 ```
+
+## Discovery received and verified premises
+
+All four original Tasks reported succeeded through worker_done. Their deliverables
+are reports only; no source code, tests or native acceptance were delivered.
+The coordinator read all reports and directly checked these material premises:
+
+- `src-tauri/src/license/mod.rs:139` preserves a seven-day local trial and gives
+  an allowing holder verdict precedence. `:167` returns Active for a cached
+  positive balance without checking its age; `license/commands.rs:206` preserves
+  the cache after RPC failure. A seven-day holder receipt changes current behavior.
+- `src-tauri/Cargo.toml:72` and `:87` configure inference for desktop targets;
+  a mobile entry annotation does not prove Android support.
+- `transcription/model.rs:175`, `ai/local_llm.rs:24` and `translation.rs:8` list
+  about 3408 MB for Base+cleanup+translation downloads, not measured process RAM.
+- The contracts report found no Lectus email-account/billing contract in its
+  bounded search. AI-provider subscription auth is a different system.
+- These are static checks. No historical suite was rerun or fresh runtime
+  acceptance claimed; source is unchanged since the verified discovery base.
+
+Android recommendation: native Kotlin input method plus reusable Rust core,
+subject to a real-device prototype. A Tauri settings Activity remains an
+alternative. SDK/NDK readiness was not demonstrated in the inspected Windows
+locations; other disks/WSL hosts were not exhaustively inspected. ASR-only is a
+possible disposable prototype, not approval to reduce the mobile product or
+claim local cleanup/translation parity.
+
+Primary sources directly checked by the coordinator:
+- [Android input methods](https://developer.android.com/develop/ui/views/touch-and-input/creating-input-method) supports the native service architecture; it does not prove Lectus microphone/insertion behavior.
+- [Play Payments FAQ](https://support.google.com/googleplay/android-developer/answer/10281818?hl=en) permits consumption-only access and informational text without direct purchase links. [Payments policy](https://support.google.com/googleplay/android-developer/answer/9858738?hl=en) covers in-app purchases and payment-directed signup flows. Holder/custom-code acceptance remains unproved.
+- [Lemon Squeezy prohibited products](https://docs.lemonsqueezy.com/help/getting-started/prohibited-products) lists crypto-related products; Lectus eligibility is undetermined.
+- [Paddle AUP](https://www.paddle.com/help/start/account-verification/what-am-i-not-allowed-to-sell-on-paddle) lists virtual currency/stored value including gift cards/vouchers. One direct fetch failed; the official indexed page was retrieved, dated 13 April 2026. [Promotional guidance](https://www.paddle.com/resources/best-discounts-for-saas-companies-with-paddle) separately describes free trials, additional service months and discounts. This does not establish either a blanket ban or specific approval for Lectus free access codes.
+
+Correction to the initial billing framing: the owner decided to offer codes of
+1/3/12 months, not to sell gift cards. Paid gifting and prices are not approved
+requirements. The policy follow-up must separate those models; no renaming to
+evade a policy, hidden checkout or provider-approval claim is accepted.
+
+Long offline receipts plus device replacement cannot promise immediate revocation
+or strictly two physical devices in simultaneous offline use. The proposed
+replacement throttle, holder TTL, mandatory holder email and clock-failure policy
+have not been accepted on the owner's behalf.
+
+## Follow-up DAG and startup blocker
+
+Independent review depends on the four original completed Tasks. The policy
+clarification reuses the billing Dispatch mailbox. Both new starts failed before
+task execution; no review or clarification result exists:
+
+| Task | Failed Dispatch | Exact retained terminal |
+|---|---|---|
+| `task_82059cb3e1e4` independent review | `ctx_541b91a82e71` | `term_a140ae58-d454-45af-aaa5-f985f060afce` |
+| `task_5d630d994181` free-code clarification | `ctx_661b2bc64a9f` | `term_c388d2660c5ee62ce6143ec761bc9395` |
+
+worker-show/worker-read proved both live at `agent-hooks-review-prompt`:
+"5 hooks are new or changed"; the runtime warns hooks can run outside the sandbox.
+The owner was asked to choose "Continue without trusting" in both tabs.
+No answer is recorded. No hook trust, terminal steering or automatic retry occurred.
+The terminals are retained for that requested action; neither is claimed exited.
+
+After confirmation, inspect exact identities/readiness and follow the installed
+recovery guide. Recover the same Tasks/attempt chain or reuse their proven ready
+terminal through worker-start where supported; never send terminal input or
+create replacement Tasks. Release only an exact owned failed terminal being
+replaced, following worker-release receipts. No broad cleanup or resets.
+
+Requested models: independent critical review Astra xhigh; policy follow-up
+reuses Sol high. Actual token/cost totals are unavailable in the launch receipts.
+Four original reports remain completed despite these two failed follow-up starts.
+
+## Pending owner decision
+
+Android distribution/purchase question is pending: Play with in-app subscription
+(coordinator recommendation for non-crypto UX, with extra integration), Play
+consumption-only plus website subscription, or APK first. No answer is recorded.
+The hook prompt is a separate operational action, not product approval.
+
+After the prompts: finish evidence review, close the offline/device tradeoff and
+other material branches, write the full design, obtain its independent review and
+owner approval, then freeze contracts and dispatch implementation. No complete
+design or implementation plan has been represented as approved.

@@ -2,18 +2,19 @@
 
 Updated: 2026-11-13. Branch: feat/remote-dictation. No push, tag or installation.
 
-## Active work: supervised Orca discovery
+## Active work: discovery received; design pending
 
-Run: `run_db09bc5a3181`; integration base: `3b17365` on `feat/remote-dictation`.
-Orca 1.4.257 has four independent discovery tasks; no results are integrated yet.
-The coordinator owns integration, shared contracts and this handoff. Workers own
-only their separate reports under `.context/lectus-access-android-20261113/`.
-Read `docs/handoffs/2026-11-13-access-android-coordination.md` for task identities.
-Next: process Orca reports/questions, verify material premises, consolidate the
-design and ask only the highest-impact unresolved owner question. Obtain approval
-of the complete design before product implementation. No account, billing,
-voucher or Android product code is approved or implemented by this Run.
-
+Run: `run_db09bc5a3181`; integration source base: `3b17365`.
+Four discovery reports are received/read; material premises were spot-checked.
+See `docs/handoffs/2026-11-13-access-android-coordination.md` for evidence and ownership.
+No product implementation or complete design is approved. Owner choice remains
+pending: Play with in-app subscription (coordinator recommendation), Play only
+consuming web access, or APK first. No answer has been recorded.
+Independent review `task_82059cb3e1e4` and policy clarification `task_5d630d994181`
+failed before execution at `agent-hooks-review-prompt`: five new/changed hooks.
+Owner was asked to choose "Continue without trusting" in both tabs; no answer yet.
+Next: inspect the retained attempts after that action, recover the same Tasks,
+close material design gaps, then obtain review and approval of the full design.
 ## Confirmed owner decisions and facts
 
 - The owner has no registered company. Individual publishing is a provisional
@@ -26,7 +27,7 @@ voucher or Android product code is approved or implemented by this Run.
 - The paid price covers local AI, not publisher-funded cloud inference. Existing
   bring-your-own-API functionality stays available; provider usage belongs to the
   user's provider account and needs explicit processing consent.
-- Gift codes offer 1, 3 or 12 months to friends/other people.
+- Gift codes offer 1, 3 or 12 months to friends/other people. Selling them was not decided.
 - Paid/gift access uses an email account without a crypto wallet. Passwordless email
   was proposed and accepted; Wispr Flow is the reference for browser sign-in and
   account recovery across devices, not proof that it uses the same auth method.
@@ -97,7 +98,7 @@ authorized native acceptance. Task Observer and model-router remain applicable.
 ## Next-session prompt
 
 ```text
-Resume central Lectus coordination. Read docs/HANDOFF.md, docs/handoffs/2026-11-13-orca-architect-prompt.md and docs/handoffs/2026-11-13-access-android-coordination.md. Inspect and resume Run run_db09bc5a3181; do not duplicate its discovery workers. Process reports/questions and dispatch newly ready work. The access/Android design still needs owner approval before implementation.
+Resume central Lectus coordination. Read docs/HANDOFF.md, docs/handoffs/2026-11-13-orca-architect-prompt.md and docs/handoffs/2026-11-13-access-android-coordination.md. Inspect and resume Run run_db09bc5a3181; do not duplicate its discovery workers. Four discovery reports are received. Two existing follow-up Tasks failed before execution at the changed-hooks prompt; recover their exact identities after the owner handles that prompt. Close material design gaps and obtain independent review and owner approval before implementation.
 Model: gpt-6-astra xhigh (cross-platform architecture, authentication and billing supervision).
 Skills: task-observer, model-router, orca-cli, orchestration, parallel-feature-development; brainstorming/grill-me for material gaps.
 ```
