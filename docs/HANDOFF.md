@@ -4,10 +4,14 @@ Updated: 2026-10-22. Branch feat/remote-dictation; dirty tree preserved. No comm
 
 ## Active work (2026-11-13): setup wizard, free trial, vocabulary
 
-Design approved by the owner on 2026-11-13. Nothing is built yet.
+Design approved by the owner on 2026-11-13. Tasks 1 to 5 of 11 are done and committed on feat/remote-dictation (b95e7f6..26f43a6), nothing pushed. Native tests: 297 pass, 0 fail, 13 ignored (baseline was 276).
+- Done: checkpoint commit, sound-alikes (Config.sound_alikes), prompt token budget plus ignored bias benchmark and scripts/record-fixture.cmd, 7 day trial (LicenseStatus kind 'trial', trial.json, TERMS sentence), wizard capture commands (src-tauri/src/setup_wizard.rs).
+- NEXT: Task 6 (wizard shell, welcome, terms, trial, finish). Then 7 to 11. A fresh session should start at Task 6.
 - Spec: docs/superpowers/specs/2026-11-13-setup-wizard-design.md
-- Plan (11 tasks, start at Task 1): docs/superpowers/plans/2026-11-13-setup-wizard.md
-- Execute with superpowers:executing-plans. The plan was written on Fable 5.2 so a Sonnet 5.5 session can run it. If a task fails twice, stop and report.
+- Plan (11 tasks): docs/superpowers/plans/2026-11-13-setup-wizard.md
+- Execute with superpowers:executing-plans (Claude) or follow the plan directly (Codex, GPT-6.1 Sol high; Astra xhigh for Task 9 if stuck). If a task fails twice, stop and report.
+- Build gotcha: C:\lt must be a junction to src-tauri\target in this repo. It pointed at the old Desktop path and was repointed on 2026-11-13. From Git Bash run tests with: cmd.exe //c ".\\test-release.cmd".
+- Not verified: the three wizard capture commands compile but have no native test; Task 7 smoke covers them with mocked IPC only.
 - Owner inputs still needed, none block the build: approve the legal documents (blocks fresh-install and installer acceptance only), approve three draft legal sentences, record four voice fixtures for the "Mycel" prompt benchmark.
 - Found during research: the owner's config has language locked to `pt` and "Mycel" is often transcribed as "myself" (history: 1 correct, 3 "myself"). Parked next projects: English/Portuguese-only detection, new speech engines (Parakeet, Qwen3-ASR), learning from corrections.
 
