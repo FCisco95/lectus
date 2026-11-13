@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { LicenseFloor, LicenseStatus } from './types';
-import { shortAddress } from './types';
+import { linkedPubkey, shortAddress, trialLine } from './types';
 import { HelpTip } from '../HelpTip';
 
 const EXPLORER = 'https://solscan.io/account/';
@@ -78,8 +78,10 @@ export function MembershipPanel() {
     }
   };
 
-  const pubkey = status && status.kind !== 'unlinked' ? status.pubkey : '';
-  const ticker = status && status.kind !== 'unlinked' ? (status.ticker ?? 'ORG') : 'ORG';
+  const pubkey = linkedPubkey(status);
+  const linked = pubkey !== '';
+  const ticker = status && (status.kind === 'active' || status.kind === 'grace' || status.kind === 'locked')
+    ? (status.ticker ?? 'ORG') : 'ORG';
 
   return (
     <div>
@@ -97,12 +99,12 @@ export function MembershipPanel() {
           <div className="row-label">
             <b>Wallet</b>
             <span>
-              {status?.kind === 'unlinked'
+              {!linked
                 ? 'Not linked yet.'
                 : `Linked: ${shortAddress(pubkey)}`}
             </span>
           </div>
-          {status?.kind === 'unlinked' ? (
+          {!linked ? (
             <button className="btn btn-primary" onClick={connect} disabled={linking}>
               {linking ? 'Waiting for your wallet…' : 'Connect wallet'}
             </button>
@@ -125,7 +127,7 @@ export function MembershipPanel() {
           </div>
         )}
 
-        {status && status.kind !== 'unlinked' && (
+        {status && (status.kind === 'active' || status.kind === 'grace' || status.kind === 'locked') && (
           <div className="row">
             <div className="row-label">
               <b>Holdings</b>
@@ -156,6 +158,12 @@ export function MembershipPanel() {
         </div>
       </div>
 
+      {status?.kind === 'trial' && (
+        <div className="banner">
+          <span>{trialLine(status.days_left, floor?.floor_usd ?? 20)}</span>
+        </div>
+      )}
+
       {status?.kind === 'grace' && (
         <div className="banner">
           <span>
@@ -177,7 +185,7 @@ export function MembershipPanel() {
 
       {error && <p className="field-hint" style={{ color: 'var(--danger)' }}>{error}</p>}
 
-      {status && status.kind !== 'unlinked' && (
+      {linked && (
         <button className="btn btn-ghost" onClick={unlink} disabled={busy}>
           Unlink this wallet
         </button>

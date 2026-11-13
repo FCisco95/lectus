@@ -67,7 +67,8 @@ export type LicenseStatus =
   | { kind: 'unlinked' }
   | { kind: 'active'; pubkey: string; balance: number; usd: number; ticker?: string }
   | { kind: 'grace'; pubkey: string; usd: number; days_left: number; ticker?: string }
-  | { kind: 'locked'; pubkey: string; usd: number; ticker?: string };
+  | { kind: 'locked'; pubkey: string; usd: number; ticker?: string }
+  | { kind: 'trial'; days_left: number; pubkey?: string | null };
 
 export interface LicenseTokenQuote {
   mint: string;
@@ -89,7 +90,19 @@ export interface LicenseFloor {
 /** Whether the gate currently permits dictation. Mirrors
  *  `Status::allows_dictation` in src-tauri/src/license/mod.rs. */
 export function allowsDictation(status: LicenseStatus | null): boolean {
-  return status?.kind === 'active' || status?.kind === 'grace';
+  return status?.kind === 'active' || status?.kind === 'grace' || status?.kind === 'trial';
+}
+
+/** The linked wallet's address, or '' when none is linked. */
+export function linkedPubkey(status: LicenseStatus | null): string {
+  if (!status || status.kind === 'unlinked') return '';
+  return status.pubkey ?? '';
+}
+
+/** "Free trial: 3 days left. After that, hold $20 of ORGANIC or Mycel." */
+export function trialLine(daysLeft: number, floorUsd = 20): string {
+  const days = `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} left`;
+  return `Free trial: ${days}. After that, hold $${floorUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })} of ORGANIC or Mycel.`;
 }
 
 /** "DuXu…bonk" — a Solana pubkey at a glance. */

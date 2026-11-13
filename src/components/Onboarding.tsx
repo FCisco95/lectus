@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import '../styles/settings.css';
 import '../styles/onboarding.css';
 import type { Config, LicenseFloor, LicenseStatus } from './settings/types';
-import { IS_MAC, allowsDictation, formatHotkey, shortAddress } from './settings/types';
+import { IS_MAC, allowsDictation, formatHotkey, linkedPubkey, shortAddress } from './settings/types';
 import { HotkeyCapture } from './settings/HotkeyCapture';
 import { BrandMark } from './BrandMark';
 import { HelpTip } from './HelpTip';
@@ -131,7 +131,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
       <p>Dictation requires an eligible ORGANIC or Mycel balance. Linking a Solana wallet requests a signed message; it does not transfer SOL or tokens.</p>
       {floor ? <p>The current requirement is ${floor.floor_usd} of an eligible token. Check Membership after setup for current balances.</p>
         : <p className="field-hint">The current requirement could not be loaded. Check Membership after setup.</p>}
-      {allowsDictation(license) && license && license.kind !== 'unlinked' ? <p className="onboarding-ok" role="status">Wallet linked: {shortAddress(license.pubkey)}</p>
+      {allowsDictation(license) && linkedPubkey(license) ? <p className="onboarding-ok" role="status">Wallet linked: {shortAddress(linkedPubkey(license))}</p>
         : <button className="btn btn-primary" type="button" onClick={connectWallet} disabled={linking}>{linking ? 'Waiting for your wallet…' : 'Connect wallet'}</button>}
       {linking && <p role="status">Review the signature request in the browser tab Lectus opened.</p>}
       {linkError && <p className="onboarding-err" role="alert">{linkError}</p>}

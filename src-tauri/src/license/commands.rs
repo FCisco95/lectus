@@ -1,8 +1,8 @@
 //! Tauri surface for the Organic token gate: link, unlink, status, refresh.
 
 use super::{
-    apply_check, chain, connect, license_file, load_from, save_to, verify, License, LicenseState,
-    Status, GATE_TOKENS, ORGANIC,
+    apply_check, chain, connect, license_file, load_from, load_trial, save_to, start_trial_if_absent,
+    trial_file, verify, License, LicenseState, Status, GATE_TOKENS, ORGANIC,
 };
 use std::path::PathBuf;
 use tauri::{Emitter, Manager};
@@ -10,6 +10,30 @@ use tauri::{Emitter, Manager};
 /// Where `license.json` lives (beside `history.json` in the app data dir).
 fn license_path(app: &tauri::AppHandle) -> Option<PathBuf> {
     app.path().app_data_dir().ok().map(|d| license_file(&d))
+}
+
+/// Where `trial.json` lives (beside `license.json`).
+pub fn trial_path(app: &tauri::AppHandle) -> Option<PathBuf> {
+    app.path().app_data_dir().ok().map(|d| trial_file(&d))
+}
+
+/// Read the stored trial start at startup.
+pub fn load_trial_at_startup(dir: &std::path::Path) -> Option<i64> {
+    load_trial(&trial_file(dir))
+}
+
+/// Start the free trial if it has not started, remember it in memory and tell
+/// the UI. A failed write is logged and never fails the caller.
+pub fn start_trial(app: &tauri::AppHandle, license_state: &LicenseState) {
+    let Some(path) = trial_path(app) else { return };
+    let now = crate::now_millis();
+    match start_trial_if_absent(&path, now) {
+        Ok(started) => {
+            *license_state.trial_started_ms.lock().unwrap() = Some(started);
+            announce(app, &license_state.status(now));
+        }
+        Err(e) => log::warn!("could not save trial.json: {e}"),
+    }
 }
 
 /// Read the stored link at startup, before any window exists.
@@ -108,7 +132,7 @@ pub async fn link_wallet(
     persist(&app_handle, &license);
     *license_state.license.lock().unwrap() = Some(license.clone());
 
-    let status = super::status_of(Some(&license), now);
+    let status = license_state.status(now);
     announce(&app_handle, &status);
     log::info!("wallet linked: {} — {:?}", proof.pubkey, status);
     Ok(status)
@@ -124,7 +148,9 @@ pub fn unlink_wallet(
     if let Some(path) = license_path(&app_handle) {
         let _ = std::fs::remove_file(path);
     }
-    let status = Status::Unlinked;
+    // The trial start lives in trial.json and is deliberately left alone, so an
+    // unlinked install may still be inside its free days.
+    let status = license_state.status(crate::now_millis());
     announce(&app_handle, &status);
     Ok(status)
 }
@@ -136,7 +162,7 @@ pub async fn refresh_license(
     license_state: tauri::State<'_, LicenseState>,
 ) -> Result<Status, String> {
     let Some(mut license) = license_state.license.lock().unwrap().clone() else {
-        return Ok(Status::Unlinked);
+        return Ok(license_state.status(crate::now_millis()));
     };
 
     let pos = chain::read_qualifying_position(&license.pubkey).await?;
@@ -146,7 +172,7 @@ pub async fn refresh_license(
     persist(&app_handle, &license);
     *license_state.license.lock().unwrap() = Some(license.clone());
 
-    let status = super::status_of(Some(&license), now);
+    let status = license_state.status(now);
     announce(&app_handle, &status);
     Ok(status)
 }
@@ -173,7 +199,7 @@ pub fn spawn_background_check(app: tauri::AppHandle) {
                 apply_check(&mut license, pos.balance, pos.price, pos.ticker, now);
                 persist(&app, &license);
                 *state.license.lock().unwrap() = Some(license.clone());
-                let status = super::status_of(Some(&license), now);
+                let status = state.status(now);
                 log::info!("license re-checked: {status:?}");
                 announce(&app, &status);
             }

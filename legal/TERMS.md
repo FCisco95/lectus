@@ -14,7 +14,7 @@ Lectus converts speech to text and can optionally clean up, translate or send th
 
 ## Membership and third-party services
 
-The current membership system checks whether a linked wallet holds the configured minimum value of ORGANIC or Mycel tokens. The application displays the current requirements. Token values fluctuate; network and third-party transaction charges may apply outside Lectus. Holding tokens is not a promise of financial return, continued token value or permanent service availability. The legal characterization and consumer disclosures for this membership model require review before publication.
+The current membership system checks whether a linked wallet holds the configured minimum value of ORGANIC or Mycel tokens. The application displays the current requirements. Token values fluctuate; network and third-party transaction charges may apply outside Lectus. New installations can use dictation for 7 days without a linked wallet. After that period, dictation requires a linked wallet that meets the membership requirement described above. Holding tokens is not a promise of financial return, continued token value or permanent service availability. The legal characterization and consumer disclosures for this membership model require review before publication.
 
 Cloud providers and the optional Claude CLI have separate accounts, costs, availability and terms. Local transcription does not imply that optional cloud cleanup or translation stays on the device. Each external processing feature requires a separate user choice. The Privacy Notice describes the actual data flows.
 

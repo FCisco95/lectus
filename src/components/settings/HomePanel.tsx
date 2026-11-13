@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { Config, LicenseStatus } from './types';
-import { allowsDictation, formatHotkey } from './types';
+import { allowsDictation, formatHotkey, trialLine } from './types';
 import { HistoryList } from './HistoryList';
 
 interface HistoryStats {
@@ -20,9 +20,11 @@ interface HomePanelProps {
 
 /** One line telling a locked or in-grace holder where they stand. Holders in
  *  good standing see nothing — the gate should be invisible when it passes. */
-function membershipNotice(status: LicenseStatus | null): string | null {
+function membershipNotice(status: LicenseStatus | null, floorUsd: number): string | null {
   if (!status) return null;
   switch (status.kind) {
+    case 'trial':
+      return trialLine(status.days_left, floorUsd);
     case 'unlinked':
       return 'Link a wallet holding ORGANIC or Mycel to start dictating.';
     case 'grace':
@@ -45,6 +47,7 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
   const [retry, setRetry] = useState(0);
   const [destination, setDestination] = useState<'local' | 'send' | 'receive' | null>(null);
   const [license, setLicense] = useState<LicenseStatus | null>(null);
+  const [floorUsd, setFloorUsd] = useState(20);
   const [osName, setOsName] = useState('');
 
   const loadStats = () => {
@@ -63,6 +66,9 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
       .then(setEngineReady)
       .catch(() => { setEngineReady(null); setEngineError(true); });
     invoke<LicenseStatus>('license_status').then(setLicense).catch(() => setLicenseError(true));
+    invoke<{ floor_usd?: number }>('license_floor')
+      .then((f) => { if (typeof f?.floor_usd === 'number') setFloorUsd(f.floor_usd); })
+      .catch(() => {});
     invoke<string>('os_display_name').then(setOsName).catch(() => {});
     const loadDestination = () => invoke<{ mode: 'local' | 'send' | 'receive' }>('remote_get_settings')
       .then((settings) => setDestination(settings.mode)).catch(() => setDestination(null));
@@ -100,7 +106,7 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
     : engineReady === null ? 'Checking model…'
     : engineReady ? 'Local speech model ready' : 'Speech model not ready';
   const ready = destination !== 'receive' && allowsDictation(license) && !config.use_cloud && engineReady && !engineError;
-  const notice = membershipNotice(license);
+  const notice = membershipNotice(license, floorUsd);
   const empty = stats !== null && stats.dictations_total === 0;
   // A typed name is shown as typed; the OS full name is trimmed to its first
   // word so "Welcome back, João Francisco Vieira" does not wrap the title.
@@ -113,7 +119,7 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
           <div className="banner">
             <span>{notice}</span>
             <button className="btn btn-primary" type="button" onClick={() => onOpenTab('membership')}>
-              {license?.kind === 'unlinked' ? 'Connect wallet' : 'Membership'}
+              {license?.kind === 'unlinked' || (license?.kind === 'trial' && !license.pubkey) ? 'Connect wallet' : 'Membership'}
             </button>
           </div>
         )}

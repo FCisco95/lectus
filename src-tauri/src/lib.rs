@@ -293,6 +293,7 @@ fn commit_config_snapshot(
 #[tauri::command]
 fn complete_onboarding(
     app_state: tauri::State<AppState>,
+    license_state: tauri::State<license::LicenseState>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     legal::ensure_accepted()?;
@@ -303,6 +304,8 @@ fn complete_onboarding(
     commit_config_snapshot(&mut guard, next, &path)?;
     let device = guard.input_device.clone();
     drop(guard);
+    // The free trial starts here. A failed write is logged, never fatal.
+    license::commands::start_trial(&app_handle, &license_state);
     std::thread::spawn(move || restart_preroll(&app_handle, &device));
     Ok(())
 }
@@ -1234,9 +1237,10 @@ pub fn run() {
         .manage(updates::PendingUpdate::new())
         .manage(updates::LastUpdateError(Mutex::new(None)))
         .manage(AppState::with_config(config::Config::load_or_default()))
-        .manage(license::LicenseState::new(license::commands::load_at_startup(
-            &config::Config::app_support_dir(),
-        )))
+        .manage(license::LicenseState::new(
+            license::commands::load_at_startup(&config::Config::app_support_dir()),
+            license::commands::load_trial_at_startup(&config::Config::app_support_dir()),
+        ))
         .manage(WhisperState {
             local: Arc::new(Mutex::new(None)),
             cloud: Arc::new(Mutex::new(None)),
@@ -1603,6 +1607,18 @@ pub fn run() {
             // Organic token gate: re-read the linked wallet's balance if the
             // cadence is due. Silent and failure-tolerant — see license::commands.
             license::commands::spawn_background_check(app.handle().clone());
+
+            // Installs that finished setup before the trial existed get their
+            // free days on first launch of this version. New installs start it
+            // in complete_onboarding instead.
+            {
+                let onboarded = app.state::<AppState>().config.lock().unwrap().onboarding_completed;
+                let license_state = app.state::<license::LicenseState>();
+                let has_trial = license_state.trial_started_ms.lock().unwrap().is_some();
+                if onboarded && !has_trial {
+                    license::commands::start_trial(app.handle(), &license_state);
+                }
+            }
 
             let pipeline_handle = app.handle().clone();
             app.listen("hold-start", move |_event| {

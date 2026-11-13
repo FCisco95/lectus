@@ -54,6 +54,11 @@ pub const FLOOR_USD: f64 = 20.0;
 /// cannot reach the chain for) keeps working before dictation locks.
 pub const GRACE_DAYS: i64 = 7;
 
+/// Free days every installation gets from the end of first-run setup, with or
+/// without a wallet. Separate from [`GRACE_DAYS`], which only protects a
+/// wallet that was once above the floor.
+pub const TRIAL_DAYS: i64 = 7;
+
 /// Background re-check cadence. Deliberately slow: the wallet is linked once
 /// and must never pop up again during normal use.
 pub const RECHECK_INTERVAL_MS: i64 = 12 * 60 * 60 * 1000;
@@ -113,17 +118,46 @@ pub enum Status {
         usd: f64,
         ticker: String,
     },
+    /// Inside the free trial and not otherwise allowed. `pubkey` is set when a
+    /// wallet is linked but has not (yet) cleared the floor.
+    Trial {
+        days_left: i64,
+        pubkey: Option<String>,
+    },
 }
 
 impl Status {
     /// Whether dictation may run.
     pub fn allows_dictation(&self) -> bool {
-        matches!(self, Status::Active { .. } | Status::Grace { .. })
+        matches!(self, Status::Active { .. } | Status::Grace { .. } | Status::Trial { .. })
     }
 }
 
 /// Derive the gate's verdict from stored facts. Pure — no clock, no network.
-pub fn status_of(license: Option<&License>, now_ms: i64) -> Status {
+///
+/// The wallet's own verdict wins when it allows dictation. Otherwise a trial
+/// that started less than [`TRIAL_DAYS`] ago allows it. A clock earlier than
+/// the trial start counts as day 0.
+pub fn status_of(license: Option<&License>, trial_started_ms: Option<i64>, now_ms: i64) -> Status {
+    let wallet = wallet_status(license, now_ms);
+    if wallet.allows_dictation() {
+        return wallet;
+    }
+    if let Some(start) = trial_started_ms {
+        let elapsed = now_ms.saturating_sub(start).max(0);
+        let trial_ms = TRIAL_DAYS * MS_PER_DAY;
+        if elapsed < trial_ms {
+            let days_left = (trial_ms - elapsed + MS_PER_DAY - 1) / MS_PER_DAY;
+            let pubkey = license
+                .map(|l| l.pubkey.clone())
+                .filter(|k| !k.is_empty());
+            return Status::Trial { days_left, pubkey };
+        }
+    }
+    wallet
+}
+
+fn wallet_status(license: Option<&License>, now_ms: i64) -> Status {
     let Some(l) = license.filter(|l| !l.pubkey.is_empty()) else {
         return Status::Unlinked;
     };
@@ -214,6 +248,38 @@ pub fn load_from(path: &Path) -> Option<License> {
     serde_json::from_str(&text).ok()
 }
 
+/// `trial.json` lives beside `license.json` and survives link and unlink.
+pub fn trial_file(dir: &Path) -> PathBuf {
+    dir.join("trial.json")
+}
+
+#[derive(Serialize, Deserialize)]
+struct TrialRecord {
+    started_ms: i64,
+}
+
+/// The stored trial start. A missing, corrupt or non-positive file is absent.
+pub fn load_trial(path: &Path) -> Option<i64> {
+    let text = std::fs::read_to_string(path).ok()?;
+    let record: TrialRecord = serde_json::from_str(&text).ok()?;
+    (record.started_ms > 0).then_some(record.started_ms)
+}
+
+/// Record the trial start once. Returns the existing start when one is valid
+/// and never overwrites it.
+pub fn start_trial_if_absent(path: &Path, now_ms: i64) -> anyhow::Result<i64> {
+    if let Some(existing) = load_trial(path) {
+        return Ok(existing);
+    }
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, serde_json::to_string_pretty(&TrialRecord { started_ms: now_ms })?)?;
+    std::fs::rename(&tmp, path)?;
+    Ok(now_ms)
+}
+
 pub fn save_to(path: &Path, license: &License) -> anyhow::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
@@ -229,20 +295,24 @@ pub fn save_to(path: &Path, license: &License) -> anyhow::Result<()> {
 /// In-memory holder of the link, shared with Tauri commands.
 pub struct LicenseState {
     pub license: Mutex<Option<License>>,
+    /// When the free trial began (ms since epoch), if it has.
+    pub trial_started_ms: Mutex<Option<i64>>,
     /// Nonce handed to the browser for the in-flight link attempt.
     pub pending_nonce: Mutex<Option<String>>,
 }
 
 impl LicenseState {
-    pub fn new(license: Option<License>) -> Self {
+    pub fn new(license: Option<License>, trial_started_ms: Option<i64>) -> Self {
         Self {
             license: Mutex::new(license),
+            trial_started_ms: Mutex::new(trial_started_ms),
             pending_nonce: Mutex::new(None),
         }
     }
 
     pub fn status(&self, now_ms: i64) -> Status {
-        status_of(self.license.lock().unwrap().as_ref(), now_ms)
+        let trial = *self.trial_started_ms.lock().unwrap();
+        status_of(self.license.lock().unwrap().as_ref(), trial, now_ms)
     }
 }
 
@@ -267,25 +337,25 @@ mod tests {
 
     #[test]
     fn no_license_is_unlinked() {
-        assert_eq!(status_of(None, NOW), Status::Unlinked);
+        assert_eq!(status_of(None, None, NOW), Status::Unlinked);
     }
 
     #[test]
     fn empty_pubkey_is_unlinked() {
         let l = License::default();
-        assert_eq!(status_of(Some(&l), NOW), Status::Unlinked);
+        assert_eq!(status_of(Some(&l), None, NOW), Status::Unlinked);
     }
 
     #[test]
     fn at_or_above_floor_is_active() {
         let l = linked(FLOOR_USD, NOW);
-        assert!(matches!(status_of(Some(&l), NOW), Status::Active { .. }));
+        assert!(matches!(status_of(Some(&l), None, NOW), Status::Active { .. }));
     }
 
     #[test]
     fn below_floor_inside_window_is_grace() {
         let l = linked(3.0, NOW - 2 * MS_PER_DAY);
-        match status_of(Some(&l), NOW) {
+        match status_of(Some(&l), None, NOW) {
             Status::Grace { days_left, .. } => assert_eq!(days_left, GRACE_DAYS - 2),
             other => panic!("expected grace, got {other:?}"),
         }
@@ -294,19 +364,19 @@ mod tests {
     #[test]
     fn below_floor_past_window_is_locked() {
         let l = linked(3.0, NOW - (GRACE_DAYS + 1) * MS_PER_DAY);
-        assert!(matches!(status_of(Some(&l), NOW), Status::Locked { .. }));
+        assert!(matches!(status_of(Some(&l), None, NOW), Status::Locked { .. }));
     }
 
     #[test]
     fn never_funded_gets_no_grace() {
         let l = linked(0.0, 0);
-        assert!(matches!(status_of(Some(&l), NOW), Status::Locked { .. }));
+        assert!(matches!(status_of(Some(&l), None, NOW), Status::Locked { .. }));
     }
 
     #[test]
     fn grace_still_dictates_locked_does_not() {
-        assert!(status_of(Some(&linked(3.0, NOW)), NOW).allows_dictation());
-        assert!(!status_of(Some(&linked(3.0, 0)), NOW).allows_dictation());
+        assert!(status_of(Some(&linked(3.0, NOW)), None, NOW).allows_dictation());
+        assert!(!status_of(Some(&linked(3.0, 0)), None, NOW).allows_dictation());
         assert!(!Status::Unlinked.allows_dictation());
     }
 
@@ -346,7 +416,7 @@ mod tests {
         apply_check(&mut l, 0.0, 0.0025, "ORG", NOW + MS_PER_DAY);
         assert_eq!(l.last_ok_ms, before);
         assert!(matches!(
-            status_of(Some(&l), NOW + MS_PER_DAY),
+            status_of(Some(&l), None, NOW + MS_PER_DAY),
             Status::Grace { .. }
         ));
     }
@@ -381,7 +451,7 @@ mod tests {
         }"#;
         let l: License = serde_json::from_str(json).unwrap();
         assert_eq!(l.last_ticker, "");
-        match status_of(Some(&l), NOW) {
+        match status_of(Some(&l), None, NOW) {
             Status::Active { ticker, .. } => assert_eq!(ticker, "ORG"),
             other => panic!("expected active, got {other:?}"),
         }
@@ -402,5 +472,97 @@ mod tests {
         assert!(load_from(&path).is_none());
         std::fs::write(&path, "{ truncated").unwrap();
         assert!(load_from(&path).is_none());
+    }
+
+    #[test]
+    fn unlinked_with_fresh_trial_is_trial_for_seven_days() {
+        assert_eq!(
+            status_of(None, Some(NOW), NOW),
+            Status::Trial { days_left: 7, pubkey: None }
+        );
+        assert!(status_of(None, Some(NOW), NOW).allows_dictation());
+    }
+
+    #[test]
+    fn trial_days_round_up_like_grace() {
+        let started = NOW - 6 * MS_PER_DAY - MS_PER_DAY / 2; // 6.5 days ago
+        assert_eq!(
+            status_of(None, Some(started), NOW),
+            Status::Trial { days_left: 1, pubkey: None }
+        );
+    }
+
+    #[test]
+    fn trial_ends_exactly_after_seven_days() {
+        let started = NOW - TRIAL_DAYS * MS_PER_DAY;
+        assert_eq!(status_of(None, Some(started), NOW), Status::Unlinked);
+        assert!(!status_of(None, Some(started), NOW).allows_dictation());
+    }
+
+    #[test]
+    fn linked_but_never_funded_wallet_keeps_the_trial() {
+        let l = linked(0.0, 0);
+        let status = status_of(Some(&l), Some(NOW - MS_PER_DAY), NOW);
+        assert_eq!(
+            status,
+            Status::Trial { days_left: 6, pubkey: Some(l.pubkey.clone()) }
+        );
+        assert!(status.allows_dictation());
+    }
+
+    #[test]
+    fn active_and_grace_wallets_ignore_the_trial() {
+        let trial = Some(NOW - MS_PER_DAY);
+        assert!(matches!(status_of(Some(&linked(FLOOR_USD, NOW)), trial, NOW), Status::Active { .. }));
+        assert!(matches!(status_of(Some(&linked(3.0, NOW)), trial, NOW), Status::Grace { .. }));
+    }
+
+    #[test]
+    fn clock_earlier_than_trial_start_counts_as_day_zero() {
+        assert_eq!(
+            status_of(None, Some(NOW + 3 * MS_PER_DAY), NOW),
+            Status::Trial { days_left: 7, pubkey: None }
+        );
+    }
+
+    #[test]
+    fn expired_trial_falls_back_to_the_wallet_verdict() {
+        let started = NOW - 8 * MS_PER_DAY;
+        assert!(matches!(
+            status_of(Some(&linked(0.0, 0)), Some(started), NOW),
+            Status::Locked { .. }
+        ));
+    }
+
+    #[test]
+    fn trial_start_is_written_once_and_never_overwritten() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = trial_file(dir.path());
+        assert_eq!(load_trial(&path), None);
+        assert_eq!(start_trial_if_absent(&path, NOW).unwrap(), NOW);
+        assert_eq!(start_trial_if_absent(&path, NOW + 5 * MS_PER_DAY).unwrap(), NOW);
+        assert_eq!(load_trial(&path), Some(NOW));
+    }
+
+    #[test]
+    fn corrupt_or_non_positive_trial_file_counts_as_absent() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = trial_file(dir.path());
+        std::fs::write(&path, "garbage").unwrap();
+        assert_eq!(load_trial(&path), None);
+        std::fs::write(&path, r#"{"started_ms":-5}"#).unwrap();
+        assert_eq!(load_trial(&path), None);
+        std::fs::write(&path, r#"{"started_ms":0}"#).unwrap();
+        assert_eq!(load_trial(&path), None);
+        // A corrupt file is replaced by a fresh start rather than blocking it.
+        assert_eq!(start_trial_if_absent(&path, NOW).unwrap(), NOW);
+    }
+
+    #[test]
+    fn license_state_reports_the_trial() {
+        let state = LicenseState::new(None, Some(NOW));
+        assert_eq!(state.status(NOW), Status::Trial { days_left: 7, pubkey: None });
+        *state.trial_started_ms.lock().unwrap() = None;
+        assert_eq!(state.status(NOW), Status::Unlinked);
     }
 }
