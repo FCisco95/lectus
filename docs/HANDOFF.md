@@ -1,100 +1,89 @@
 # Lectus - handoff
 
-Updated: 2026-11-13. Branch: feat/remote-dictation. No push, tag or installation.
+Updated: 2026-11-13. Branch: feat/remote-dictation. Tasks 1 to 11 complete in source.
+No push, tag, app replacement or installation. Next: owner reviews the legal drafts.
 
-## Current state
+## Implemented
 
-Tasks 1 to 10 are implemented and committed. Task 11 stopped during final review.
-The plan requires unplug errors in the wizard, but AudioCapture exposes no failure
-channel after opening. Extending the shared audio contract needs an explicit scope
-decision under AGENTS.md's capture-pipeline guard. No such change was made.
-Next: obtain that decision, fix the review findings, then finish Task 11.
+- Two-pane setup wizard: language, unchanged legal gate, microphone, optional
+  vocabulary, local shortcut practice, trial/membership and a one-time Home hint.
+- Recommended Base/Small download and selection; latest requests wait for download
+  and native activation. Fast tests offer Large v3 Turbo Compact.
+- Local folder scan: top 30 suggestions, bounded files/bytes/depth/traversal,
+  valid text only, no symlinks/reparse points. Only selected words are saved.
+- Optional word checks save language-scoped sound-alikes only after confirmation.
+- Earlier work includes the 7 day trial, sound-alikes and prompt token budget.
+- Branded NSIS header/sidebar and uninstaller header use the existing master mark.
 
-## Commits
+## Verification
 
-- Prior work: b95e7f6..26f43a6, followed by handoff 3c97272.
-- 4854c62: wizard shell, welcome, legal gate, trial, Home try card.
-- b2b55f2: microphone test, input selection, local shortcut practice.
-- 94c38c4: bounded local folder scan and dialog:allow-open for settings only.
-- d038417: selected vocabulary, explicit sound-alikes, draft privacy sentences.
-- 2cadb60: 24-bit NSIS art and supported header/sidebar/uninstaller config.
+Task 1 recorded 276 native passes; session start reported 297. Final Windows run:
+- test-release.cmd: 310 passed, 0 failed, 13 ignored; C:/lt junction verified.
+- npm run build: passed, 96 modules.
+- Wizard: 25 functional scenarios; guided: 11; legal: 18. All passed.
+- UI uses mocked IPC. Thirty wizard and sixteen guided captures covered light/dark
+  layouts and small/default viewports; screenshots reviewed without overlap.
+- Both installer BMPs are non-empty 24-bit files, 150x57 and 164x314. JSON/image keys
+  match the installed Tauri schema. An actual installer was not built or accepted.
 
-## Verification completed
+## Final review and authorized fixes
 
-- Task 1 reported 276 native passes; session start reported 297. Task 8 measured
-  307 passed, 0 failed, 13 ignored with test-release.cmd. C:/lt junction verified.
-- Task 9: 18 legal tests passed. Task 10: npm run build passed, 96 modules.
-- Task 9: 21 wizard scenarios passed, 24 viewport captures plus 6 interaction
-  captures reviewed. Task 6: 11 guided scenarios and 16 captures passed.
-- UI evidence uses mocked IPC. No real microphone, fresh-profile setup, installer,
-  authenticated subscription inference or Windows-to-Mac insertion was accepted.
-- Final review regression: 21 wizard scenarios pass, one fails. Error:
-  page.waitForFunction: Timeout 8000ms exceeded.
-- Task 11 full verification has not run. Do not describe this branch as accepted.
+Independent source review of 3c97272..2cadb60 found three P2s, now covered by tests:
+- Pending model choices are coalesced and wait for native load reservation release.
+- Wizard capture stops/joins and preserves the final tail before inference.
+- CPAL errors reach the wizard with a session tag; failed/partial audio is rejected.
+  Stale errors are ignored and toggle practice restarts with the first new press.
+The owner explicitly authorized the shared audio error observer. Default callers
+retain log-only errors; pre-roll, resampling, injection and global hotkey behavior
+were preserved. The misleading Dictionary voice-test hint was corrected.
+Playwright cannot dispatch F13 here; both mode fixtures use ControlRight instead.
+No physical microphone unplug, permission prompt or native close-window acceptance
+was performed. macOS is uncompiled. Network-folder/parallel-scan load is unmeasured.
+The pre-existing Unicode whole-word offset concern is unverified and separate.
 
-## Final review findings
+## Owner inputs and release gates
 
-Review range: 3c97272..2cadb60. No Critical finding; three Important/P2 findings:
-
-1. useWizardState.ts marks a recommendation before the busy guard. Changing
-   language during a download loses the latest request. select_model returns
-   before activation, so sequencing must wait for loading/reservation completion.
-2. useWizardMic.finish marks recording false before inference, while the backend
-   keeps capturing. Stop/join and collect the final buffer before ASR, without
-   using the current wizard_mic_stop first because it discards that buffer.
-3. audio/mod.rs:165 only calls eprintln!("audio stream error: {err}"). The wizard
-   cannot observe a mid-stream failure. Add an observable error channel for the
-   wizard while preserving other callers. Physical unplug was not reproduced.
-
-Minor: WordsStep.tsx promises a later voice check in Dictionary; that panel only
-supports manual editing. Correct the hint without adding another voice feature.
-The older Unicode whole-word replacement helper merits separate investigation;
-no Unicode defect was reproduced or changed in this session.
-
-## Working tree and remaining closeout
-
-Two uncommitted test-only edits in scripts/ui-smoke.mjs and scripts/wizard-smoke.mjs
-reproduce the lost recommendation with a deferred mocked download. Preserve them.
-The review package and ledger remain under .superpowers/sdd/2026-11-13-setup-wizard/.
-Plan and spec remain because the work is unfinished. After the fix pass, run the
-full build/native/wizard/guided checks, remove plan/spec and finish the docs commit.
-The previous handoff is archived at docs/handoffs/archive/HANDOFF-2026-11-13.md.
-Existing .context, docs/reviews and scripts/diagnostics work was preserved.
-
-## Owner inputs and acceptance still pending
-
-- Approve publisher/legal documents and the three draft sentences (trial,
-  microphone use, folder scan). legal/manifest.json remains unchanged/unapproved.
-  Fresh-install and installer acceptance stay blocked until legal readiness.
-- Record four owner WAV fixtures. The bias benchmark decides prompt wording;
-  no new prompt wording was shipped without that evidence.
+- Approve the legal documents, publisher details and three draft sentences: trial,
+  microphone use and folder scan. legal/manifest.json is unchanged/unapproved.
+  Fresh-install and installer acceptance remain blocked by legal readiness.
+- Record four owner WAV fixtures. Run the bias benchmark before changing prompt
+  wording; no unmeasured prompt wording was shipped.
 - English-sentence myself/Mycel ambiguity belongs to word learning. Next projects:
-  English/Portuguese-only detection, Parakeet/Qwen3-ASR, learning from corrections.
-- Subscription AI: official ChatGPT/Claude login and completed real inference are
-  still pending. Historical candidate/receipts are in the archived handoff.
-- macOS and older hardware/USB acceptance remain unverified. Do not restart a
-  hardware observer or switch the running app without explicit readiness.
+  English/Portuguese-only detection, Parakeet/Qwen3-ASR and learning from corrections.
+- Older hardware/USB checks and real Windows-to-Mac insertion remain pending.
+  Coordinate readiness before an observer or any running-app/candidate switch.
 
-## Generated artifacts this session
+## Subscription AI still pending
 
-Canonical art: src-tauri/icons/installer-header.bmp (150x57) and
-src-tauri/icons/installer-sidebar.bmp (164x314), generated by scripts/gen_installer_art.ps1.
-Generated smoke folders were removed. Local helper scripts and ignored execution
-state remain while blocked. No keys, accounts, deployed resources or jobs created.
-Npm audit reported seven unchanged build-tool findings; dialog/API were not listed.
+Official ChatGPT/Claude login and completed real inference have not been accepted.
+Historical candidate hashes and receipts are in the archived handoff; they predate
+this wizard. Use a fresh current-branch build for any authorized native acceptance.
+No accounts, provider permissions or installed files were changed by this work.
+
+## History and artifacts
+
+Implementation commits: 4854c62, b2b55f2, 94c38c4, d038417, 2cadb60; review fixes:
+061a023. Prior work is b95e7f6..26f43a6, followed by 3c97272.
+The old handoff and review-stop snapshot are in docs/handoffs/archive/.
+Plan/spec and this plan's temporary execution workspace were removed after checks.
+Canonical generated art is src-tauri/icons/installer-header.bmp and
+src-tauri/icons/installer-sidebar.bmp; generator: scripts/gen_installer_art.ps1.
+Smoke output, logs and temporary helpers from this work were removed. Existing
+unrelated .context, docs/reviews and scripts/diagnostics work was preserved.
+No keys, accounts, deployed resources or scheduled jobs were created. Npm audit
+reported seven existing build-tool findings; dialog/API were not listed.
 
 ## Suggested skills
 
-handoff-memory; systematic-debugging; test-driven-development;
-verification-before-completion; handoff. Use verify/computer-use only for an
-explicitly authorized native acceptance session.
+handoff-memory, verification-before-completion, handoff; verify and computer-use
+only when native acceptance and human readiness are explicitly authorized.
 
 ## Next-session prompt
 
 ```text
-Continue Lectus from docs/HANDOFF.md on feat/remote-dictation. Tasks 1-10 are committed; final review found three P2s and one new mocked regression is red. Task 11 is unfinished.
-Files: AGENTS.md, docs/HANDOFF.md, docs/superpowers/plans/2026-11-13-setup-wizard.md, src-tauri/src/audio/mod.rs, src-tauri/src/setup_wizard.rs, src/components/wizard/useWizardState.ts, src/components/wizard/useWizardMic.ts, scripts/wizard-smoke.mjs.
-Model: gpt-6.1-sol xhigh (native lifecycle and async fixes).
-Skills: handoff-memory, systematic-debugging, test-driven-development, verification-before-completion, handoff.
-Confirm the owner's scope decision for shared AudioCapture error reporting before changing it. Preserve the uncommitted regression tests. Fix the three P2s, run Task 11 checks, then complete the requested handoff/plan cleanup. Never push, tag, install or touch legal/manifest.json in this task.
+Continue Lectus from docs/HANDOFF.md on feat/remote-dictation. The setup wizard, vocabulary and NSIS art are implemented and tested in source; nothing was installed or pushed. Native acceptance still awaits legal approval and readiness.
+Files: docs/HANDOFF.md, legal/TERMS.md, legal/PRIVACY.md, legal/manifest.json, src/components/wizard/SetupWizard.tsx, scripts/ui-smoke.mjs.
+Model: gpt-6.1-sol high (scoped follow-up and verification).
+Skills: handoff-memory, verification-before-completion, handoff; verify/computer-use only for authorized live acceptance.
+Start with the owner's final legal wording and publisher details. Keep publication and installation gates closed until separately authorized. Collect the four voice fixtures before deciding prompt wording. Preserve unrelated dirty work.
 ```
