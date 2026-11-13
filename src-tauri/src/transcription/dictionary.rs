@@ -22,6 +22,40 @@ pub fn bias_prompt(words: &[String]) -> Option<String> {
     Some(format!("Vocabulary: {}.", terms.join(", ")))
 }
 
+/// whisper.cpp keeps at most 223 prompt tokens; stay under it with a margin.
+pub const PROMPT_TOKEN_BUDGET: usize = 200;
+
+/// Like [`bias_prompt`] but never longer than `budget` tokens as measured by
+/// `count_tokens`. Words are added in list order and the first one that would
+/// overflow ends the list, so the words at the front are the ones kept.
+/// Returns the prompt and how many words were left out, or `None` when the
+/// list is empty or not even the first word fits.
+pub fn bias_prompt_within(
+    words: &[String],
+    budget: usize,
+    count_tokens: impl Fn(&str) -> usize,
+) -> Option<(String, usize)> {
+    let terms: Vec<&str> = words
+        .iter()
+        .map(|w| w.trim())
+        .filter(|w| !w.is_empty())
+        .collect();
+    let mut kept = 0;
+    let mut best = String::new();
+    for n in 1..=terms.len() {
+        let candidate = format!("Vocabulary: {}.", terms[..n].join(", "));
+        if count_tokens(&candidate) > budget {
+            break;
+        }
+        best = candidate;
+        kept = n;
+    }
+    if kept == 0 {
+        return None;
+    }
+    Some((best, terms.len() - kept))
+}
+
 /// Rewrite dictionary terms to their stored spelling (whole words, case-insensitive).
 ///
 /// Whisper's `initial_prompt` is only a hint and often ignored, so "Claude"
@@ -226,6 +260,30 @@ mod tests {
             apply_dictionary_spellings("open claude code please", &words),
             "open Claude Code please"
         );
+    }
+
+    fn words(list: &[&str]) -> Vec<String> {
+        list.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn prompt_within_budget_keeps_first_words_and_counts_dropped() {
+        let w = words(&["Mycel", "Hyphae", "Embalio"]);
+        let got = bias_prompt_within(&w, 28, |s: &str| s.len());
+        assert_eq!(got, Some(("Vocabulary: Mycel, Hyphae.".to_string(), 1)));
+    }
+
+    #[test]
+    fn prompt_within_budget_none_when_empty_or_nothing_fits() {
+        assert_eq!(bias_prompt_within(&[], 100, |s: &str| s.len()), None);
+        assert_eq!(bias_prompt_within(&words(&["Mycel"]), 5, |s: &str| s.len()), None);
+    }
+
+    #[test]
+    fn prompt_within_large_budget_keeps_everything() {
+        let w = words(&["Mycel", "Hyphae", "Embalio"]);
+        let got = bias_prompt_within(&w, 1000, |s: &str| s.len());
+        assert_eq!(got, Some(("Vocabulary: Mycel, Hyphae, Embalio.".to_string(), 0)));
     }
 
     fn alike(heard: &str, word: &str, langs: &[&str]) -> SoundAlike {

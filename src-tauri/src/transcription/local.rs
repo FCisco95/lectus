@@ -6,8 +6,8 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextPar
 pub struct LocalWhisper {
     // Keep ctx alive: WhisperState holds a clone of the Arc internally, but
     // holding ctx here makes ownership intent explicit and avoids any edge-case
-    // where the Arc could drop between state operations.
-    #[allow(dead_code)]
+    // where the Arc could drop between state operations. Also used to count
+    // dictionary prompt tokens.
     ctx: WhisperContext,
     // Pre-created once and reused across calls. Allocating the compute buffers
     // (KV caches + 4 scheduler graphs = ~200–400 MB for base) on every
@@ -46,7 +46,35 @@ impl LocalWhisper {
             .unwrap_or(4) as i32;
         params.set_n_threads(n_threads);
         params.set_language(opts.language.as_deref());
-        if let Some(prompt) = opts.initial_prompt.as_deref() {
+        // With a word list, rebuild the prompt using the model's own tokenizer so
+        // the 223-token limit in whisper.cpp never cuts words silently.
+        let rebuilt;
+        let prompt: Option<&str> = if opts.vocabulary.is_empty() {
+            opts.initial_prompt.as_deref()
+        } else {
+            let ctx = &self.ctx;
+            rebuilt = super::dictionary::bias_prompt_within(
+                &opts.vocabulary,
+                super::dictionary::PROMPT_TOKEN_BUDGET,
+                // A text can never need more tokens than bytes, so `len + 16`
+                // cannot trip whisper_tokenize's negative "too small" return.
+                // A tokenizer failure counts as over budget.
+                |s| ctx.tokenize(s, s.len() + 16).map(|t| t.len()).unwrap_or(usize::MAX),
+            );
+            match &rebuilt {
+                Some((p, left_out)) => {
+                    if *left_out > 0 {
+                        log::warn!("dictionary prompt over token budget: {left_out} word(s) left out");
+                    }
+                    Some(p.as_str())
+                }
+                None => {
+                    log::warn!("dictionary prompt over token budget: no words fit, prompt skipped");
+                    None
+                }
+            }
+        };
+        if let Some(prompt) = prompt {
             params.set_initial_prompt(prompt);
         }
         params.set_print_progress(false);
@@ -186,6 +214,110 @@ mod tests {
                         text
                     );
                 }
+            }
+        }
+        println!("\n=== end bench ===\n");
+    }
+
+    fn owner_fixture_dir() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/audio_samples/owner")
+    }
+
+    /// Records 6 s from the default microphone into the git-ignored owner
+    /// fixture folder. Run via `scripts\record-fixture.cmd <name>`, e.g.
+    /// `pt_mycel_1` (the `pt_` / `en_` prefix selects the language later).
+    #[test]
+    #[ignore = "records from the microphone — run scripts/record-fixture.cmd <name>"]
+    fn record_owner_fixture() {
+        let name = std::env::var("LECTUS_FIXTURE_NAME").expect("set LECTUS_FIXTURE_NAME");
+        assert!(
+            !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-'),
+            "fixture name may only use letters, digits, _ and -"
+        );
+        let capture = crate::audio::AudioCapture::start(None).expect("microphone unavailable");
+        println!("Recording 6 seconds. Speak now.");
+        std::thread::sleep(std::time::Duration::from_secs(6));
+        let samples = capture.drain();
+        drop(capture);
+
+        let dir = owner_fixture_dir();
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(format!("{name}.wav"));
+        let spec = hound::WavSpec {
+            channels: 1,
+            sample_rate: 16_000,
+            bits_per_sample: 16,
+            sample_format: hound::SampleFormat::Int,
+        };
+        let mut writer = hound::WavWriter::create(&path, spec).unwrap();
+        for s in &samples {
+            writer.write_sample((s.clamp(-1.0, 1.0) * 32767.0) as i16).unwrap();
+        }
+        writer.finalize().unwrap();
+        println!("Wrote {} ({:.1}s)", path.display(), samples.len() as f32 / 16_000.0);
+    }
+
+    /// Compares five prompt variants on every owner fixture and prints the
+    /// transcript and prompt token count for each. Reads only the
+    /// `dictionary_words` field of the installed app's config.json.
+    /// Run: cargo test --release --lib bench_vocabulary_bias -- --ignored --nocapture
+    #[test]
+    #[ignore = "benchmark — needs owner fixtures and ggml-large-v3-turbo.bin in the app data dir"]
+    fn bench_vocabulary_bias() {
+        let dir = owner_fixture_dir();
+        let mut wavs: Vec<PathBuf> = std::fs::read_dir(&dir)
+            .map(|rd| rd.filter_map(|e| e.ok()).map(|e| e.path())
+                .filter(|p| p.extension().map(|x| x == "wav").unwrap_or(false)).collect())
+            .unwrap_or_default();
+        wavs.sort();
+        if wavs.is_empty() {
+            println!("SKIP: no WAV files in {}. Record some with scripts/record-fixture.cmd", dir.display());
+            return;
+        }
+        let app_dir = crate::transcription::model::bench_app_data_dir();
+        let model_path = app_dir.join("models").join("ggml-large-v3-turbo.bin");
+        assert!(model_path.exists(), "model missing: {}", model_path.display());
+        let words: Vec<String> = std::fs::read_to_string(app_dir.join("config.json")).ok()
+            .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+            .and_then(|v| v.get("dictionary_words").cloned())
+            .and_then(|v| serde_json::from_value(v).ok())
+            .unwrap_or_default();
+        let target = std::env::var("LECTUS_BENCH_TARGET").unwrap_or_else(|_| "Mycel".into());
+        let mut engine = LocalWhisper::new(&model_path).expect("model load failed");
+
+        let mut target_last: Vec<String> = words.iter().filter(|w| !w.eq_ignore_ascii_case(&target)).cloned().collect();
+        target_last.push(target.clone());
+        let joined = |list: &[String]| list.join(", ");
+
+        println!("\n=== vocabulary bias bench: {} words, target {target} ===", words.len());
+        for wav in &wavs {
+            let stem = wav.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+            let lang = if stem.starts_with("pt_") { "pt" } else if stem.starts_with("en_") { "en" } else { "" };
+            let sentence = if lang == "pt" {
+                format!("Neste texto falamos de {}.", joined(&words))
+            } else {
+                format!("This text mentions {}.", joined(&words))
+            };
+            let variants: Vec<(&str, Option<String>)> = vec![
+                ("no prompt", None),
+                ("current prompt", crate::transcription::dictionary::bias_prompt(&words)),
+                ("target last", crate::transcription::dictionary::bias_prompt(&target_last)),
+                ("sentence", Some(sentence)),
+                ("target alone", Some(format!("Vocabulary: {target}."))),
+            ];
+            let samples = load_wav_as_f32(wav).expect("wav load failed");
+            println!("\n{stem} (language {})", if lang.is_empty() { "auto" } else { lang });
+            for (label, prompt) in variants {
+                let tokens = prompt.as_deref()
+                    .map(|p| engine.ctx.tokenize(p, p.len() + 16).map(|t| t.len()).unwrap_or(0))
+                    .unwrap_or(0);
+                let opts = TranscribeOptions {
+                    language: if lang.is_empty() { None } else { Some(lang.to_string()) },
+                    initial_prompt: prompt,
+                    ..Default::default()
+                };
+                let (text, _) = engine.transcribe(&samples, &opts).expect("transcribe failed");
+                println!("  {label:<15} tokens {tokens:>3} | {text}");
             }
         }
         println!("\n=== end bench ===\n");

@@ -49,9 +49,7 @@ impl api::Backend for NativeBackend {
                 && (language.len() > 8 || !language.bytes().all(|b| b.is_ascii_alphabetic()) || whisper_rs::get_lang_id(language).is_none()) {
                 return Err(error("bad_language", 400, "Choose a supported Whisper language code, or auto."));
             }
-            let mut opts = transcription::TranscribeOptions::from_config(
-                language, transcription::dictionary::bias_prompt(&cfg.dictionary_words),
-            );
+            let mut opts = transcription::TranscribeOptions::from_config(language, &cfg.dictionary_words);
             if cfg.vad_enabled {
                 let path = transcription::model::model_path(&app, transcription::model::VAD_MODEL_NAME)
                     .map_err(|_| error("engine_unavailable", 503, "Local model directory is unavailable."))?;

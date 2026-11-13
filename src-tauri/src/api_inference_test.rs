@@ -14,7 +14,7 @@ impl api::Backend for FixtureBackend {
         self.worker.run(move || {
             let duration_ms = samples.len() as u64 * 1000 / 16_000;
             let start = std::time::Instant::now();
-            let options = transcription::TranscribeOptions::from_config(language.as_deref().unwrap_or("auto"), None);
+            let options = transcription::TranscribeOptions::from_config(language.as_deref().unwrap_or("auto"), &[]);
             let (text, language) = engine.lock().unwrap().transcribe(&samples, &options)
                 .map_err(|_| api::ApiError::unavailable())?;
             Ok(api::Transcript { text, language, duration_ms, transcribe_ms: start.elapsed().as_millis() as u64, engine: "local".into() })

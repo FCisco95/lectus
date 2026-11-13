@@ -33,3 +33,6 @@ models/*.part
 
 # Brainstorming visual companion sessions
 .superpowers/
+
+# Owner voice fixtures (personal recordings)
+src-tauri/tests/audio_samples/owner/

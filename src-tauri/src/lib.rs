@@ -696,7 +696,7 @@ fn warmup_engine(app: &tauri::AppHandle) {
         let mut guard = local.lock().unwrap();
         if let Some(engine) = guard.as_mut() {
             let silence = vec![0.0_f32; 16_000];
-            let opts = transcription::TranscribeOptions::from_config("en", None);
+            let opts = transcription::TranscribeOptions::from_config("en", &[]);
             let t = std::time::Instant::now();
             let _ = engine.transcribe(&silence, &opts);
             log::info!("whisper warmup finished in {} ms", t.elapsed().as_millis());
@@ -895,8 +895,7 @@ async fn do_pipeline(
     log::info!("pipeline: captured {:.2}s of audio", accumulated.len() as f32 / 16000.0);
     let t_transcribe = std::time::Instant::now();
     do_set_state("transcribing", app_state, app_handle)?;
-    let bias = transcription::dictionary::bias_prompt(&cfg.dictionary_words);
-    let mut opts = transcription::TranscribeOptions::from_config(&cfg.language, bias);
+    let mut opts = transcription::TranscribeOptions::from_config(&cfg.language, &cfg.dictionary_words);
     if cfg.vad_enabled && !use_cloud {
         if let Ok(p) = transcription::model::model_path(&app_handle, transcription::model::VAD_MODEL_NAME) {
             if p.exists() {
