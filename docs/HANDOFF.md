@@ -2,12 +2,17 @@
 
 Updated: 2026-11-13. Branch: feat/remote-dictation. No push, tag or installation.
 
-## Active work: access model and Android planning
+## Active work: supervised Orca discovery
 
-The setup-wizard implementation is complete. A new product-design conversation is
-in progress. No account, billing, voucher or Android code has been implemented.
-Next: choose Android distribution, then finish the unresolved access-flow decisions
-and obtain approval of the written design before implementation.
+Run: `run_db09bc5a3181`; integration base: `3b17365` on `feat/remote-dictation`.
+Orca 1.4.257 has four independent discovery tasks; no results are integrated yet.
+The coordinator owns integration, shared contracts and this handoff. Workers own
+only their separate reports under `.context/lectus-access-android-20261113/`.
+Read `docs/handoffs/2026-11-13-access-android-coordination.md` for task identities.
+Next: process Orca reports/questions, verify material premises, consolidate the
+design and ask only the highest-impact unresolved owner question. Obtain approval
+of the complete design before product implementation. No account, billing,
+voucher or Android product code is approved or implemented by this Run.
 
 ## Confirmed owner decisions and facts
 
@@ -79,17 +84,20 @@ English-sentence myself/Mycel ambiguity and automatic word learning remain separ
 Official ChatGPT/Claude login and real inference are still pending; historical
 candidate receipts predate the wizard. A fresh build/readiness is needed for live tests.
 
-## Artifacts and suggested skills
+## Generated artifacts and suggested skills
 
 Canonical art: src-tauri/icons/installer-header.bmp and installer-sidebar.bmp;
-generator: scripts/gen_installer_art.ps1. No new keys, accounts or deployed services.
-Use brainstorming and grill-me for the active design; writing-plans only after
-approval. Use verify/computer-use only for separately authorized native acceptance.
+generator: scripts/gen_installer_art.ps1. This session created the Orca Run/tasks,
+local ignored briefs/receipts and the portable coordination snapshot above.
+No new keys, accounts or deployed services. Use orchestration/orca-cli and
+parallel-feature-development; brainstorming/grill-me for material design gaps.
+Use writing-plans only after approval; verify/computer-use only for separately
+authorized native acceptance. Task Observer and model-router remain applicable.
 
 ## Next-session prompt
 
 ```text
-Act as the central Lectus architect and Orca coordinator. Read and follow docs/handoffs/2026-11-13-orca-architect-prompt.md and docs/HANDOFF.md, then inspect the current state and dispatch the independent discovery frontier. Do not repeat completed wizard work or infer that a billing/mobile implementation design is already approved.
+Resume central Lectus coordination. Read docs/HANDOFF.md, docs/handoffs/2026-11-13-orca-architect-prompt.md and docs/handoffs/2026-11-13-access-android-coordination.md. Inspect and resume Run run_db09bc5a3181; do not duplicate its discovery workers. Process reports/questions and dispatch newly ready work. The access/Android design still needs owner approval before implementation.
 Model: gpt-6-astra xhigh (cross-platform architecture, authentication and billing supervision).
 Skills: task-observer, model-router, orca-cli, orchestration, parallel-feature-development; brainstorming/grill-me for material gaps.
 ```
