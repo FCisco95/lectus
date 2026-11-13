@@ -262,6 +262,7 @@ html, body, #root { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   align-items: center;
   margin-bottom: 8px;
 }
+.rule-row-alike { grid-template-columns: 1fr 1fr auto auto auto; }
 .rule-row .input { padding: 7px 9px; }
 .rule-cs { display: flex; align-items: center; gap: 5px; font-size: var(--text-xs); color: var(--text-secondary); white-space: nowrap; }
 .rule-cs input { accent-color: var(--accent); }

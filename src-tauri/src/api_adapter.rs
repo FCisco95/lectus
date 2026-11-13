@@ -66,7 +66,9 @@ impl api::Backend for NativeBackend {
                 engine.transcribe(&samples, &opts)
                     .map_err(|_| error("transcription_failed", 500, "The local model could not transcribe this audio."))?
             };
-            let mut text = transcription::dictionary::apply_dictionary_spellings(&text, &cfg.dictionary_words);
+            let rule_language = transcription::dictionary::effective_language(language, detected_language.as_deref());
+            let mut text = transcription::dictionary::apply_sound_alikes(&text, &cfg.sound_alikes, rule_language.as_deref());
+            text = transcription::dictionary::apply_dictionary_spellings(&text, &cfg.dictionary_words);
             text = transcription::dictionary::apply_rules(&text, &cfg.replacement_rules);
             // The API's local-only guarantee overrides the old spec's ambiguous
             // cleanup paragraph. Cloud and CLI engines are never called here.

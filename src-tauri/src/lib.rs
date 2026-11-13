@@ -948,6 +948,12 @@ async fn do_pipeline(
     );
 
     // 4. Post-process: dictionary spellings, replacement rules, optional AI cleanup.
+    let rule_language = transcription::dictionary::effective_language(&cfg.language, detected_language.as_deref());
+    transcript = transcription::dictionary::apply_sound_alikes(
+        &transcript,
+        &cfg.sound_alikes,
+        rule_language.as_deref(),
+    );
     transcript = transcription::dictionary::apply_dictionary_spellings(
         &transcript,
         &cfg.dictionary_words,

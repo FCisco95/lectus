@@ -6,6 +6,13 @@ export interface ReplacementRule {
   case_sensitive: boolean;
 }
 
+// Mirrors `SoundAlike` in src-tauri/src/config.rs.
+export interface SoundAlike {
+  heard: string;
+  word: string;
+  languages: string[];
+}
+
 // Mirrors `AppProfile` in src-tauri/src/config.rs (null ⇔ Option::None).
 export interface AppProfile {
   app_match: string;
@@ -40,6 +47,7 @@ export interface Config {
   trigger_mode: string;
   dictionary_words: string[];
   replacement_rules: ReplacementRule[];
+  sound_alikes: SoundAlike[];
   ai_cleanup_enabled: boolean;
   ai_cleanup_engine: string;
   ai_cleanup_tone: string;

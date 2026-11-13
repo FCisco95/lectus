@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PanelProps, ReplacementRule } from './types';
+import type { PanelProps, ReplacementRule, SoundAlike } from './types';
 import { HelpTip } from '../HelpTip';
 
 export function DictionaryPanel({ config, update }: PanelProps) {
@@ -24,6 +24,18 @@ export function DictionaryPanel({ config, update }: PanelProps) {
     update({ replacement_rules: [...rules, { from: '', to: '', case_sensitive: false }] });
   const removeRule = (i: number) =>
     update({ replacement_rules: rules.filter((_, idx) => idx !== i) });
+
+  const alikes = config.sound_alikes || [];
+  const setAlike = (i: number, patch: Partial<SoundAlike>) =>
+    update({ sound_alikes: alikes.map((a, idx) => (idx === i ? { ...a, ...patch } : a)) });
+  const toggleAlikeLanguage = (i: number, code: string, on: boolean) => {
+    const current = alikes[i].languages;
+    setAlike(i, { languages: on ? [...current.filter((l) => l !== code), code] : current.filter((l) => l !== code) });
+  };
+  const addAlike = () =>
+    update({ sound_alikes: [...alikes, { heard: '', word: '', languages: ['pt'] }] });
+  const removeAlike = (i: number) =>
+    update({ sound_alikes: alikes.filter((_, idx) => idx !== i) });
 
   return (
     <div>
@@ -96,6 +108,49 @@ export function DictionaryPanel({ config, update }: PanelProps) {
         ))}
         <button className="btn" type="button" onClick={addRule} style={{ marginTop: 4 }}>+ Add rule</button>
         <div className="field-hint">e.g. “lectus” → “Lectus”, “at gmail” → “@gmail”. Applied in order.</div>
+      </div>
+
+      <div className="field" style={{ maxWidth: 560 }} role="group" aria-labelledby="sound-alikes-label">
+        <div className="field-label" id="sound-alikes-label">Sounds like</div>
+        {alikes.map((alike, i) => (
+          <div className="rule-row rule-row-alike" key={i}>
+            <input
+              className="input"
+              aria-label={`Sounds like ${i + 1}: when Lectus hears`}
+              placeholder="When Lectus hears…"
+              value={alike.heard}
+              onChange={(e) => setAlike(i, { heard: e.target.value })}
+            />
+            <input
+              className="input"
+              aria-label={`Sounds like ${i + 1}: write`}
+              placeholder="write…"
+              value={alike.word}
+              onChange={(e) => setAlike(i, { word: e.target.value })}
+            />
+            <label className="rule-cs">
+              <input
+                type="checkbox"
+                aria-label={`Sounds like ${i + 1}: Portuguese`}
+                checked={alike.languages.includes('pt')}
+                onChange={(e) => toggleAlikeLanguage(i, 'pt', e.target.checked)}
+              />
+              Portuguese
+            </label>
+            <label className="rule-cs">
+              <input
+                type="checkbox"
+                aria-label={`Sounds like ${i + 1}: English`}
+                checked={alike.languages.includes('en')}
+                onChange={(e) => toggleAlikeLanguage(i, 'en', e.target.checked)}
+              />
+              English
+            </label>
+            <button className="icon-btn" type="button" onClick={() => removeAlike(i)} aria-label={`Remove sounds like ${i + 1}${alike.heard ? ` for ${alike.heard}` : ''}`}>×</button>
+          </div>
+        ))}
+        <button className="btn" type="button" onClick={addAlike} style={{ marginTop: 4 }}>+ Add sound-alike</button>
+        <div className="field-hint">Use this when a word is heard as a different real word. It only applies in the languages you tick.</div>
       </div>
     </div>
   );

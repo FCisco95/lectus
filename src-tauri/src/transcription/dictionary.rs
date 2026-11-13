@@ -6,7 +6,7 @@
 //! 2. [`apply_rules`] runs exact find/replace over the final transcript, in the
 //!    order the rules are listed, for deterministic fixes the bias can't guarantee.
 
-use crate::config::ReplacementRule;
+use crate::config::{ReplacementRule, SoundAlike};
 
 /// Build an `initial_prompt` bias string from the dictionary words, or `None`
 /// when the list is empty. The phrasing nudges the model toward these terms.
@@ -38,6 +38,41 @@ pub fn apply_dictionary_spellings(text: &str, words: &[String]) -> String {
     let mut out = text.to_string();
     for term in terms {
         out = replace_whole_word_ignore_case(&out, term, term);
+    }
+    out
+}
+
+/// The language a transcript should be treated as: the configured code, or
+/// the detected one when the configuration is "auto". `None` when unknown.
+pub fn effective_language(configured: &str, detected: Option<&str>) -> Option<String> {
+    let configured = configured.trim();
+    if !configured.is_empty() && !configured.eq_ignore_ascii_case("auto") {
+        return Some(configured.to_string());
+    }
+    detected
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+        .map(str::to_string)
+}
+
+/// Rewrite a heard form to the intended word, whole word, case-insensitive,
+/// only when `language` is one of the rule's languages. Rules with an empty
+/// `heard`, a `heard` equal to `word`, or no languages never fire.
+pub fn apply_sound_alikes(text: &str, rules: &[SoundAlike], language: Option<&str>) -> String {
+    let Some(language) = language.map(str::trim).filter(|l| !l.is_empty()) else {
+        return text.to_string();
+    };
+    let mut out = text.to_string();
+    for rule in rules {
+        let heard = rule.heard.trim();
+        let word = rule.word.trim();
+        if heard.is_empty() || word.is_empty() || heard.eq_ignore_ascii_case(word) {
+            continue;
+        }
+        if !rule.languages.iter().any(|l| l.trim().eq_ignore_ascii_case(language)) {
+            continue;
+        }
+        out = replace_whole_word_ignore_case(&out, heard, word);
     }
     out
 }
@@ -191,5 +226,36 @@ mod tests {
             apply_dictionary_spellings("open claude code please", &words),
             "open Claude Code please"
         );
+    }
+
+    fn alike(heard: &str, word: &str, langs: &[&str]) -> SoundAlike {
+        SoundAlike { heard: heard.into(), word: word.into(), languages: langs.iter().map(|s| s.to_string()).collect() }
+    }
+
+    #[test]
+    fn sound_alike_fires_only_in_its_language() {
+        let r = vec![alike("myself", "Mycel", &["pt"])];
+        assert_eq!(apply_sound_alikes("comprei myself ontem", &r, Some("pt")), "comprei Mycel ontem");
+        assert_eq!(apply_sound_alikes("I did it myself", &r, Some("en")), "I did it myself");
+        assert_eq!(apply_sound_alikes("comprei myself ontem", &r, None), "comprei myself ontem");
+    }
+
+    #[test]
+    fn sound_alike_is_whole_word_and_case_insensitive() {
+        let r = vec![alike("myself", "Mycel", &["pt"]), alike("my cell", "Mycel", &["pt"])];
+        assert_eq!(apply_sound_alikes("Myself e my cell, myselfish", &r, Some("PT")), "Mycel e Mycel, myselfish");
+    }
+
+    #[test]
+    fn degenerate_sound_alikes_never_fire() {
+        let r = vec![alike("", "Mycel", &["pt"]), alike("Mycel", "Mycel", &["pt"]), alike("myself", "Mycel", &[])];
+        assert_eq!(apply_sound_alikes("myself Mycel", &r, Some("pt")), "myself Mycel");
+    }
+
+    #[test]
+    fn effective_language_prefers_configured_then_detected() {
+        assert_eq!(effective_language("pt", Some("en")).as_deref(), Some("pt"));
+        assert_eq!(effective_language("auto", Some("en")).as_deref(), Some("en"));
+        assert_eq!(effective_language("auto", None), None);
     }
 }

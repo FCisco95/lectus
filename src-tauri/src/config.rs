@@ -56,6 +56,9 @@ pub struct Config {
     /// Exact find/replace rules applied to the transcript after recognition,
     /// in listed order (e.g. "lectus" → "Lectus", "at gmail" → "@gmail").
     pub replacement_rules: Vec<ReplacementRule>,
+    /// Language-scoped fixes for a word heard as a different real word
+    /// (e.g. "myself" → "Mycel" in Portuguese). Applied before spellings.
+    pub sound_alikes: Vec<SoundAlike>,
     /// Whether to run an AI cleanup pass (punctuation, casing, filler removal).
     pub ai_cleanup_enabled: bool,
     /// "local", "groq" (configured API), "chatgpt" or "claude" (subscriptions).
@@ -124,6 +127,7 @@ impl Config {
             || self.language != next.language
             || self.dictionary_words != next.dictionary_words
             || self.replacement_rules != next.replacement_rules
+            || self.sound_alikes != next.sound_alikes
             || self.app_profiles != next.app_profiles
             || self.output_language != next.output_language
             || self.translation_engine != next.translation_engine
@@ -149,6 +153,7 @@ impl Config {
             && current.ai_cleanup_tone == snapshot.ai_cleanup_tone
             && current.language == snapshot.language
             && current.dictionary_words == snapshot.dictionary_words
+            && current.sound_alikes == snapshot.sound_alikes
             && match snapshot.ai_cleanup_engine.as_str() {
                 "local" => true,
                 "groq" => current.allows_cloud_snapshot(snapshot)
@@ -165,6 +170,7 @@ impl Config {
             && current.output_language == snapshot.output_language
             && current.translation_engine == snapshot.translation_engine
             && current.dictionary_words == snapshot.dictionary_words
+            && current.sound_alikes == snapshot.sound_alikes
             && match snapshot.translation_engine.as_str() {
                 "local" => current.translation_model == snapshot.translation_model,
                 "cloud" => current.allows_cloud_snapshot(snapshot)
@@ -223,6 +229,16 @@ pub struct ReplacementRule {
     pub case_sensitive: bool,
 }
 
+/// "When the recognizer writes `heard`, write `word` instead", only in the
+/// listed languages. An empty language list never fires.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct SoundAlike {
+    pub heard: String,
+    pub word: String,
+    pub languages: Vec<String>,
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -256,6 +272,7 @@ impl Default for Config {
             trigger_mode: "hold".into(),
             dictionary_words: Vec::new(),
             replacement_rules: Vec::new(),
+            sound_alikes: Vec::new(),
             ai_cleanup_enabled: false,
             ai_cleanup_engine: "claude".into(),
             ai_cleanup_tone: "neutral".into(),
