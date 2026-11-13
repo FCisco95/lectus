@@ -1,89 +1,97 @@
 # Lectus - handoff
 
-Updated: 2026-11-13. Branch: feat/remote-dictation. Tasks 1 to 11 complete in source.
-No push, tag, app replacement or installation. Next: owner reviews the legal drafts.
+Updated: 2026-11-13. Branch: feat/remote-dictation. No push, tag or installation.
 
-## Implemented
+## Active work: access model and Android planning
 
-- Two-pane setup wizard: language, unchanged legal gate, microphone, optional
-  vocabulary, local shortcut practice, trial/membership and a one-time Home hint.
-- Recommended Base/Small download and selection; latest requests wait for download
-  and native activation. Fast tests offer Large v3 Turbo Compact.
-- Local folder scan: top 30 suggestions, bounded files/bytes/depth/traversal,
-  valid text only, no symlinks/reparse points. Only selected words are saved.
-- Optional word checks save language-scoped sound-alikes only after confirmation.
-- Earlier work includes the 7 day trial, sound-alikes and prompt token budget.
-- Branded NSIS header/sidebar and uninstaller header use the existing master mark.
+The setup-wizard implementation is complete. A new product-design conversation is
+in progress. No account, billing, voucher or Android code has been implemented.
+Next: choose Android distribution, then finish the unresolved access-flow decisions
+and obtain approval of the written design before implementation.
 
-## Verification
+## Confirmed owner decisions and facts
 
-Task 1 recorded 276 native passes; session start reported 297. Final Windows run:
-- test-release.cmd: 310 passed, 0 failed, 13 ignored; C:/lt junction verified.
-- npm run build: passed, 96 modules.
-- Wizard: 25 functional scenarios; guided: 11; legal: 18. All passed.
-- UI uses mocked IPC. Thirty wizard and sixteen guided captures covered light/dark
-  layouts and small/default viewports; screenshots reviewed without overlap.
-- Both installer BMPs are non-empty 24-bit files, 150x57 and 164x314. JSON/image keys
-  match the installed Tauri schema. An actual installer was not built or accepted.
+- The owner has no registered company. Individual publishing is a provisional
+  preference for a personal portfolio/CV; public legal identity remains unset.
+- The owner created Organic and Mycel and describes both as public fairlaunches
+  starting at zero on launchpads, traded on DEXs. This does not establish a legal
+  classification, a free-offer exemption or compliance with MiCA.
+- Lectus is a benefit for holders/community contributors, with a proposed normal
+  subscription around EUR 5/month for users who do not want cryptocurrency.
+- The paid price covers local AI, not publisher-funded cloud inference. Existing
+  bring-your-own-API functionality stays available; provider usage belongs to the
+  user's provider account and needs explicit processing consent.
+- Gift codes offer 1, 3 or 12 months to friends/other people.
+- Paid/gift access uses an email account without a crypto wallet. Passwordless email
+  was proposed and accepted; Wispr Flow is the reference for browser sign-in and
+  account recovery across devices, not proof that it uses the same auth method.
+- Up to two personal devices per account, including computer plus phone.
+- After activation, local use should work offline for the paid or gifted period.
+- Android only for the first mobile version. iPhone is outside the current scope.
 
-## Final review and authorized fixes
+## Proposed defaults, not separate owner decisions
 
-Independent source review of 3c97272..2cadb60 found three P2s, now covered by tests:
-- Pending model choices are coalesced and wait for native load reservation release.
-- Wizard capture stops/joins and preserves the final tail before inference.
-- CPAL errors reach the wizard with a session tag; failed/partial audio is rejected.
-  Stale errors are ignored and toggle practice restarts with the first new press.
-The owner explicitly authorized the shared audio error observer. Default callers
-retain log-only errors; pre-roll, resampling, injection and global hotkey behavior
-were preserved. The misleading Dictionary voice-test hint was corrected.
-Playwright cannot dispatch F13 here; both mode fixtures use ControlRight instead.
-No physical microphone unplug, permission prompt or native close-window acceptance
-was performed. macOS is uncompiled. Network-folder/parallel-scan load is unmeasured.
-The pre-existing Unicode whole-word offset concern is unverified and separate.
+Same features for each valid access route. Unique one-use gift codes, duration
+starting on redemption, no bank card needed for a gift, no automatic charge when
+it expires. A normal subscription or holder eligibility can continue access.
+Retain the existing seven-day trial unless the new design explicitly changes it.
 
-## Owner inputs and release gates
+## Open design branches and feasibility gates
 
-- Approve the legal documents, publisher details and three draft sentences: trial,
-  microphone use and folder scan. legal/manifest.json is unchanged/unapproved.
-  Fresh-install and installer acceptance remain blocked by legal readiness.
-- Record four owner WAV fixtures. Run the bias benchmark before changing prompt
-  wording; no unmeasured prompt wording was shipped.
-- English-sentence myself/Mycel ambiguity belongs to word learning. Next projects:
-  English/Portuguese-only detection, Parakeet/Qwen3-ASR and learning from corrections.
-- Older hardware/USB checks and real Windows-to-Mac insertion remain pending.
-  Coordinate readiness before an observer or any running-app/candidate switch.
+- Android distribution: Google Play as primary channel, direct APK beta, or another
+  combination. This affects purchase UI, billing and review requirements.
+- Trial sign-in timing, account/wallet association and account recovery details.
+- Device replacement/revocation while old devices remain offline; a hard immediate
+  two-device limit cannot be assumed alongside long offline receipts.
+- Payment-provider eligibility, taxes/final consumer price and token-related
+  business review. No merchant, hosting or authentication service was activated.
+- Android dictation integration and local-model performance need a real-device
+  prototype. The current desktop Tauri implementation is not an Android build.
 
-## Subscription AI still pending
+Google Play permits consumption-only apps to use existing access bought elsewhere;
+in-app digital purchases have billing requirements and regional/program exceptions.
+This does not pre-approve our holder/voucher model or allow hidden review behavior.
+Source: https://support.google.com/googleplay/android-developer/answer/10281818
+Blockchain policy: https://support.google.com/googleplay/android-developer/answer/13607354
+Apple has separate crypto/license unlocking restrictions; iOS was parked, not solved.
 
-Official ChatGPT/Claude login and completed real inference have not been accepted.
-Historical candidate hashes and receipts are in the archived handoff; they predate
-this wizard. Use a fresh current-branch build for any authorized native acceptance.
-No accounts, provider permissions or installed files were changed by this work.
+## Completed source and verification
 
-## History and artifacts
+Setup wizard, seven-day trial, sound-alikes/prompt budget, bounded local folder scan
+and branded NSIS art are complete through ca23c01; authorized review fixes: 061a023.
+Last full checks: 310 native passed, 0 failed, 13 ignored; frontend build passed;
+25 wizard scenarios, 11 guided scenarios and 18 legal tests passed. UI IPC is mocked.
+No physical microphone unplug/permissions, fresh install or installer acceptance
+was performed. macOS is uncompiled; real Windows-to-Mac insertion remains pending.
+Detailed implementation history and review scope are preserved in
+docs/handoffs/archive/HANDOFF-2026-11-13-setup-complete.md.
+Generated smoke output was removed; unrelated .context/reviews/diagnostics preserved.
 
-Implementation commits: 4854c62, b2b55f2, 94c38c4, d038417, 2cadb60; review fixes:
-061a023. Prior work is b95e7f6..26f43a6, followed by 3c97272.
-The old handoff and review-stop snapshot are in docs/handoffs/archive/.
-Plan/spec and this plan's temporary execution workspace were removed after checks.
-Canonical generated art is src-tauri/icons/installer-header.bmp and
-src-tauri/icons/installer-sidebar.bmp; generator: scripts/gen_installer_art.ps1.
-Smoke output, logs and temporary helpers from this work were removed. Existing
-unrelated .context, docs/reviews and scripts/diagnostics work was preserved.
-No keys, accounts, deployed resources or scheduled jobs were created. Npm audit
-reported seven existing build-tool findings; dialog/API were not listed.
+## Release and earlier acceptance still pending
 
-## Suggested skills
+legal/manifest.json is unchanged/unapproved. Final publisher details, licence/support
+terms, identity disclosures and third-party obligations are unresolved. Generic
+approval of product rules does not fill missing facts or approve publication.
+The microphone privacy sentence needs to include shortcut practice/permission tests
+when the legal drafts are finalized. No legal publication flags were changed.
+Record four owner WAVs and run the bias benchmark before changing prompt wording.
+English-sentence myself/Mycel ambiguity and automatic word learning remain separate.
+Official ChatGPT/Claude login and real inference are still pending; historical
+candidate receipts predate the wizard. A fresh build/readiness is needed for live tests.
 
-handoff-memory, verification-before-completion, handoff; verify and computer-use
-only when native acceptance and human readiness are explicitly authorized.
+## Artifacts and suggested skills
+
+Canonical art: src-tauri/icons/installer-header.bmp and installer-sidebar.bmp;
+generator: scripts/gen_installer_art.ps1. No new keys, accounts or deployed services.
+Use brainstorming and grill-me for the active design; writing-plans only after
+approval. Use verify/computer-use only for separately authorized native acceptance.
 
 ## Next-session prompt
 
 ```text
-Continue Lectus from docs/HANDOFF.md on feat/remote-dictation. The setup wizard, vocabulary and NSIS art are implemented and tested in source; nothing was installed or pushed. Native acceptance still awaits legal approval and readiness.
-Files: docs/HANDOFF.md, legal/TERMS.md, legal/PRIVACY.md, legal/manifest.json, src/components/wizard/SetupWizard.tsx, scripts/ui-smoke.mjs.
-Model: gpt-6.1-sol high (scoped follow-up and verification).
-Skills: handoff-memory, verification-before-completion, handoff; verify/computer-use only for authorized live acceptance.
-Start with the owner's final legal wording and publisher details. Keep publication and installation gates closed until separately authorized. Collect the four voice fixtures before deciding prompt wording. Preserve unrelated dirty work.
+Continue Lectus access-model and Android design from docs/HANDOFF.md. Keep the completed wizard work and unrelated dirty files intact; do not implement billing/auth/mobile before the full design is approved.
+Files: docs/HANDOFF.md, src/components/settings/MembershipPanel.tsx, src-tauri/src/license/mod.rs, src-tauri/src/license/commands.rs, legal/manifest.json.
+Model: gpt-6-astra xhigh (cross-platform access, authentication and billing design).
+Skills: handoff-memory, brainstorming, grill-me; writing-plans after design approval.
+Carry forward the confirmed EUR 5/local-AI direction, gift durations, email access, two devices, offline use and Android-only mobile scope. Resolve distribution and remaining material decisions one at a time. Keep legal publication and installation gates closed; never infer that a fairlaunch label establishes a regulatory exemption.
 ```
