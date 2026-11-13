@@ -4,6 +4,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import '../styles/pill.css';
 import { BrandMark } from './BrandMark';
+import type { ApiStatus } from './settings/ApiPanel';
 
 type PillState = 'idle' | 'recording' | 'transcribing';
 
@@ -27,6 +28,7 @@ const BAR_COUNT = BAR_COLORS.length;
 // Floating dictation indicator: idle orb, rainbow audio-level bars while recording, spinner while transcribing.
 export function Pill({ state }: PillProps) {
   const [warming, setWarming] = useState(false);
+  const [api, setApi] = useState<Pick<ApiStatus, 'enabled' | 'running' | 'busy' | 'port' | 'error'> | null>(null);
   // Latest mic RMS, written by the event listener, read by the rAF loop.
   // A ref (not state) keeps ~31 emits/sec from triggering React re-renders.
   const levelRef = useRef(0);
@@ -34,6 +36,20 @@ export function Pill({ state }: PillProps) {
   const smoothedRef = useRef(0);
   const barRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    let eventReceived = false;
+    const unlisten = listen<ApiStatus>('api-activity', ({ payload }) => {
+      if (!active) return;
+      eventReceived = true;
+      setApi(payload);
+    });
+    invoke<ApiStatus>('get_api_status').then((status) => {
+      if (active && !eventReceived) setApi(status);
+    }).catch(() => {});
+    return () => { active = false; unlisten.then((stop) => stop()); };
+  }, []);
 
   useEffect(() => {
     const unlisten = listen<number>('audio-level', (e) => {
@@ -143,6 +159,10 @@ export function Pill({ state }: PillProps) {
   }, [state]);
 
   const expanded = state === 'recording' || state === 'transcribing';
+  const apiLabel = api?.busy && !api.enabled ? 'Local API is off. Finishing the current uploaded audio request.'
+    : api?.error || (api?.enabled && !api.running) ? 'Local API enabled, but not running. Open Settings for details.'
+    : api?.busy ? 'Local API is transcribing uploaded audio. Microphone is not used by the API.'
+    : `Local API on, port ${api?.port}.`;
 
   return (
     <div
@@ -180,6 +200,10 @@ export function Pill({ state }: PillProps) {
           </div>
           <span className="pill-label">Transcribing…</span>
         </div>
+      )}
+      {api && (api.enabled || api.busy) && (
+        <span className={`pill-api-indicator${api.busy ? ' is-busy' : ''}${api.enabled && (api.error || !api.running) ? ' has-error' : ''}`}
+          title={apiLabel} aria-label={apiLabel} role="status">API</span>
       )}
     </div>
   );

@@ -4,6 +4,8 @@ import { isEnabled as autostartEnabled, enable as autostartEnable, disable as au
 import { IS_MAC } from './types';
 import type { PanelProps } from './types';
 import { RemoteDictationPanel } from './RemoteDictationPanel';
+import { CloudSettings } from './CloudSettings';
+import { HelpTip } from '../HelpTip';
 
 const THEMES: Array<{ id: 'system' | 'light' | 'dark'; label: string }> = [
   { id: 'system', label: 'System' },
@@ -16,6 +18,8 @@ export function GeneralPanel({ config, update }: PanelProps) {
   const [launchAtLogin, setLaunchAtLogin] = useState(false);
   const [accessible, setAccessible] = useState(true);
   const [osName, setOsName] = useState('');
+  const [launchBusy, setLaunchBusy] = useState(false);
+  const [launchError, setLaunchError] = useState('');
 
   useEffect(() => {
     invoke<string[]>('list_input_devices').then(setDevices).catch(() => setDevices([]));
@@ -30,17 +34,25 @@ export function GeneralPanel({ config, update }: PanelProps) {
   }, []);
 
   const toggleLaunchAtLogin = async () => {
+    setLaunchBusy(true);
+    setLaunchError('');
     try {
       if (launchAtLogin) await autostartDisable();
       else await autostartEnable();
       setLaunchAtLogin(!launchAtLogin);
-    } catch { /* leave the toggle as-is on failure */ }
+    } catch {
+      setLaunchError('Could not change launch at login. Try again.');
+    } finally { setLaunchBusy(false); }
   };
 
   return (
     <div>
       <h2 className="settings-panel-title">General</h2>
       <p className="settings-panel-sub">Appearance, microphone and how text is inserted.</p>
+      <HelpTip title="microphone & text insertion"
+        why="Choose the input device Lectus hears and how finished text reaches the focused field."
+        setup="Select your microphone, leave insertion on Auto to start, then test a short sentence in the destination app."
+        privacy="After setup, Lectus keeps up to half a second of microphone audio in local memory; Receive mode turns local recording off, and cloud speech is a separate choice." />
 
       <RemoteDictationPanel />
 
@@ -78,15 +90,17 @@ export function GeneralPanel({ config, update }: PanelProps) {
         </div>
         <div className="row">
           <div className="row-label"><b>Appearance</b><span>Follow the system, or force light / dark.</span></div>
-          <div className="seg">
+          <div className="seg" role="group" aria-label="Appearance">
             {THEMES.map((t) => (
-              <span
+              <button
+                type="button"
                 key={t.id}
+                aria-pressed={config.theme === t.id}
                 className={config.theme === t.id ? 'on' : ''}
                 onClick={() => update({ theme: t.id })}
               >
                 {t.label}
-              </span>
+              </button>
             ))}
           </div>
         </div>
@@ -94,6 +108,7 @@ export function GeneralPanel({ config, update }: PanelProps) {
           <div className="row-label"><b>Microphone</b><span>Input device used for dictation.</span></div>
           <select
             className="select"
+            aria-label="Microphone"
             value={config.input_device}
             onChange={(e) => update({ input_device: e.target.value })}
           >
@@ -114,6 +129,7 @@ export function GeneralPanel({ config, update }: PanelProps) {
           </div>
           <select
             className="select"
+            aria-label="Insert text using"
             value={config.injection_mode}
             onChange={(e) => update({ injection_mode: e.target.value })}
           >
@@ -130,7 +146,7 @@ export function GeneralPanel({ config, update }: PanelProps) {
             <b>Voice activity detection</b>
             <span>Neural VAD trims silence before recognition — fewer "ghost words". Recommended on.</span>
           </div>
-          <div
+          <button type="button" role="switch" aria-label="Voice activity detection" aria-checked={config.vad_enabled}
             className={`toggle${config.vad_enabled ? '' : ' off'}`}
             onClick={() => update({ vad_enabled: !config.vad_enabled })}
           />
@@ -140,7 +156,7 @@ export function GeneralPanel({ config, update }: PanelProps) {
             <b>Mute playback while dictating</b>
             <span>Music, videos and games go quiet while you hold the key, then return to the previous volume.</span>
           </div>
-          <div
+          <button type="button" role="switch" aria-label="Mute playback while dictating" aria-checked={config.mute_while_dictating !== false}
             className={`toggle${config.mute_while_dictating !== false ? '' : ' off'}`}
             onClick={() => update({ mute_while_dictating: config.mute_while_dictating === false })}
           />
@@ -150,46 +166,24 @@ export function GeneralPanel({ config, update }: PanelProps) {
             <b>Launch at login</b>
             <span>Start Lectus in the background at sign-in.</span>
           </div>
-          <div className={`toggle${launchAtLogin ? '' : ' off'}`} onClick={toggleLaunchAtLogin} />
+          <button type="button" role="switch" aria-label="Launch at login" aria-checked={launchAtLogin}
+            className={`toggle${launchAtLogin ? '' : ' off'}`} disabled={launchBusy} onClick={toggleLaunchAtLogin} />
         </div>
+        {launchError && <p className="inline-error" role="alert">{launchError}</p>}
       </div>
 
       <div className="card">
         <div className="row">
           <div className="row-label">
             <b>Use cloud transcription</b>
-            <span>Groq Whisper-large-v3-turbo. Faster and more accurate, needs internet + an API key.</span>
+            <span>Send audio to your configured speech provider.</span>
           </div>
-          <div
+          <button type="button" role="switch" aria-label="Use cloud transcription" aria-checked={config.use_cloud}
             className={`toggle${config.use_cloud ? '' : ' off'}`}
             onClick={() => update({ use_cloud: !config.use_cloud })}
           />
         </div>
-        {config.use_cloud && (
-          <>
-            <div className="row">
-              <div className="row-label"><b>Cloud base URL</b><span>Any OpenAI-compatible endpoint.</span></div>
-              <DebouncedInput
-                className="input"
-                type="text"
-                style={{ maxWidth: 260 }}
-                value={config.cloud_base_url}
-                onCommit={(cloud_base_url) => update({ cloud_base_url })}
-              />
-            </div>
-            <div className="row">
-              <div className="row-label"><b>Cloud API key</b></div>
-              <DebouncedInput
-                className="input"
-                type="password"
-                style={{ maxWidth: 260 }}
-                placeholder="gsk_…"
-                value={config.cloud_api_key}
-                onCommit={(cloud_api_key) => update({ cloud_api_key })}
-              />
-            </div>
-          </>
-        )}
+        <CloudSettings config={config} update={update} />
       </div>
     </div>
   );

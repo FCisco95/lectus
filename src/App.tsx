@@ -5,6 +5,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Pill } from './components/Pill';
 import { Shell } from './components/Shell';
 import { Onboarding } from './components/Onboarding';
+import { LegalSetup } from './components/LegalDocuments';
 import { Titlebar } from './components/Titlebar';
 import { ResizeHandles } from './components/ResizeHandles';
 import { IS_MAC } from './components/settings/types';
@@ -18,6 +19,17 @@ export default function App() {
   const [appState, setAppState] = useState<AppState>('idle');
   const [windowLabel] = useState(() => getCurrentWebviewWindow().label);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  const [legalRequired, setLegalRequired] = useState(false);
+  const [legalError, setLegalError] = useState(false);
+  const [legalRetry, setLegalRetry] = useState(0);
+  useEffect(() => {
+    if (windowLabel === 'pill') return;
+    let active = true;
+    invoke<{ ready: boolean; accepted: boolean }>('get_legal_status')
+      .then((status) => { if (active) { setLegalRequired(status.ready && !status.accepted); setLegalError(false); } })
+      .catch(() => { if (active) setLegalError(true); });
+    return () => { active = false; };
+  }, [windowLabel, legalRetry]);
 
   useEffect(() => {
     if (windowLabel === 'pill') return;
@@ -88,8 +100,15 @@ export default function App() {
       <Titlebar />
       <ResizeHandles />
       <RemoteDeliveryNotice />
-      {onboardingDone === null ? null : !onboardingDone ? (
+      {legalError ? <div className="onboarding-root"><div className="onboarding-step">
+        <h2>Could not load the legal documents</h2><p>Try again before continuing.</p>
+        <button className="btn" type="button" onClick={() => setLegalRetry((value) => value + 1)}>Try again</button>
+      </div></div> : onboardingDone === null ? null : !onboardingDone ? (
         <Onboarding onComplete={() => setOnboardingDone(true)} />
+      ) : legalRequired ? (
+        <div className="onboarding-root"><div className="onboarding-step"><h2>Review the current Terms</h2>
+          <LegalSetup onReady={(accepted) => { if (accepted) setLegalRequired(false); }} />
+        </div></div>
       ) : (
         <Shell />
       )}

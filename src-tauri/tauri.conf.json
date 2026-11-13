@@ -7,6 +7,7 @@
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
+    "beforeBundleCommand": "node scripts/check-legal.mjs --release",
     "frontendDist": "../dist"
   },
   "app": {
@@ -58,6 +59,17 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
+    "licenseFile": "../legal/TERMS.md",
+    "shortDescription": "Speech-to-text and optional translation for your desktop",
+    "longDescription": "Dictate into desktop apps, choose local or explicitly enabled cloud processing, translate output, and connect another app through an optional local API.",
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "currentUser",
+        "languages": ["English", "Portuguese", "SimpChinese", "TradChinese"],
+        "displayLanguageSelector": true
+      }
+    },
     "macOS": {
       "minimumSystemVersion": "11.0"
     },
@@ -69,6 +81,10 @@
       "icons/icon.ico"
       ],
     "resources": {
+      "../legal/TERMS.md": "legal/TERMS.md",
+      "../legal/PRIVACY.md": "legal/PRIVACY.md",
+      "../legal/model-agreements/": "legal/model-agreements/",
+      "../legal/third-party/": "legal/third-party/",
       "../models/ggml-tiny.en.bin": "models/ggml-tiny.en.bin",
       "icons/tray-idle.png": "icons/tray-idle.png",
       "icons/tray-recording.png": "icons/tray-recording.png",

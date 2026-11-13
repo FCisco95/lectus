@@ -1,0 +1,16 @@
+[
+  {
+    "source": "legal/third-party/models/gemma-3/TERMS.html",
+    "url": "https://ai.google.dev/gemma/terms",
+    "source_sha256": "90b340131c115d8eac9deb9b6ad3a7491e5a42f8f28ac2f855213b018e40757b",
+    "output": "gemma-3-terms.txt",
+    "output_sha256": "e5adda299cfb621c557a127f79b54aa9307fdf726a1a7b2df43acc1f542781c9"
+  },
+  {
+    "source": "legal/third-party/models/gemma-3/PROHIBITED-USE-POLICY.html",
+    "url": "https://ai.google.dev/gemma/prohibited_use_policy",
+    "source_sha256": "6cf57af8d138fec5232141a885f4b6445786e2d0895dd8bf552d5ab61a2db8c2",
+    "output": "gemma-3-policy.txt",
+    "output_sha256": "f5fa12c41846b09a427df90e697446e8997d1df4620a69f2785419083dfea91a"
+  }
+]

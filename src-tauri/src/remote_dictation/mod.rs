@@ -343,6 +343,9 @@ fn receive_text(
                 bail!("Delivery expired; nothing was inserted");
             }
             let state = handle.state::<RemoteState>();
+            if !handle.state::<crate::AppState>().config.lock().unwrap().onboarding_completed || crate::legal::requires_acceptance() {
+                bail!("Complete setup and review the current Terms on the receiving computer first");
+            }
             {
                 let settings = state.settings.lock().unwrap();
                 if settings.mode != Mode::Receive || settings.receiver_code != code {

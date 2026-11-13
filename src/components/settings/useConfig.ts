@@ -19,36 +19,51 @@ export function useConfig() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const configRef = useRef<Config | null>(null);
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const revision = useRef(0);
+  const dirty = useRef(false);
 
-  useEffect(() => {
-    configRef.current = config;
-  }, [config]);
-
-  useEffect(() => {
-    const persist = async (next: Config) => {
+  const persist = useCallback((next: Config) => {
+    const savedRevision = revision.current;
+    setStatus('Saving…');
+    setStatusKind('');
+    const queued = saveQueue.current.then(async () => {
       try {
-        await invoke('save_config', { newConfig: next });
+        const saved = await invoke<Config>('save_config', { newConfig: next });
+        if (savedRevision !== revision.current) return;
+        if (saved) { configRef.current = saved; setConfig(saved); }
+        dirty.current = false;
         setStatus('Saved');
         setStatusKind('ok');
         if (statusTimer.current) clearTimeout(statusTimer.current);
         statusTimer.current = setTimeout(() => setStatus(''), 1500);
       } catch (e) {
-        setStatus(`${e}`);
+        setStatus(`Changes could not be saved: ${e}`);
         setStatusKind('err');
+        throw e;
       }
-    };
+    });
+    // Keep the queue usable after an error, but let focus refresh see failure.
+    saveQueue.current = queued.catch(() => {});
+    return queued;
+  }, []);
 
+  useEffect(() => {
     const flush = async () => {
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
         saveTimer.current = null;
-        if (configRef.current) await persist(configRef.current);
       }
+      await saveQueue.current;
+      if (dirty.current && configRef.current) await persist(configRef.current);
     };
 
-    const load = () =>
-      invoke<Config>('get_config')
+    const load = () => {
+      if (dirty.current) return Promise.resolve();
+      const startedRevision = revision.current;
+      return invoke<Config>('get_config')
         .then((c) => {
+          if (dirty.current || revision.current !== startedRevision) return;
           configRef.current = c;
           setConfig(c);
         })
@@ -56,16 +71,18 @@ export function useConfig() {
           setStatus(`Load error: ${e}`);
           setStatusKind('err');
         });
+    };
     load();
 
     const win = getCurrentWebviewWindow();
     const unFocus = win.listen('tauri://focus', () => {
-      flush().then(load);
+      flush().then(load).catch(() => {});
     });
     const unBlur = win.listen('tauri://blur', () => {
-      flush();
+      void flush().catch(() => {});
     });
     const unModel = listen<string>('model-active', (e) => {
+      revision.current += 1;
       setConfig((c) => {
         if (!c) return c;
         const next = { ...c, model_name: e.payload };
@@ -74,34 +91,32 @@ export function useConfig() {
       });
     });
     return () => {
+      void flush().catch(() => {});
+      if (statusTimer.current) clearTimeout(statusTimer.current);
       unFocus.then((f) => f());
       unBlur.then((f) => f());
       unModel.then((f) => f());
     };
-  }, []);
+  }, [persist]);
 
   /** Merge a patch into config and schedule the save. */
   const update = useCallback((patch: Partial<Config>) => {
     const current = configRef.current;
     if (!current) return;
     const next = { ...current, ...patch };
+    revision.current += 1;
+    dirty.current = true;
     configRef.current = next;
     setConfig(next);
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
+    if (statusTimer.current) clearTimeout(statusTimer.current);
+    setStatus('Unsaved changes');
+    setStatusKind('');
+    saveTimer.current = setTimeout(() => {
       saveTimer.current = null;
-      try {
-        await invoke('save_config', { newConfig: next });
-        setStatus('Saved');
-        setStatusKind('ok');
-        if (statusTimer.current) clearTimeout(statusTimer.current);
-        statusTimer.current = setTimeout(() => setStatus(''), 1500);
-      } catch (e) {
-        setStatus(`${e}`);
-        setStatusKind('err');
-      }
+      void persist(configRef.current ?? next).catch(() => {});
     }, 500);
-  }, []);
+  }, [persist]);
 
   return { config, update, status, statusKind };
 }

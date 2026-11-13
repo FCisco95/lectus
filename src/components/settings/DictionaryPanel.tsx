@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PanelProps, ReplacementRule } from './types';
+import { HelpTip } from '../HelpTip';
 
 export function DictionaryPanel({ config, update }: PanelProps) {
   const [newWord, setNewWord] = useState('');
@@ -30,18 +31,23 @@ export function DictionaryPanel({ config, update }: PanelProps) {
       <p className="settings-panel-sub">
         Saved on this machine. After each dictation, these spellings replace whatever Whisper guessed.
       </p>
+      <HelpTip title="vocabulary & replacement rules"
+        why="Keep names, specialist words and repeated phrases consistent before cleanup or translation."
+        setup="Add the spelling you want, or create a spoken-to-written replacement and enable match case only when needed."
+        privacy="Vocabulary is stored locally, but can appear in cloud speech prompts or transcripts when you enable an external processing route." />
 
       <div className="field">
-        <label className="field-label">Custom words</label>
+        <label className="field-label" htmlFor="dictionary-new-word">Custom words</label>
         <div className="tag-input-row">
           <input
+            id="dictionary-new-word"
             className="input"
             value={newWord}
             placeholder="e.g. Lectus, Meteora, Tauri…"
             onChange={(e) => setNewWord(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addWord(); } }}
           />
-          <button className="btn" type="button" onClick={addWord}>Add</button>
+          <button className="btn" type="button" onClick={addWord} aria-label="Add custom word">Add</button>
         </div>
         <div className="field-hint">
           Stored in Settings and applied to every transcript (e.g. “claude” → “Claude”).
@@ -58,18 +64,20 @@ export function DictionaryPanel({ config, update }: PanelProps) {
         )}
       </div>
 
-      <div className="field" style={{ maxWidth: 560 }}>
-        <label className="field-label">Replacement rules</label>
+      <div className="field" style={{ maxWidth: 560 }} role="group" aria-labelledby="replacement-rules-label">
+        <div className="field-label" id="replacement-rules-label">Replacement rules</div>
         {rules.map((rule, i) => (
           <div className="rule-row" key={i}>
             <input
               className="input"
+              aria-label={`Rule ${i + 1}: spoken text`}
               placeholder="spoken…"
               value={rule.from}
               onChange={(e) => setRule(i, { from: e.target.value })}
             />
             <input
               className="input"
+              aria-label={`Rule ${i + 1}: replacement text`}
               placeholder="written…"
               value={rule.to}
               onChange={(e) => setRule(i, { to: e.target.value })}
@@ -77,12 +85,13 @@ export function DictionaryPanel({ config, update }: PanelProps) {
             <label className="rule-cs">
               <input
                 type="checkbox"
+                aria-label={`Rule ${i + 1}: match case`}
                 checked={rule.case_sensitive}
                 onChange={(e) => setRule(i, { case_sensitive: e.target.checked })}
               />
               Aa
             </label>
-            <button className="icon-btn" type="button" onClick={() => removeRule(i)} aria-label="Remove rule">×</button>
+            <button className="icon-btn" type="button" onClick={() => removeRule(i)} aria-label={`Remove replacement rule ${i + 1}${rule.from ? ` for ${rule.from}` : ''}`}>×</button>
           </div>
         ))}
         <button className="btn" type="button" onClick={addRule} style={{ marginTop: 4 }}>+ Add rule</button>

@@ -1,8 +1,7 @@
 [package]
 name = "chirp"
 version = "0.7.1"
-description = "A Tauri App"
-authors = ["you"]
+description = "Desktop speech dictation with optional local and cloud translation"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -33,6 +32,7 @@ tauri-plugin-shell = "2"
 tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 tokio = { version = "1", features = ["full"] }
 cpal = "0.15"
 arboard = "3"
@@ -58,6 +58,11 @@ ed25519-dalek = "2"
 bs58 = "0.5"
 getrandom = "0.2"
 tiny_http = "0.12"
+# Desktop subscription auth: signed identity validation and native secret storage.
+base64 = "0.22"
+jsonwebtoken = "9"
+keyring = { version = "3", features = ["windows-native", "apple-native"] }
+fs2 = "0.4"
 # Paired, encrypted text delivery; discovery follows address changes on the LAN.
 chacha20poly1305 = "0.10.1"
 mdns-sd = "0.21.5"
@@ -83,6 +88,9 @@ windows = { version = "0.58", features = [
   "Win32_UI_WindowsAndMessaging",
   "Win32_System_LibraryLoader",
   "Win32_System_Threading",
+  "Win32_System_JobObjects",
+  "Win32_System_Registry",
+  "Win32_Security",
   "Win32_Foundation",
   "Win32_Media_Audio",
   "Win32_Media_Audio_Endpoints",

@@ -1,0 +1,780 @@
+[
+  {
+    "name": "alloc-stdlib",
+    "version": "0.2.2",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "6032b6a9b20e03737135c55a0270ccffcc1438ef",
+    "repository": "https://github.com/dropbox/rust-alloc-no-stdlib",
+    "path_in_vcs": "alloc-stdlib",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/dropbox/rust-alloc-no-stdlib/6032b6a9b20e03737135c55a0270ccffcc1438ef/LICENSE",
+        "resolved_url": "https://raw.githubusercontent.com/dropbox/rust-alloc-no-stdlib/6032b6a9b20e03737135c55a0270ccffcc1438ef/LICENSE",
+        "copied_path": "reconciliation/recovered/alloc-stdlib-0.2.2/LICENSE",
+        "sha256": "c0c56f26d9c051cac4d200c34c84e7ae9aaa853e01a982a1df08b09931e518ae",
+        "bytes": 1483,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "block-sys",
+    "version": "0.2.1",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "01c7406f13e3f4abf75ec5e3d074893990c5eab5",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "crates/block-sys",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.txt",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/01c7406f13e3f4abf75ec5e3d074893990c5eab5/LICENSE.txt",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/01c7406f13e3f4abf75ec5e3d074893990c5eab5/LICENSE.txt",
+        "copied_path": "reconciliation/recovered/block-sys-0.2.1/LICENSE.txt",
+        "sha256": "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5",
+        "bytes": 1066,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "block",
+    "version": "0.1.6",
+    "status": "no_ancestor_notice_at_exact_commit",
+    "commit": "47178790cfc9d4a8b092051d8b413b78bd31254a",
+    "repository": "https://github.com/SSheldon/rust-block",
+    "path_in_vcs": "",
+    "provenance": "Authoritative exact-version tag plus all packaged Rust source blobs matched to the upstream tree",
+    "notices": [],
+    "errors": [],
+    "release_tag": "0.1.6",
+    "release_tags_url": "https://api.github.com/repos/SSheldon/rust-block/tags?per_page=100",
+    "tree_url": "https://api.github.com/repos/SSheldon/rust-block/git/trees/47178790cfc9d4a8b092051d8b413b78bd31254a?recursive=1",
+    "tree_sha256": "a41e05fe112d31934a867ae5c43eac6e0ef82e29705fdd30d6b83eae186aa59e",
+    "matched_source_blobs": [
+      {
+        "path": "src/lib.rs",
+        "git_blob_sha1": "b9c5d1d77479727e0c5fa3ddbe018e060684f8f9"
+      },
+      {
+        "path": "src/test_utils.rs",
+        "git_blob_sha1": "940a3d22720618ca42752f890a00fd2b9ce8d2ee"
+      }
+    ],
+    "declaration_evidence": {
+      "source_url": "https://raw.githubusercontent.com/SSheldon/rust-block/47178790cfc9d4a8b092051d8b413b78bd31254a/Cargo.toml",
+      "copied_path": "reconciliation/recovered/block-0.1.6/DECLARATION-Cargo.toml",
+      "sha256": "24df2f33b48c9e756a4f864f882c1ab07a159b6c2b790f45af2e8162499b6719",
+      "bytes": 531,
+      "kind": "license_metadata_declaration_not_full_license_notice"
+    },
+    "material_scope": "metadata_declaration_only_no_full_license_or_copyright_notice_recovered"
+  },
+  {
+    "name": "block2",
+    "version": "0.4.0",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "8b04944ffde180e526a45fe154ee51c9ae14944f",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "crates/block2",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.txt",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/8b04944ffde180e526a45fe154ee51c9ae14944f/LICENSE.txt",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/8b04944ffde180e526a45fe154ee51c9ae14944f/LICENSE.txt",
+        "copied_path": "reconciliation/recovered/block2-0.4.0/LICENSE.txt",
+        "sha256": "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5",
+        "bytes": 1066,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "block2",
+    "version": "0.6.2",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "b4167b582b2f75f9a1be75495c41b765344fd03c",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "crates/block2",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.md",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/b4167b582b2f75f9a1be75495c41b765344fd03c/LICENSE.md",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/b4167b582b2f75f9a1be75495c41b765344fd03c/LICENSE.md",
+        "copied_path": "reconciliation/recovered/block2-0.6.2/LICENSE.md",
+        "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+        "bytes": 1339,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+      }
+    ],
+    "errors": [],
+    "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+  },
+  {
+    "name": "clipboard-win",
+    "version": "5.4.1",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "3b27cf2bfd1adcfa6e0264eb51c1025ddaf0f342",
+    "repository": "https://github.com/DoumanAsh/clipboard-win",
+    "path_in_vcs": "",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/DoumanAsh/clipboard-win/3b27cf2bfd1adcfa6e0264eb51c1025ddaf0f342/LICENSE",
+        "resolved_url": "https://raw.githubusercontent.com/DoumanAsh/clipboard-win/3b27cf2bfd1adcfa6e0264eb51c1025ddaf0f342/LICENSE",
+        "copied_path": "reconciliation/recovered/clipboard-win-5.4.1/LICENSE",
+        "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+        "bytes": 1338,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "dasp_sample",
+    "version": "0.11.0",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "97c3bb9b2363c0b46ac1633858bf1054fd02a980",
+    "repository": "https://github.com/rustaudio/sample",
+    "path_in_vcs": "",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE-APACHE",
+        "source_url": "https://raw.githubusercontent.com/rustaudio/sample/97c3bb9b2363c0b46ac1633858bf1054fd02a980/LICENSE-APACHE",
+        "resolved_url": "https://raw.githubusercontent.com/rustaudio/sample/97c3bb9b2363c0b46ac1633858bf1054fd02a980/LICENSE-APACHE",
+        "copied_path": "reconciliation/recovered/dasp_sample-0.11.0/LICENSE-APACHE",
+        "sha256": "756c8d2ab2dc24f256e1455b5f03937f4933d83d7bc9f2d55009fc962377d512",
+        "bytes": 561,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "copyright_notice"
+      },
+      {
+        "source_path": "LICENSE-MIT",
+        "source_url": "https://raw.githubusercontent.com/rustaudio/sample/97c3bb9b2363c0b46ac1633858bf1054fd02a980/LICENSE-MIT",
+        "resolved_url": "https://raw.githubusercontent.com/rustaudio/sample/97c3bb9b2363c0b46ac1633858bf1054fd02a980/LICENSE-MIT",
+        "copied_path": "reconciliation/recovered/dasp_sample-0.11.0/LICENSE-MIT",
+        "sha256": "b1d6df41ed3aa96806e74c729444d7c121d90e6660a6aed01d298e03fde475a0",
+        "bytes": 1087,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "dispatch2",
+    "version": "0.3.1",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "8852b424193ca41602281b3d7540d7c8ed51e49a",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "crates/dispatch2",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.md",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md",
+        "copied_path": "reconciliation/recovered/dispatch2-0.3.1/LICENSE.md",
+        "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+        "bytes": 1339,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+      }
+    ],
+    "errors": [],
+    "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+  },
+  {
+    "name": "llama-cpp-2",
+    "version": "0.1.151",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "7f0a0d95514aebe86efab16527745852ee72931c",
+    "repository": "https://github.com/utilityai/llama-cpp-rs",
+    "path_in_vcs": "llama-cpp-2",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE-APACHE",
+        "source_url": "https://raw.githubusercontent.com/utilityai/llama-cpp-rs/7f0a0d95514aebe86efab16527745852ee72931c/LICENSE-APACHE",
+        "resolved_url": "https://raw.githubusercontent.com/utilityai/llama-cpp-rs/7f0a0d95514aebe86efab16527745852ee72931c/LICENSE-APACHE",
+        "copied_path": "reconciliation/recovered/llama-cpp-2-0.1.151/LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+        "bytes": 9723,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      },
+      {
+        "source_path": "LICENSE-MIT",
+        "source_url": "https://raw.githubusercontent.com/utilityai/llama-cpp-rs/7f0a0d95514aebe86efab16527745852ee72931c/LICENSE-MIT",
+        "resolved_url": "https://raw.githubusercontent.com/utilityai/llama-cpp-rs/7f0a0d95514aebe86efab16527745852ee72931c/LICENSE-MIT",
+        "copied_path": "reconciliation/recovered/llama-cpp-2-0.1.151/LICENSE-MIT",
+        "sha256": "763912bd05f42956dbfa900bd1a2f8037c704f5c64d778c623ec5952454e24aa",
+        "bytes": 1046,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "malloc_buf",
+    "version": "0.0.6",
+    "status": "no_ancestor_notice_at_exact_commit",
+    "commit": "a7811e5f4c6f9685dd57ad9bfe34e9bf6b0ba4f9",
+    "repository": "https://github.com/SSheldon/malloc_buf",
+    "path_in_vcs": "",
+    "provenance": "Authoritative exact-version tag plus all packaged Rust source blobs matched to the upstream tree",
+    "notices": [],
+    "errors": [],
+    "release_tag": "0.0.6",
+    "release_tags_url": "https://api.github.com/repos/SSheldon/malloc_buf/tags?per_page=100",
+    "tree_url": "https://api.github.com/repos/SSheldon/malloc_buf/git/trees/a7811e5f4c6f9685dd57ad9bfe34e9bf6b0ba4f9?recursive=1",
+    "tree_sha256": "8356f2597ab05fde7560752eb9d8c356699967e803f8d7ae34f0eab97fb859b4",
+    "matched_source_blobs": [
+      {
+        "path": "src/lib.rs",
+        "git_blob_sha1": "24066b69d418d50a507fb91c0db3d4f607590680"
+      }
+    ],
+    "declaration_evidence": {
+      "source_url": "https://raw.githubusercontent.com/SSheldon/malloc_buf/a7811e5f4c6f9685dd57ad9bfe34e9bf6b0ba4f9/Cargo.toml",
+      "copied_path": "reconciliation/recovered/malloc_buf-0.0.6/DECLARATION-Cargo.toml",
+      "sha256": "1c70c91688d9850272e43cee9b189ffe3fe667151d7caf576a36a720f8b28194",
+      "bytes": 323,
+      "kind": "license_metadata_declaration_not_full_license_notice"
+    },
+    "material_scope": "metadata_declaration_only_no_full_license_or_copyright_notice_recovered"
+  },
+  {
+    "name": "objc-sys",
+    "version": "0.3.5",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "4fc083f1c6d6784577e38b0ee8dbd344481e2fd2",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "crates/objc-sys",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.txt",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/4fc083f1c6d6784577e38b0ee8dbd344481e2fd2/LICENSE.txt",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/4fc083f1c6d6784577e38b0ee8dbd344481e2fd2/LICENSE.txt",
+        "copied_path": "reconciliation/recovered/objc-sys-0.3.5/LICENSE.txt",
+        "sha256": "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5",
+        "bytes": 1066,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "objc2-app-kit",
+    "version": "0.3.2",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "framework-crates/objc2-app-kit",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.md",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+        "copied_path": "reconciliation/recovered/objc2-app-kit-0.3.2/LICENSE.md",
+        "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+        "bytes": 1339,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+      }
+    ],
+    "errors": [],
+    "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+  },
+  {
+    "name": "objc2-core-foundation",
+    "version": "0.3.2",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "framework-crates/objc2-core-foundation",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.md",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+        "copied_path": "reconciliation/recovered/objc2-core-foundation-0.3.2/LICENSE.md",
+        "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+        "bytes": 1339,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+      }
+    ],
+    "errors": [],
+    "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+  },
+  {
+    "name": "objc2-core-graphics",
+    "version": "0.3.2",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "framework-crates/objc2-core-graphics",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.md",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+        "copied_path": "reconciliation/recovered/objc2-core-graphics-0.3.2/LICENSE.md",
+        "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+        "bytes": 1339,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+      }
+    ],
+    "errors": [],
+    "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+  },
+  {
+    "name": "objc2-encode",
+    "version": "4.1.0",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "8d214f5477365ffcbcbb7de058c86ed9a518efb7",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "crates/objc2-encode",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.md",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/8d214f5477365ffcbcbb7de058c86ed9a518efb7/LICENSE.md",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/8d214f5477365ffcbcbb7de058c86ed9a518efb7/LICENSE.md",
+        "copied_path": "reconciliation/recovered/objc2-encode-4.1.0/LICENSE.md",
+        "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+        "bytes": 1339,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+      }
+    ],
+    "errors": [],
+    "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+  },
+  {
+    "name": "objc2-exception-helper",
+    "version": "0.1.1",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "8d214f5477365ffcbcbb7de058c86ed9a518efb7",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "crates/objc2-exception-helper",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.md",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/8d214f5477365ffcbcbb7de058c86ed9a518efb7/LICENSE.md",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/8d214f5477365ffcbcbb7de058c86ed9a518efb7/LICENSE.md",
+        "copied_path": "reconciliation/recovered/objc2-exception-helper-0.1.1/LICENSE.md",
+        "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+        "bytes": 1339,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+      }
+    ],
+    "errors": [],
+    "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+  },
+  {
+    "name": "objc2-osa-kit",
+    "version": "0.3.2",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "framework-crates/objc2-osa-kit",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.md",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+        "copied_path": "reconciliation/recovered/objc2-osa-kit-0.3.2/LICENSE.md",
+        "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+        "bytes": 1339,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+      }
+    ],
+    "errors": [],
+    "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+  },
+  {
+    "name": "objc2-web-kit",
+    "version": "0.3.2",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "framework-crates/objc2-web-kit",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.md",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+        "copied_path": "reconciliation/recovered/objc2-web-kit-0.3.2/LICENSE.md",
+        "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+        "bytes": 1339,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+      }
+    ],
+    "errors": [],
+    "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+  },
+  {
+    "name": "objc2",
+    "version": "0.5.2",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "4fc083f1c6d6784577e38b0ee8dbd344481e2fd2",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "crates/objc2",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.txt",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/4fc083f1c6d6784577e38b0ee8dbd344481e2fd2/LICENSE.txt",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/4fc083f1c6d6784577e38b0ee8dbd344481e2fd2/LICENSE.txt",
+        "copied_path": "reconciliation/recovered/objc2-0.5.2/LICENSE.txt",
+        "sha256": "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5",
+        "bytes": 1066,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "objc2",
+    "version": "0.6.4",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "8852b424193ca41602281b3d7540d7c8ed51e49a",
+    "repository": "https://github.com/madsmtm/objc2",
+    "path_in_vcs": "crates/objc2",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE.md",
+        "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md",
+        "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md",
+        "copied_path": "reconciliation/recovered/objc2-0.6.4/LICENSE.md",
+        "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+        "bytes": 1339,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+      }
+    ],
+    "errors": [],
+    "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+  },
+  {
+    "name": "sigchld",
+    "version": "0.2.4",
+    "status": "no_ancestor_notice_at_exact_commit",
+    "commit": "07b95e2fe38b18b376b0f635f2766bf2e641b80b",
+    "repository": "https://github.com/oconnor663/sigchld.rs",
+    "path_in_vcs": "",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [],
+    "errors": [],
+    "tree_url": "https://api.github.com/repos/oconnor663/sigchld.rs/git/trees/07b95e2fe38b18b376b0f635f2766bf2e641b80b?recursive=1",
+    "tree_sha256": "8f54edad542e541c36141b0676df48ef9329bb5738aa6b1ecd6f2e5c6cd5fadd",
+    "declaration_evidence": {
+      "source_url": "https://raw.githubusercontent.com/oconnor663/sigchld.rs/07b95e2fe38b18b376b0f635f2766bf2e641b80b/Cargo.toml",
+      "copied_path": "reconciliation/recovered/sigchld-0.2.4/DECLARATION-Cargo.toml",
+      "sha256": "79bbbf7c7e7c9dfad8d8592223ae4d7fe90f769ab4e65b9d2081b5e5335c8901",
+      "bytes": 646,
+      "kind": "license_metadata_declaration_not_full_license_notice"
+    },
+    "material_scope": "metadata_declaration_only_no_full_license_or_copyright_notice_recovered"
+  },
+  {
+    "name": "unic-char-property",
+    "version": "0.9.0",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "5878605364af97a3358368a6eaef02104af2e016",
+    "repository": "https://github.com/open-i18n/rust-unic",
+    "path_in_vcs": "",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "COPYRIGHT.md",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+        "copied_path": "reconciliation/recovered/unic-char-property-0.9.0/COPYRIGHT.md",
+        "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+        "bytes": 608,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "copyright_notice"
+      },
+      {
+        "source_path": "LICENSE-APACHE",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+        "copied_path": "reconciliation/recovered/unic-char-property-0.9.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "bytes": 10847,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      },
+      {
+        "source_path": "LICENSE-MIT",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+        "copied_path": "reconciliation/recovered/unic-char-property-0.9.0/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "bytes": 1023,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "unic-char-range",
+    "version": "0.9.0",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "5878605364af97a3358368a6eaef02104af2e016",
+    "repository": "https://github.com/open-i18n/rust-unic",
+    "path_in_vcs": "",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "COPYRIGHT.md",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+        "copied_path": "reconciliation/recovered/unic-char-range-0.9.0/COPYRIGHT.md",
+        "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+        "bytes": 608,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "copyright_notice"
+      },
+      {
+        "source_path": "LICENSE-APACHE",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+        "copied_path": "reconciliation/recovered/unic-char-range-0.9.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "bytes": 10847,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      },
+      {
+        "source_path": "LICENSE-MIT",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+        "copied_path": "reconciliation/recovered/unic-char-range-0.9.0/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "bytes": 1023,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "unic-common",
+    "version": "0.9.0",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "5878605364af97a3358368a6eaef02104af2e016",
+    "repository": "https://github.com/open-i18n/rust-unic",
+    "path_in_vcs": "",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "COPYRIGHT.md",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+        "copied_path": "reconciliation/recovered/unic-common-0.9.0/COPYRIGHT.md",
+        "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+        "bytes": 608,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "copyright_notice"
+      },
+      {
+        "source_path": "LICENSE-APACHE",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+        "copied_path": "reconciliation/recovered/unic-common-0.9.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "bytes": 10847,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      },
+      {
+        "source_path": "LICENSE-MIT",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+        "copied_path": "reconciliation/recovered/unic-common-0.9.0/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "bytes": 1023,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "unic-ucd-ident",
+    "version": "0.9.0",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "8a6ce83063d90b91ae2ce59eddb803edd393fca9",
+    "repository": "https://github.com/open-i18n/rust-unic",
+    "path_in_vcs": "",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "COPYRIGHT.md",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/COPYRIGHT.md",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/COPYRIGHT.md",
+        "copied_path": "reconciliation/recovered/unic-ucd-ident-0.9.0/COPYRIGHT.md",
+        "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+        "bytes": 608,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "copyright_notice"
+      },
+      {
+        "source_path": "LICENSE-APACHE",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/LICENSE-APACHE",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/LICENSE-APACHE",
+        "copied_path": "reconciliation/recovered/unic-ucd-ident-0.9.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "bytes": 10847,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      },
+      {
+        "source_path": "LICENSE-MIT",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/LICENSE-MIT",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/LICENSE-MIT",
+        "copied_path": "reconciliation/recovered/unic-ucd-ident-0.9.0/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "bytes": 1023,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "unic-ucd-version",
+    "version": "0.9.0",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "5878605364af97a3358368a6eaef02104af2e016",
+    "repository": "https://github.com/open-i18n/rust-unic",
+    "path_in_vcs": "",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "COPYRIGHT.md",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+        "copied_path": "reconciliation/recovered/unic-ucd-version-0.9.0/COPYRIGHT.md",
+        "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+        "bytes": 608,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "copyright_notice"
+      },
+      {
+        "source_path": "LICENSE-APACHE",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+        "copied_path": "reconciliation/recovered/unic-ucd-version-0.9.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "bytes": 10847,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      },
+      {
+        "source_path": "LICENSE-MIT",
+        "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+        "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+        "copied_path": "reconciliation/recovered/unic-ucd-version-0.9.0/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+        "bytes": 1023,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "webview2-com-sys",
+    "version": "0.38.2",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "b74dc5e2b394044bea5191052868ce7a106c202c",
+    "repository": "https://github.com/wravery/webview2-rs",
+    "path_in_vcs": "crates/bindings",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/wravery/webview2-rs/b74dc5e2b394044bea5191052868ce7a106c202c/LICENSE",
+        "resolved_url": "https://raw.githubusercontent.com/wravery/webview2-rs/b74dc5e2b394044bea5191052868ce7a106c202c/LICENSE",
+        "copied_path": "reconciliation/recovered/webview2-com-sys-0.38.2/LICENSE",
+        "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73",
+        "bytes": 1067,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  },
+  {
+    "name": "webview2-com",
+    "version": "0.38.2",
+    "status": "exact_commit_notice_text_recovered_review_required",
+    "commit": "b74dc5e2b394044bea5191052868ce7a106c202c",
+    "repository": "https://github.com/wravery/webview2-rs",
+    "path_in_vcs": "crates/webview2-com",
+    "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+    "notices": [
+      {
+        "source_path": "LICENSE",
+        "source_url": "https://raw.githubusercontent.com/wravery/webview2-rs/b74dc5e2b394044bea5191052868ce7a106c202c/LICENSE",
+        "resolved_url": "https://raw.githubusercontent.com/wravery/webview2-rs/b74dc5e2b394044bea5191052868ce7a106c202c/LICENSE",
+        "copied_path": "reconciliation/recovered/webview2-com-0.38.2/LICENSE",
+        "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73",
+        "bytes": 1067,
+        "kind": "upstream_notice_at_crate_commit",
+        "content_kind": "full_license_text_present"
+      }
+    ],
+    "errors": [],
+    "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+  }
+]

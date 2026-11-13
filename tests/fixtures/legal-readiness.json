@@ -1,0 +1,36 @@
+{
+  "manifest": {
+    "terms_version": "test-v1",
+    "privacy_version": "test-v1",
+    "publication_approved": true,
+    "identity_disclosures_reviewed": true,
+    "third_party_notices_reviewed": true,
+    "publisher": {
+      "kind": "individual",
+      "legal_name": "Synthetic Test Publisher",
+      "country": "PT",
+      "support_email": "support@example.test",
+      "privacy_email": "privacy@example.test"
+    }
+  },
+  "cases": [
+    { "name": "complete synthetic fixture", "patch": {}, "ready": true },
+    { "name": "publication not approved", "patch": { "publication_approved": false }, "ready": false },
+    { "name": "identity review missing", "patch": { "identity_disclosures_reviewed": false }, "ready": false },
+    { "name": "notices review missing", "patch": { "third_party_notices_reviewed": false }, "ready": false },
+    { "name": "publisher unresolved", "patch": { "publisher": { "legal_name": "  " } }, "ready": false },
+    { "name": "country whitespace", "patch": { "publisher": { "country": "  " } }, "ready": false },
+    { "name": "mixed case draft version", "patch": { "terms_version": "2026-DraFt" }, "ready": false },
+    { "name": "empty privacy version", "patch": { "privacy_version": "" }, "ready": false },
+    { "name": "invalid version type", "patch": { "privacy_version": null }, "ready": false },
+    { "name": "support email lacks domain suffix", "patch": { "publisher": { "support_email": "support@example" } }, "ready": false },
+    { "name": "privacy email whitespace", "patch": { "publisher": { "privacy_email": " privacy@example.test" } }, "ready": false },
+    { "name": "extra at sign", "patch": { "publisher": { "support_email": "support@a@example.test" } }, "ready": false },
+    { "name": "trailing domain dot", "patch": { "publisher": { "support_email": "support@example.test." } }, "ready": false },
+    { "name": "empty domain label", "patch": { "publisher": { "support_email": "support@example..test" } }, "ready": false },
+    { "name": "case insensitive draft document", "patch": {}, "terms": "NOT APPROVED FOR DISTRIBUTION", "ready": false },
+    { "name": "case insensitive privacy draft", "patch": {}, "privacy": "FACTUAL DRAFT", "ready": false },
+    { "name": "company fixture", "patch": { "publisher": { "kind": "company" } }, "ready": true },
+    { "name": "unknown publisher kind", "patch": { "publisher": { "kind": "brand" } }, "ready": false }
+  ]
+}

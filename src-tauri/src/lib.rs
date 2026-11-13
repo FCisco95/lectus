@@ -1,4 +1,10 @@
 mod ai;
+mod api;
+mod api_adapter;
+#[cfg(test)]
+mod api_inference_test;
+#[cfg(test)]
+mod model_quality_test;
 mod audio;
 mod autostart;
 mod config;
@@ -9,10 +15,15 @@ mod hotkey;
 mod identity;
 mod injection;
 mod license;
+mod legal;
+mod model_license;
 mod playback;
 mod remote_dictation;
+mod resources;
 mod state;
+mod subscriptions;
 mod transcription;
+mod translation;
 mod updates;
 mod worker;
 
@@ -118,6 +129,9 @@ fn restart_preroll(app: &tauri::AppHandle, device: &str) {
     let preroll = app.state::<PreRoll>();
     let mut guard = preroll.0.lock().unwrap();
     *guard = None; // drop the old stream before opening the device again
+    if !app.state::<AppState>().config.lock().unwrap().onboarding_completed || legal::requires_acceptance() {
+        return;
+    }
     if app.state::<remote_dictation::RemoteState>().mode() == remote_dictation::Mode::Receive {
         return;
     }
@@ -133,6 +147,12 @@ struct WhisperState {
     cloud: Arc<Mutex<Option<transcription::cloud::CloudWhisper>>>,
 }
 
+static MODEL_LOAD: transcription::model::LoadGate = transcription::model::LoadGate::new();
+static ACTIVE_MODEL: Mutex<Option<String>> = Mutex::new(None);
+
+#[tauri::command]
+fn hardware_profile() -> resources::HardwareProfile { resources::hardware_profile() }
+
 /// A downloadable model plus its current status on disk.
 #[derive(serde::Serialize, Clone)]
 struct ModelStatus {
@@ -143,6 +163,8 @@ struct ModelStatus {
     description: String,
     downloaded: bool,
     active: bool,
+    loading: bool,
+    download: transcription::model::DownloadStatus,
 }
 
 fn playback_on(app: &tauri::AppHandle, event: playback::PlaybackEvent) {
@@ -251,6 +273,21 @@ fn get_config(app_state: tauri::State<AppState>) -> config::Config {
     app_state.config.lock().unwrap().clone()
 }
 
+fn commit_config_snapshot(
+    current: &mut config::Config,
+    next: config::Config,
+    path: &std::path::Path,
+) -> Result<(), String> {
+    next.save_to(path).map_err(|e| e.to_string())?;
+    if current.text_processing_changed(&next) {
+        // The caller holds the config lock. Inference captures its epoch under
+        // that same lock, so old preflight work cannot acquire new authority.
+        subscriptions::invalidate_inference();
+    }
+    *current = next;
+    Ok(())
+}
+
 /// Mark first-run setup done without writing the rest of a stale Settings
 /// snapshot (which used to wipe dictionary + model back to defaults).
 #[tauri::command]
@@ -258,17 +295,39 @@ fn complete_onboarding(
     app_state: tauri::State<AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
-    let snapshot = {
-        let mut guard = app_state.config.lock().unwrap();
-        guard.onboarding_completed = true;
-        guard.clone()
-    };
-    if let Ok(cfg_dir) = app_handle.path().app_config_dir() {
-        snapshot
-            .save_to(&cfg_dir.join("config.json"))
-            .map_err(|e| e.to_string())?;
-    }
+    legal::ensure_accepted()?;
+    let mut guard = app_state.config.lock().unwrap();
+    let mut next = guard.clone();
+    next.onboarding_completed = true;
+    let path = app_handle.path().app_config_dir().map_err(|e| e.to_string())?.join("config.json");
+    commit_config_snapshot(&mut guard, next, &path)?;
+    let device = guard.input_device.clone();
+    drop(guard);
+    std::thread::spawn(move || restart_preroll(&app_handle, &device));
     Ok(())
+}
+
+#[tauri::command]
+fn translation_targets() -> &'static [translation::Target] { translation::targets() }
+
+#[tauri::command]
+async fn get_translation_model_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let name = translation::LOCAL_MODEL_NAME;
+        let downloading = transcription::model::download_status_for(&app, name).downloading;
+        let downloaded = !downloading && transcription::model::is_downloaded(&app, name)
+            && transcription::model::verify_model_file(&app, name, translation::LOCAL_MODEL_SHA256).is_ok();
+        serde_json::json!({"name": name, "display_name": "Qwen3 4B · offline translation", "size_mb": translation::LOCAL_MODEL_SIZE_MB,
+            "downloaded": downloaded, "download": transcription::model::download_status_for(&app, name)})
+    }).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn download_translation_model(app: tauri::AppHandle) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        transcription::model::ensure_verified_file_from_url(&app, &translation::local_model_url(), translation::LOCAL_MODEL_NAME, translation::LOCAL_MODEL_SHA256).map_err(|e| e.to_string())?;
+        Ok(())
+    }).await.map_err(|e| e.to_string())?
 }
 
 /// Whether the local Whisper engine has finished loading. The pill uses this
@@ -282,6 +341,14 @@ fn engine_ready(whisper_state: tauri::State<WhisperState>) -> bool {
 #[tauri::command]
 fn check_claude_cli() -> bool {
     ai::claude_available()
+}
+
+/// Read provider model availability without uploading audio or creating completions.
+#[tauri::command]
+async fn get_cloud_models(base_url: String, api_key: String) -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        transcription::cloud::available_models(&base_url, &api_key).map_err(|e| e.to_string())
+    }).await.map_err(|e| e.to_string())?
 }
 
 /// Recent dictations, newest last.
@@ -346,57 +413,58 @@ fn save_pill_position(
     app_state: tauri::State<AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
-    let snapshot = {
-        let mut guard = app_state.config.lock().unwrap();
-        guard.pill_x = x;
-        guard.pill_y = y;
-        guard.clone()
-    };
-    if let Ok(cfg_dir) = app_handle.path().app_config_dir() {
-        let cfg_path = cfg_dir.join("config.json");
-        snapshot.save_to(&cfg_path).map_err(|e| e.to_string())?;
-    }
-    Ok(())
+    let mut guard = app_state.config.lock().unwrap();
+    let mut next = guard.clone();
+    next.pill_x = x;
+    next.pill_y = y;
+    let path = app_handle.path().app_config_dir().map_err(|e| e.to_string())?.join("config.json");
+    commit_config_snapshot(&mut guard, next, &path)
 }
 
 /// Persist edited config to disk, rebuild the cloud engine, and update in-memory state.
 #[tauri::command]
 fn save_config(
-    new_config: config::Config,
+    mut new_config: config::Config,
     app_state: tauri::State<AppState>,
     whisper_state: tauri::State<WhisperState>,
     activation: tauri::State<Activation>,
     app_handle: tauri::AppHandle,
-) -> Result<(), String> {
+) -> Result<config::Config, String> {
     if new_config.use_cloud && new_config.cloud_api_key.trim().is_empty() {
         return Err("Cannot enable cloud transcription without an API key".to_string());
     }
 
-    let (device_changed, local_cleanup_enabled, theme_changed, snapshot) = {
+    let (device_changed, local_cleanup_enabled, theme_changed) = {
         let mut guard = app_state.config.lock().unwrap();
+        if guard.cloud_base_url != new_config.cloud_base_url { new_config.cloud_processing_acknowledged = false; }
+        translation::validate_target(&new_config.output_language).map_err(|e| e.to_string())?;
         let changed = guard.input_device != new_config.input_device;
         let was_local = guard.ai_cleanup_enabled && guard.ai_cleanup_engine == "local";
         let now_local = new_config.ai_cleanup_enabled && new_config.ai_cleanup_engine == "local";
         let theme_changed = guard.theme != new_config.theme;
-        guard.apply_ui_update(new_config);
+        let cloud_changed = guard.cloud_base_url != new_config.cloud_base_url
+            || guard.cloud_api_key != new_config.cloud_api_key
+            || guard.cloud_processing_acknowledged != new_config.cloud_processing_acknowledged
+            || guard.cloud_transcription_model != new_config.cloud_transcription_model;
+        let mut snapshot = guard.clone();
+        snapshot.apply_ui_update(new_config);
+        let cfg_dir = app_handle.path().app_config_dir().map_err(|e| e.to_string())?;
+        commit_config_snapshot(&mut guard, snapshot.clone(), &cfg_dir.join("config.json"))?;
+        // Commit only after persistence succeeds. Holding the config lock also
+        // preserves model/pill updates that would otherwise race this snapshot.
+        if cloud_changed {
+            *whisper_state.cloud.lock().unwrap() = Some(transcription::cloud::CloudWhisper::with_model(
+                &snapshot.cloud_base_url,
+                if snapshot.cloud_processing_acknowledged { &snapshot.cloud_api_key } else { "" },
+                &snapshot.cloud_transcription_model,
+            ));
+        }
         (
             changed,
             !was_local && now_local,
             theme_changed,
-            guard.clone(),
         )
     };
-
-    if let Ok(cfg_dir) = app_handle.path().app_config_dir() {
-        snapshot
-            .save_to(&cfg_dir.join("config.json"))
-            .map_err(|e| e.to_string())?;
-    }
-
-    *whisper_state.cloud.lock().unwrap() = Some(transcription::cloud::CloudWhisper::new(
-        &snapshot.cloud_base_url,
-        &snapshot.cloud_api_key,
-    ));
 
     // Every webview (settings + pill) resolves `data-theme` itself on load;
     // broadcast so an already-open window updates without a reload.
@@ -441,7 +509,7 @@ fn save_config(
             hook.rearm(&active_key);
         }
     }
-    Ok(())
+    Ok(app_state.config.lock().unwrap().clone())
 }
 
 /// Names of the available recording devices for the settings mic picker.
@@ -566,14 +634,18 @@ fn open_accessibility_settings() {
 struct CleanupModelStatus {
     downloaded: bool,
     size_mb: u32,
+    name: &'static str,
+    download: transcription::model::DownloadStatus,
 }
 
 #[tauri::command]
-fn get_cleanup_model_status(app_handle: tauri::AppHandle) -> CleanupModelStatus {
-    CleanupModelStatus {
+async fn get_cleanup_model_status(app_handle: tauri::AppHandle) -> Result<CleanupModelStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || CleanupModelStatus {
         downloaded: transcription::model::is_downloaded(&app_handle, ai::local_llm::CLEANUP_MODEL_NAME),
         size_mb: ai::local_llm::CLEANUP_MODEL_SIZE_MB,
-    }
+        name: ai::local_llm::CLEANUP_MODEL_NAME,
+        download: transcription::model::download_status_for(&app_handle, ai::local_llm::CLEANUP_MODEL_NAME),
+    }).await.map_err(|error| error.to_string())
 }
 
 /// Download the local cleanup LLM (progress via `model-download-progress`),
@@ -581,6 +653,7 @@ fn get_cleanup_model_status(app_handle: tauri::AppHandle) -> CleanupModelStatus 
 #[tauri::command]
 async fn download_cleanup_model(app_handle: tauri::AppHandle) -> Result<(), String> {
     tokio::task::spawn_blocking(move || {
+        model_license::ensure_accepted().map_err(|e| e.to_string())?;
         let path = transcription::model::ensure_file_from_url(
             &app_handle,
             &ai::local_llm::cleanup_model_url(),
@@ -614,30 +687,31 @@ fn wait_for_local_engine(
 /// Run a short silent inference on the whisper worker so the GPU backend
 /// compiles its pipelines up front instead of on the first real dictation
 /// (~8 s of Vulkan shader compilation on first `whisper_full`).
+/// Called from the model loader thread, which retains its load reservation
+/// until this returns and the completion event has been emitted.
 fn warmup_engine(app: &tauri::AppHandle) {
     let local = app.state::<WhisperState>().local.clone();
     let worker = app.state::<worker::TranscribeWorker>().inner().clone();
-    std::thread::spawn(move || {
-        worker.run(move || {
-            let mut guard = local.lock().unwrap();
-            if let Some(engine) = guard.as_mut() {
-                let silence = vec![0.0_f32; 16_000];
-                let opts = transcription::TranscribeOptions::from_config("en", None);
-                let t = std::time::Instant::now();
-                let _ = engine.transcribe(&silence, &opts);
-                log::info!("whisper warmup finished in {} ms", t.elapsed().as_millis());
-            }
-        });
+    worker.run(move || {
+        let mut guard = local.lock().unwrap();
+        if let Some(engine) = guard.as_mut() {
+            let silence = vec![0.0_f32; 16_000];
+            let opts = transcription::TranscribeOptions::from_config("en", None);
+            let t = std::time::Instant::now();
+            let _ = engine.transcribe(&silence, &opts);
+            log::info!("whisper warmup finished in {} ms", t.elapsed().as_millis());
+        }
     });
 }
 
 /// Return the download/active status of every known model.
 #[tauri::command]
-fn get_models_status(
-    app_state: tauri::State<AppState>,
+async fn get_models_status(
     app_handle: tauri::AppHandle,
-) -> Vec<ModelStatus> {
-    let current = app_state.config.lock().unwrap().model_name.clone();
+) -> Result<Vec<ModelStatus>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+    let current = ACTIVE_MODEL.lock().unwrap().clone();
+    let loading = MODEL_LOAD.current();
     transcription::model::AVAILABLE_MODELS
         .iter()
         .map(|m| ModelStatus {
@@ -647,26 +721,38 @@ fn get_models_status(
             multilingual: m.multilingual,
             description: m.description.to_string(),
             downloaded: transcription::model::is_downloaded(&app_handle, m.name),
-            active: current == m.name,
+            active: current.as_deref() == Some(m.name),
+            loading: loading.as_deref() == Some(m.name),
+            download: transcription::model::download_status_for(&app_handle, m.name),
         })
         .collect()
+    }).await.map_err(|error| error.to_string())
 }
 
 /// Kick off a background download for a model. Emits `model-download-progress`
 /// (f64 0..1) and `model-ready` (String model_name) when done.
 #[tauri::command]
-fn download_model(model_name: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+async fn download_model(model_name: String, app_handle: tauri::AppHandle) -> Result<(), String> {
     // Validate the name is one we know about.
     if !transcription::model::AVAILABLE_MODELS.iter().any(|m| m.name == model_name) {
         return Err(format!("Unknown model: {model_name}"));
     }
-    let app = app_handle.clone();
-    std::thread::spawn(move || {
-        if let Err(e) = transcription::model::ensure_model(&app, &model_name) {
-            eprintln!("model download failed: {e}");
-        }
-    });
-    Ok(())
+    tauri::async_runtime::spawn_blocking(move || {
+        transcription::model::ensure_model(&app_handle, &model_name)
+            .map(|_| ()).map_err(|e| e.to_string())
+    }).await.map_err(|e| e.to_string())?
+}
+
+/// Pause only known model downloads; retry uses the validated partial file.
+#[tauri::command]
+fn cancel_model_download(model_name: String) -> Result<(), String> {
+    if !transcription::model::AVAILABLE_MODELS.iter().any(|model| model.name == model_name)
+        && model_name != translation::LOCAL_MODEL_NAME
+        && model_name != ai::local_llm::CLEANUP_MODEL_NAME
+    {
+        return Err("Unknown model download.".into());
+    }
+    transcription::model::cancel_download(&model_name).map_err(|error| error.to_string())
 }
 
 /// Load a downloaded model and make it the active engine. Non-blocking — emits
@@ -675,44 +761,51 @@ fn download_model(model_name: String, app_handle: tauri::AppHandle) -> Result<()
 #[tauri::command]
 fn select_model(
     model_name: String,
-    app_state: tauri::State<AppState>,
     whisper_state: tauri::State<WhisperState>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
+    if !transcription::model::AVAILABLE_MODELS.iter().any(|m| m.name == model_name) {
+        return Err(format!("Unknown model: {model_name}"));
+    }
     let path = transcription::model::model_path(&app_handle, &model_name)
         .map_err(|e| e.to_string())?;
     if !path.exists() {
         return Err(format!("Model '{model_name}' is not downloaded yet"));
     }
 
+    let permit = MODEL_LOAD.begin(&model_name).map_err(|e| e.to_string())?;
     let _ = app_handle.emit("model-loading", model_name.clone());
 
     let local = Arc::clone(&whisper_state.local);
     let app = app_handle.clone();
     let name_clone = model_name.clone();
     std::thread::spawn(move || {
-        match transcription::local::LocalWhisper::new(&path) {
-            Ok(engine) => {
-                *local.lock().unwrap() = Some(engine);
-                // Update in-memory config (model_name + model_path).
-                let app_state = app.state::<AppState>();
-                {
-                    let mut cfg = app_state.config.lock().unwrap();
-                    cfg.model_name = name_clone.clone();
-                    cfg.model_path = path;
-                }
-                // Persist.
-                if let Ok(cfg_dir) = app.path().app_config_dir() {
-                    let cfg = app_state.config.lock().unwrap().clone();
-                    let _ = cfg.save_to(&cfg_dir.join("config.json"));
-                }
+        let result = (|| -> anyhow::Result<()> {
+            let checksum = transcription::model::model_checksum(&name_clone)
+                .ok_or_else(|| anyhow::anyhow!("The selected model has no approved checksum."))?;
+            // IPC callers cannot bypass readiness by selecting an existing but
+            // incomplete or corrupted final file. Hash off the UI thread.
+            transcription::model::verify_model_file(&app, &name_clone, checksum)?;
+            let engine = transcription::local::LocalWhisper::new(&path)?;
+            let app_state = app.state::<AppState>();
+            let mut cfg = app_state.config.lock().unwrap();
+            let mut next = cfg.clone();
+            next.model_name = name_clone.clone();
+            next.model_path = path;
+            next.save_to(&app.path().app_config_dir()?.join("config.json"))?;
+            *local.lock().unwrap() = Some(engine);
+            *ACTIVE_MODEL.lock().unwrap() = Some(name_clone.clone());
+            *cfg = next;
+            Ok(())
+        })();
+        match result {
+            Ok(()) => {
                 warmup_engine(&app);
                 let _ = app.emit("model-active", name_clone);
             }
-            Err(e) => {
-                let _ = app.emit("model-load-failed", e.to_string());
-            }
+            Err(e) => { let _ = app.emit("model-load-failed", e.to_string()); }
         }
+        drop(permit);
     });
 
     Ok(())
@@ -726,10 +819,16 @@ async fn do_pipeline(
     local: Arc<Mutex<Option<transcription::local::LocalWhisper>>>,
     cloud: Arc<Mutex<Option<transcription::cloud::CloudWhisper>>>,
     cfg: config::Config,
+    original_app: Option<String>,
 ) -> Result<String, String> {
     let remote_destination = app_handle.state::<remote_dictation::RemoteState>()
         .destination().map_err(|e| e.to_string())?;
     let use_cloud = cfg.use_cloud;
+    if use_cloud && !cfg.cloud_processing_acknowledged {
+        let message = "Cloud speech is paused. Review the provider processing choice in Settings → General.";
+        let _ = app_handle.emit("processing-error", message);
+        return Err(message.into());
+    }
     // 1. Atomic claim: reject if another pipeline is already running.
     {
         let mut rec = app_state.recording.lock().unwrap();
@@ -806,13 +905,21 @@ async fn do_pipeline(
         }
     }
     let worker = app_handle.state::<worker::TranscribeWorker>().inner().clone();
+    let cloud_authority = app_handle.clone();
+    let cloud_snapshot = cfg.clone();
     let (mut transcript, detected_language) = tokio::task::spawn_blocking(move || {
         if !use_cloud {
             wait_for_local_engine(&local)?;
         }
         worker.run(move || {
             if use_cloud {
+                let current_state = cloud_authority.state::<AppState>();
+                let current = current_state.config.lock().unwrap();
+                if !current.use_cloud || !current.allows_cloud_snapshot(&cloud_snapshot) {
+                    return Err("Cloud speech permission or provider changed. Start a new dictation with the current settings.".into());
+                }
                 let guard = cloud.lock().unwrap();
+                drop(current); // chosen client is now fixed for this admitted request
                 match guard.as_ref() {
                     Some(engine) => engine
                         .transcribe(&accumulated, &opts)
@@ -850,24 +957,75 @@ async fn do_pipeline(
         let t_cleanup = std::time::Instant::now();
         let to_clean = transcript.clone();
         let cfg_for_cleanup = cfg.clone();
+        let cleanup_target = original_app.clone();
+        let cleanup_authority = app_handle.clone();
         let llm_path = transcription::model::model_path(&app_handle, ai::local_llm::CLEANUP_MODEL_NAME).ok();
         let lang_for_cleanup = detected_language.clone();
         let cleaned = tokio::task::spawn_blocking(move || {
-            ai::cleanup(&to_clean, &cfg_for_cleanup, llm_path.as_deref(), lang_for_cleanup.as_deref())
+            let inference_epoch = {
+                let state = cleanup_authority.state::<AppState>();
+                let current = state.config.lock().unwrap();
+                if !current.allows_cleanup_snapshot(&cfg_for_cleanup, cleanup_target.as_deref()) {
+                    return Err(anyhow::anyhow!("AI cleanup settings changed. Start a new dictation."));
+                }
+                subscriptions::inference_epoch()
+            };
+            let result = ai::cleanup_guarded(&to_clean, &cfg_for_cleanup, llm_path.as_deref(), lang_for_cleanup.as_deref(), inference_epoch);
+            let current = cleanup_authority.state::<AppState>().config.lock().unwrap().clone();
+            if !current.allows_cleanup_snapshot(&cfg_for_cleanup, cleanup_target.as_deref()) {
+                return Err(anyhow::anyhow!("AI cleanup settings changed during processing."));
+            }
+            result
         })
         .await
-        .map_err(|e| e.to_string())?;
-        match cleaned {
-            Ok(text) if !text.trim().is_empty() => transcript = text,
-            Ok(_) => {}
-            Err(e) => eprintln!("warning: AI cleanup failed, using raw transcript: {e}"),
+        .unwrap_or_else(|_| Err(anyhow::anyhow!("The cleanup worker stopped")));
+        if !ai::apply_cleanup_result(&mut transcript, cleaned) {
+            log::warn!("AI cleanup failed; preserving original transcript");
+            let _ = app_handle.emit("processing-notice", "AI cleanup was unavailable. Your original text was kept.");
         }
         log::info!("pipeline: AI cleanup took {} ms", t_cleanup.elapsed().as_millis());
+    }
+
+    // Translation is explicit and independent of recognition/cleanup. A failed
+    // translation preserves the original and must never insert the wrong language.
+    let original = transcript.clone();
+    let mut translation_error = None;
+    let translating = cfg.output_language != "same" && !transcript.is_empty();
+    if translating {
+        let cfg_for_translation = cfg.clone();
+        let translation_target = original_app.clone();
+        let translation_authority = app_handle.clone();
+        let source = transcript.clone();
+        let result = tokio::task::spawn_blocking(move || {
+            let inference_epoch = {
+                let state = translation_authority.state::<AppState>();
+                let current = state.config.lock().unwrap();
+                if !current.allows_translation_snapshot(&cfg_for_translation, translation_target.as_deref()) {
+                    return Err(anyhow::anyhow!("Translation settings changed. Start a new dictation."));
+                }
+                subscriptions::inference_epoch()
+            };
+            let model_path = if cfg_for_translation.translation_engine == "local" {
+                Some(transcription::model::verify_model_file(&translation_authority, translation::LOCAL_MODEL_NAME, translation::LOCAL_MODEL_SHA256)?)
+            } else { None };
+            let result = translation::translate_guarded(&source, &cfg_for_translation, model_path.as_deref(), inference_epoch);
+            let current = translation_authority.state::<AppState>().config.lock().unwrap().clone();
+            if !current.allows_translation_snapshot(&cfg_for_translation, translation_target.as_deref()) {
+                return Err(anyhow::anyhow!("Translation settings changed during processing."));
+            }
+            result
+        })
+            .await.unwrap_or_else(|_| Err(anyhow::anyhow!("The translation worker stopped")));
+        match result {
+            Ok(text) => transcript = text,
+            Err(error) => translation_error = Some(format!("Translation failed: {error}")),
+        }
     }
 
     // 5. Persist history as soon as we have text, then inject. Injection can
     // fail (UIPI, no focused field) without that meaning the dictation is lost.
     if !transcript.is_empty() {
+        let mut history_saved = false;
         if let Ok(dir) = app_handle.path().app_data_dir() {
             // Prefer whisper's detected language; fall back to a forced config value.
             let language = detected_language.clone().or_else(|| match cfg.language.trim() {
@@ -877,11 +1035,23 @@ async fn do_pipeline(
             let entry = history::HistoryEntry {
                 text: transcript.clone(),
                 timestamp: now_millis(),
-                language,
+                language: if translating && translation_error.is_none() { Some(cfg.output_language.clone()) } else { language.clone() },
+                source_text: if translating { Some(original.clone()) } else { None },
+                source_language: if translating { language } else { None },
+                translation_error: translation_error.clone(),
             };
             if history::append(&dir, entry.clone()).is_ok() {
+                history_saved = true;
                 let _ = app_handle.emit("history-added", entry);
             }
+        }
+
+        if let Some(error) = translation_error {
+            let error = if history_saved { format!("{error}. Your original text is saved in Dictations; nothing was inserted.") }
+                else { format!("{error}. The original could not be saved to history; nothing was inserted. Check available disk space and try again.") };
+            let _ = app_handle.emit("processing-error", &error);
+            show_app_window(app_handle, false);
+            return Err(error);
         }
 
         let t_inject = std::time::Instant::now();
@@ -926,6 +1096,18 @@ fn gate_blocks_dictation(app: &tauri::AppHandle) -> Option<license::Status> {
     }
 }
 
+fn setup_blocks_dictation(app: &tauri::AppHandle) -> bool {
+    let incomplete = !app.state::<AppState>().config.lock().unwrap().onboarding_completed || legal::requires_acceptance();
+    if incomplete {
+        let activation = app.state::<Activation>();
+        activation.recording_active.store(false, Ordering::SeqCst);
+        if let Some(hook) = activation.hook.lock().unwrap().as_ref() { hook.set_toggle_state(false); }
+        let _ = app.emit("processing-error", "Complete setup and review the current Terms before dictating.");
+        show_app_window(app, false);
+    }
+    incomplete
+}
+
 /// A receive-only client must ignore the physical hotkey forwarded by Input Leap.
 fn receiver_blocks_capture(app: &tauri::AppHandle) -> bool {
     if app.state::<remote_dictation::RemoteState>().mode() != remote_dictation::Mode::Receive {
@@ -947,7 +1129,7 @@ async fn run_pipeline(
     activation: tauri::State<'_, Activation>,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
-    if receiver_blocks_capture(&app_handle) { return Ok(String::new()); }
+    if setup_blocks_dictation(&app_handle) || receiver_blocks_capture(&app_handle) { return Ok(String::new()); }
     if gate_blocks_dictation(&app_handle).is_some() {
         return Err("Lectus is locked: link a wallet holding ORGANIC or Mycel.".into());
     }
@@ -956,11 +1138,12 @@ async fn run_pipeline(
     let recording_active = activation.recording_active.clone();
     // Snapshot config with the focused app's profile applied — the focused
     // app at trigger time is where the text will land.
+    let original_app = context::foreground_app();
     let cfg = app_state
         .config
         .lock()
         .unwrap()
-        .with_app_profile(context::foreground_app().as_deref());
+        .with_app_profile(original_app.as_deref());
     recording_active.store(true, Ordering::SeqCst);
     let outcome = do_pipeline(
         &app_state,
@@ -969,6 +1152,7 @@ async fn run_pipeline(
         local,
         cloud,
         cfg,
+        original_app,
     )
     .await;
     recording_active.store(false, Ordering::SeqCst);
@@ -987,11 +1171,12 @@ async fn run_hold_pipeline(app: tauri::AppHandle) {
     let local = whisper.local.clone();
     let cloud = whisper.cloud.clone();
     let recording_active = activation.recording_active.clone();
+    let original_app = context::foreground_app();
     let cfg = app_state
         .config
         .lock()
         .unwrap()
-        .with_app_profile(context::foreground_app().as_deref());
+        .with_app_profile(original_app.as_deref());
 
     let outcome = do_pipeline(
         app_state.inner(),
@@ -1000,6 +1185,7 @@ async fn run_hold_pipeline(app: tauri::AppHandle) {
         local,
         cloud,
         cfg,
+        original_app,
     )
     .await;
 
@@ -1057,19 +1243,40 @@ pub fn run() {
         })
         .manage(PreRoll(Mutex::new(None)))
         .manage(remote_dictation::RemoteState::new())
+        .manage(api_adapter::ApiServiceState::default())
         .manage(playback::platform_ducker())
         .invoke_handler(tauri::generate_handler![
             list_input_devices,
+            api_adapter::get_api_status,
+            api_adapter::save_api_settings,
+            api_adapter::get_api_token,
+            api_adapter::regenerate_api_token,
             set_recording_state,
             toggle_recording,
             run_pipeline,
             get_config,
+            legal::get_legal_status,
+            model_license::get_cleanup_model_license,
+            model_license::accept_cleanup_model_license,
+            model_license::revoke_cleanup_model_license,
+            legal::open_legal_notices,
+            legal::accept_legal_terms,
+            translation_targets,
+            get_translation_model_status,
+            download_translation_model,
             save_config,
             complete_onboarding,
             engine_ready,
             show_home,
             save_pill_position,
             check_claude_cli,
+            subscriptions::get_ai_connections,
+            subscriptions::start_ai_login,
+            subscriptions::cancel_ai_login,
+            subscriptions::disconnect_ai,
+            subscriptions::list_subscription_models,
+            subscriptions::test_subscription,
+            get_cloud_models,
             get_history,
             get_history_stats,
             clear_history,
@@ -1078,6 +1285,8 @@ pub fn run() {
             copy_to_clipboard,
             get_models_status,
             download_model,
+            cancel_model_download,
+            hardware_profile,
             select_model,
             get_cleanup_model_status,
             download_cleanup_model,
@@ -1175,6 +1384,7 @@ pub fn run() {
                 }
             });
             tray.build(app)?;
+            api_adapter::initialize(app.handle());
 
             if let Some(w) = app.get_webview_window("settings") {
                 let w_for_event = w.clone();
@@ -1250,16 +1460,19 @@ pub fn run() {
             let already_downloaded =
                 transcription::model::is_downloaded(app.handle(), &model_name);
             {
+                let load_permit = MODEL_LOAD.begin(&model_name)?;
                 let bg = app.handle().clone();
                 let path_for_load = resolved;
                 let name_for_events = model_name.clone();
                 let name_for_download = model_name;
                 let _ = bg.emit("model-loading", name_for_events.clone());
                 std::thread::spawn(move || {
+                    let _load_permit = load_permit;
                     if let Some(path) = path_for_load {
                         match transcription::local::LocalWhisper::new(&path) {
                             Ok(engine) => {
                                 *bg.state::<WhisperState>().local.lock().unwrap() = Some(engine);
+                                *ACTIVE_MODEL.lock().unwrap() = path.file_name().map(|n| n.to_string_lossy().into_owned());
                                 bg.state::<AppState>().config.lock().unwrap().model_path = path;
                                 warmup_engine(&bg);
                                 let _ = bg.emit("model-active", name_for_events.clone());
@@ -1275,6 +1488,7 @@ pub fn run() {
                             Ok(path) => match transcription::local::LocalWhisper::new(&path) {
                                 Ok(engine) => {
                                     *bg.state::<WhisperState>().local.lock().unwrap() = Some(engine);
+                                    *ACTIVE_MODEL.lock().unwrap() = Some(name_for_download.clone());
                                     bg.state::<AppState>().config.lock().unwrap().model_path = path;
                                     warmup_engine(&bg);
                                     let _ = bg.emit("model-active", name_for_download);
@@ -1283,7 +1497,8 @@ pub fn run() {
                                     );
                                 }
                                 Err(e) => {
-                                    eprintln!("warning: failed to load downloaded model: {e}")
+                                    eprintln!("warning: failed to load downloaded model: {e}");
+                                    let _ = bg.emit("model-load-failed", e.to_string());
                                 }
                             },
                             Err(e) => {
@@ -1333,9 +1548,10 @@ pub fn run() {
             {
                 let cfg = app.state::<AppState>().config.lock().unwrap().clone();
                 *app.state::<WhisperState>().cloud.lock().unwrap() =
-                    Some(transcription::cloud::CloudWhisper::new(
+                    Some(transcription::cloud::CloudWhisper::with_model(
                         &cfg.cloud_base_url,
-                        &cfg.cloud_api_key,
+                        if cfg.cloud_processing_acknowledged { &cfg.cloud_api_key } else { "" },
+                        &cfg.cloud_transcription_model,
                     ));
             }
 
@@ -1388,7 +1604,7 @@ pub fn run() {
                 let h = pipeline_handle.clone();
                 // Ahead of the chime and the ducker: a refusal must not mute
                 // the user's audio or click at them.
-                if receiver_blocks_capture(&h) || gate_blocks_dictation(&h).is_some() {
+                if setup_blocks_dictation(&h) || receiver_blocks_capture(&h) || gate_blocks_dictation(&h).is_some() {
                     return;
                 }
                 playback_on(&h, playback::PlaybackEvent::HoldStart);
@@ -1408,6 +1624,7 @@ pub fn run() {
                 tauri::RunEvent::Exit | tauri::RunEvent::ExitRequested { .. }
             ) {
                 playback_on(app_handle, playback::PlaybackEvent::ProcessExit);
+                api_adapter::stop(app_handle);
             }
             // No Dock icon (Accessory policy) means no automatic reopen
             // behavior: without this, clicking the app again while it's
@@ -1424,6 +1641,32 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::{args_mean_autostart, safety_cap_secs, should_continue};
+
+    #[test]
+    fn failed_config_persistence_preserves_live_settings() {
+        let dir = tempfile::tempdir().unwrap();
+        let blocker = dir.path().join("not-a-directory");
+        std::fs::write(&blocker, "fixture").unwrap();
+        let mut live = super::config::Config::default();
+        let before = live.clone();
+        let mut next = live.clone();
+        next.display_name = "Changed".into();
+        let result = super::commit_config_snapshot(&mut live, next, &blocker.join("config.json"));
+        assert!(result.is_err());
+        assert_eq!(live, before);
+    }
+
+    #[test]
+    fn successful_config_persistence_commits_disk_and_memory_together() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        let mut live = super::config::Config::default();
+        let mut next = live.clone();
+        next.display_name = "Changed".into();
+        super::commit_config_snapshot(&mut live, next.clone(), &path).unwrap();
+        assert_eq!(live, next);
+        assert_eq!(super::config::Config::load_from(&path).unwrap(), next);
+    }
 
     #[test]
     fn autostart_flag_is_detected() {

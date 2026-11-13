@@ -12,6 +12,7 @@ import { HomePanel } from './settings/HomePanel';
 import { DictationsPanel } from './settings/DictationsPanel';
 import { DictionaryPanel } from './settings/DictionaryPanel';
 import { MembershipPanel } from './settings/MembershipPanel';
+import { HelpPanel } from './settings/HelpPanel';
 import { UpdateBanner } from './update-banner';
 import { WhatsNewModal } from './WhatsNewModal';
 import type { WhatsNew } from './WhatsNewModal';
@@ -24,6 +25,8 @@ export function Shell() {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [version, setVersion] = useState('');
   const [whatsNew, setWhatsNew] = useState<WhatsNew | null>(null);
+  const [processingError, setProcessingError] = useState('');
+  const [processingNotice, setProcessingNotice] = useState('');
   const columnsRef = useRef<HTMLDivElement>(null);
   const closeSettings = useCallback(() => setSettingsTab(null), []);
   const closeWhatsNew = useCallback(() => setWhatsNew(null), []);
@@ -45,6 +48,8 @@ export function Shell() {
       .then((n) => { if (n) setWhatsNew(n); })
       .catch(() => {});
     const unHome = listen('open-home', () => setSurface('home'));
+    const unProcessing = listen<string>('processing-error', (event) => setProcessingError(event.payload));
+    const unNotice = listen<string>('processing-notice', (event) => setProcessingNotice(event.payload));
     // A refused dictation: go straight to the screen that can fix it, and get
     // the modal out of the way if it happened to be open.
     const unBlocked = listen('license-blocked', () => {
@@ -54,6 +59,8 @@ export function Shell() {
     return () => {
       unHome.then((f) => f());
       unBlocked.then((f) => f());
+      unProcessing.then((f) => f());
+      unNotice.then((f) => f());
     };
   }, []);
 
@@ -79,11 +86,21 @@ export function Shell() {
 
         <main className="surface">
           <UpdateBanner />
+          {processingError && <div className="banner processing-error" role="alert">
+            <span>{processingError}</span>
+            <div className="help-actions"><button className="btn" type="button" onClick={() => setSurface('dictations')}>View dictations</button>
+              <button className="btn" type="button" onClick={() => setProcessingError('')}>Dismiss</button></div>
+          </div>}
+          {processingNotice && <div className="banner" role="status">
+            <span>{processingNotice}</span>
+            <button className="btn" type="button" onClick={() => setProcessingNotice('')}>Dismiss processing notice</button>
+          </div>}
           <div className="surface-body">
             {surface === 'home' && <HomePanel config={config} onOpenTab={jump} />}
             {surface === 'dictations' && <DictationsPanel config={config} />}
             {surface === 'vocabulary' && <DictionaryPanel config={config} update={update} />}
             {surface === 'membership' && <MembershipPanel />}
+            {surface === 'help' && <HelpPanel onOpenSettings={setSettingsTab} onOpenMembership={() => setSurface('membership')} />}
           </div>
         </main>
       </div>

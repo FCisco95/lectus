@@ -1,10 +1,9 @@
-import { invoke } from '@tauri-apps/api/core';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 
 /** The surfaces a person looks at. Anything configurable lives in the Settings
  *  modal instead — see SettingsModal.tsx. */
-export type SurfaceId = 'home' | 'dictations' | 'vocabulary' | 'membership';
+export type SurfaceId = 'home' | 'dictations' | 'vocabulary' | 'membership' | 'help';
 
 const SURFACES: Array<{ id: SurfaceId; label: string; icon: IconName }> = [
   { id: 'home', label: 'Home', icon: 'home' },
@@ -50,10 +49,9 @@ export function Sidebar({ active, onSelect, onOpenSettings, version }: SidebarPr
         </button>
         <button
           type="button"
-          className="sidebar-item"
-          // The README is the manual. A fixed URL on the Rust side, so the
-          // webview never gets to pick what the system browser opens.
-          onClick={() => { invoke('open_help').catch(() => {}); }}
+          className={`sidebar-item${active === 'help' ? ' active' : ''}`}
+          aria-current={active === 'help' ? 'page' : undefined}
+          onClick={() => onSelect('help')}
         >
           <span className="sidebar-icon"><Icon name="help" /></span>
           Help

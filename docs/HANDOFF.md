@@ -1,197 +1,63 @@
-# Lectus — paired remote dictation checkpoint
+# Lectus — handoff
 
-## Current follow-up: Windows volume restoration (2026-10-11)
+Updated: 2026-10-22. Branch feat/remote-dictation; dirty tree preserved. No commits, publication or installation.
 
-User confirms that the **Windows master volume** sometimes remains at 1 or 4 after
-Lectus mutes playback for dictation. Installed Windows binary now reports **0.7.1**;
-User confirms both computers are updated. Mac pairing and actual remote insertion remain unverified.
+## Active work (2026-11-13): setup wizard, free trial, vocabulary
 
-`src-tauri/src/playback.rs` now restores both the saved level and mute state, retains
-its snapshot after failed writes for the next stop/idle/exit retry, and serializes
-restore with new duck operations. Previously mute restoration only unmuted, and
-`.take()` discarded the snapshot before successful OS writes. This reproduced
-three regression failures (reduced level, failed volume restore, failed unmute).
-All three pass after the patch. The original cause of the level dropping to 1/4
-on the user's machine is **not yet established**; simulated level drops confirm
-that Lectus previously left the reduced level unchanged. Windows endpoint changes
-are not covered by this focused fix; the adapter still targets the default output.
+Design approved by the owner on 2026-11-13. Nothing is built yet.
+- Spec: docs/superpowers/specs/2026-11-13-setup-wizard-design.md
+- Plan (11 tasks, start at Task 1): docs/superpowers/plans/2026-11-13-setup-wizard.md
+- Execute with superpowers:executing-plans. The plan was written on Fable 5.2 so a Sonnet 5.5 session can run it. If a task fails twice, stop and report.
+- Owner inputs still needed, none block the build: approve the legal documents (blocks fresh-install and installer acceptance only), approve three draft legal sentences, record four voice fixtures for the "Mycel" prompt benchmark.
+- Found during research: the owner's config has language locked to `pt` and "Mycel" is often transcribed as "myself" (history: 1 correct, 3 "myself"). Parked next projects: English/Portuguese-only detection, new speech engines (Parakeet, Qwen3-ASR), learning from corrections.
 
-Validation: 12 isolated playback tests passed; native suite 158 passed, 0 failed,
-5 pre-existing ignored environmental/benchmark tests. One unrelated test,
-`test_set_clipboard_text`, was excluded to avoid overwriting the user's clipboard.
-Both real Windows endpoint tests passed. Existing compiler warnings remain.
-
-The patch is now installed locally on Windows after the user authorized a restart
-("Je reinitiai", in response to the explicit restart prompt). It is NOT in the
-published 0.7.1 packages. The installed binary SHA256 matches the staged build below;
-process 41560 was verified running from the standard Lectus install path after launch.
-The original executable is backed up in the Input Leap workspace at
-`setup-downloads/lectus-volume-fix/backup-20261011-144521/chirp.exe`.
-An initial copy hit a transient file lock after process termination; retry after the
-process had exited succeeded. No settings, history, or pairing data were replaced.
-A local Windows release executable compiled successfully (56.71 s), without automatic deployment.
-The staged executable is in the Input Leap workspace at
-`setup-downloads/lectus-volume-fix/chirp.exe` (still version 0.7.1, local patch only).
-SHA256: `E83CD527774730187FBAD1428DD14B16F18E1941A83CEEEFA7151B4A3353438C`. Restart and replacement are complete; do not ask for authorization again.
-Do not claim that the user's intermittent issue is resolved until a real dictation
-preserves the selected Windows volume. No new release or version bump yet.
+The subscription AI state below is unchanged and still pending its live login test.
 
 ## TL;DR
-Remote dictation is implemented on `feat/remote-dictation`. Windows records/transcribes
-with the existing microphone and hotkey; paired Mac Lectus receives encrypted final text
-and pastes locally. User explicitly authorized the capture/injection integration and chose
-to keep the current app-shell UI. No paid audio receiver or audio streaming is part of this solution.
+**Subscription AI implemented, automated tests passed and reviewed. Real login/inference still pending.** Candidate SHA256 F41A66BEC7284339C6B9FF68DC40127B1C782135C688332B15CC7BEB47EDE60D; installation unchanged. Next action: coordinate readiness to temporarily close the current Lectus, open the candidate and complete official browser logins. Do not call the feature live-accepted before that test.
 
-Release `v0.7.1` is PUBLISHED in `FCisco95/lectus-releases` (user explicitly authorized publication on 2026-10-11). Both Windows and Mac packages and protocol tests
-passed; both updater signatures were independently verified. The matching old-endpoint
-bridge is also published. Both public latest/download/latest.json endpoints return 0.7.1;
-Windows and Mac download URLs return HTTP 200. Next: guide in-app installation and pairing
-on the two devices.
-The user confirms both apps are updated. Actual Windows-to-Mac insertion remains unverified.
+## Implemented
+- ChatGPT: official OAuth PKCE loopback login, JWT/JWKS validation, native credential store, serialized refresh, account catalog and public Responses generation.
+- Claude: unmodified official native CLI with its own Lectus account directory; safe-mode/restricted/no-tools plus managed-policy checks. Personal Pro/Max only; Team/Enterprise or detected managed policies blocked. Never imports global logins or uses API-key fallback.
+- Both text providers wired into cleanup and explicit translation; connection/model/consent/enable controls stay separate. Profile enabling now works when global cleanup is off. Current permissions and account state are rechecked, including during preflight and reconnect/disconnect races.
+- Dictionary/pt-PT instructions and cleanup-failure notice. Remote sender processes once; local HTTP API remains offline; history search remains substring matching, no semantic index added.
 
-## Source and release state
+## Validation
+- Native274pass/0fail/11ignored/2OS-mutation exclusions. Frontend77modules and release executable build passed; warnings remain.
+- UI32 functional fixture scenarios +36 light/dark viewport captures passed. IPC mocked; not native acceptance.
+- Official installed Claude2.1.308 probe passed with isolated authMethod none, matching configDirectory, absent local policy and accepted safe-mode argument syntax. No login or inference.
+- Independent review findings (bare-mode/OAuth, disconnect authority, reconnect marker race) addressed; final scoped review found no remaining blocker.
+-101 source files hashed and unchanged through final test/build. Portable receipt and review: docs/reviews/2026-10-22-subscription-ai-receipt.json and docs/reviews/2026-10-22-subscription-ai-review.md.
 
-- Branch: `feat/remote-dictation`, based on the existing app-shell/membership/release-routing branch (`be97b7f`). The user chose to preserve that UI; do not switch back to the older master UI.
-- Feature commits: `fd232eb`, `e373b87`; release preparation `c94833a`; CI ordering fix/version `f4627f2` (tag `v0.7.1`).
-- CI: https://github.com/FCisco95/lectus/actions/runs/38134573650
-- Published packages: https://github.com/FCisco95/lectus-releases/releases/tag/v0.7.1
-- Published old-endpoint bridge: https://github.com/FCisco95/lectus/releases/tag/v0.7.1
-- CI completed successfully for both platforms. The bridge feed was downloaded again and matched the verified main feed byte for byte.
-- `v0.7.0` is a failed, unshipped tag (native tests initially ran before frontend generation). It was not rewritten. A master-based alternative is preserved locally as `feat/remote-dictation-release`; it is NOT the release source.
-- Both releases were published in the required order after explicit user approval. No source visibility change, installed-app replacement, or repository merge has happened.
-
-## Validation and limits
-
-- Frontend production build passed. Windows native suite: 156 passed, 0 failed, 5 intentionally excluded environmental tests.
-- The explicit LAN discovery/delivery test passed. It caught and fixed Windows accepted sockets inheriting nonblocking mode.
-- Release CI: transport tests passed on Windows and macOS; both packages built and uploaded. Both updater signatures were independently verified. The Mac version, Apple Silicon architecture and local-network Info.plist entries were also checked.
-- The installed Windows updater public key matches the release config. Its endpoint is still the old `FCisco95/lectus` repo; an identical `latest.json` bridge is published and publicly accessible there.
-- Actual Mac paste, Accessibility/local-network prompts, UI appearance and in-app installation require the user's devices. The historical Mac handoff mentions local-only accessibility commit `03588a1`, which is absent from available remote branches. Check permissions on the installed update.
-
-## Behavior and relevant files
-
-See `docs/REMOTE-DICTATION.md` for the three-step setup and failure recovery;
-`docs/plans/2026-10-11-remote-dictation.md` for the protocol/ownership contract.
-
-Default destination is local. Send/Receive is explicit and persistent; it does not follow
-the mouse automatically. Receiver mode disables its microphone. Same IPv4 LAN and multicast
-access are needed; discovery tracks the paired receiver across IP changes. Text is encrypted,
-mutually authenticated, bounded in size/time, and never retried after submission. Remote paste
-requires matching clipboard read-back, so stale contents are not pasted on an unconfirmed write.
-
-Windows history is written before delivery. An acknowledgement means the Mac completed its
-paste command, not proof that a third-party text field consumed it. Keep that field focused.
-
-The original Input Leap client/server IP configuration is a separate outstanding setup item.
-The new discovery solves Lectus delivery only. A local hostname discovery probe returned no
-response, so do not claim that using the Windows `.local` hostname fixes Input Leap yet.
-VB-Cable on the Mac is unused by this route. Voicemeeter was downloaded but not installed.
+## Artefacts and installed state
+Candidate: src-tauri/target/release/chirp.exe, 78926848 bytes, SHA256 F41A66BEC7284339C6B9FF68DC40127B1C782135C688332B15CC7BEB47EDE60D.
+Installed binary freshly verified unchanged: CD41E53A3A337B7770C99D9EA2E779546B679C39AD5EBA5C441E0DCCA117C406. Last observed installed PID3944; renew before action. No installed files/configuration/global account sessions changed. No actual subscriber credential created/imported. Native probe used temporary synthetic isolated auth-none config.
 
 ## Next actions
+1. Await readiness/authorization for temporarily switching from running installed app to candidate without replacing installed files. Then finish official ChatGPT and Claude browser login; never request secrets in chat.
+2. Run each card's synthetic Test and verify actual completed inference. Connection status/catalog alone are not proof.
+3. Enable text permission/engine explicitly and test controlled dictation cleanup and translation preserving numbers, names and negation. Record native evidence separately.
+4. Only after acceptance decide installation with reviewed exact hashes/backup helper. macOS remains uncompiled/unexecuted; hardware/NSIS/legal release gates unchanged.
 
-1. Windows now runs the local volume-fix build (still version 0.7.1). Have the user set a known Windows volume, dictate once, and verify the level returns unchanged. Both apps are updated per user confirmation; do not repeat the installation steps.
-2. Guide Mac Receive / Windows Send pairing, connection test, and one real dictated sentence. Keep source public.
-3. Resolve the original Input Leap changing-IP setup separately; don't add paid audio apps.
+Older USB/suspend/installer/legal tasks remain in docs/handoffs/2026-10-21-before-subscription-ai.md. Do not restart a USB observer without explicit human readiness or repeat valid old checks routinely.
 
-## Suggested skills
-
-`handoff-memory` to restore context; `systematic-debugging` if a device or CI check fails;
-`verification-before-completion` before declaring the installed route working; `handoff`
-when the session actually stops. All implementation files are owned by the primary agent.
-
-## Generated artifacts this session
-
-| What | Where it lives | Notes |
-|---|---|---|
-| Remote delivery implementation and tests | `src-tauri/src/remote_dictation/`, `src/components/settings/RemoteDictationPanel.tsx` | New settings file is created on each device only when used; no live pairing secret was generated for the user yet. |
-| Setup and release notes | `docs/REMOTE-DICTATION.md`, `docs/release-notes-0.7.1.md` | Actual Mac installation/paste still pending. |
-| Published releases and signed Windows/Mac packages | Linked GitHub releases above | Both published and verified; actual installation still pending. Existing GitHub signing secrets reused; no new credentials created or exposed. |
-| Portable checkpoint | `docs/HANDOFF.md`, `docs/handoffs/2026-10-11-remote-dictation.md` | CI and bridge preparation complete. |
-
-## Next-session prompt
-
-```text
-Lectus remote dictation is implemented on feat/remote-dictation, retaining the current UI
-as the user requested. v0.7.1 packages and old-endpoint bridge are published; Windows
-and Mac builds, protocol tests and updater signatures passed. No installed app has been replaced. Read docs/HANDOFF.md first.
-
-Files: src-tauri/src/remote_dictation/mod.rs, src-tauri/src/remote_dictation/transport.rs, src/components/settings/RemoteDictationPanel.tsx, docs/REMOTE-DICTATION.md, .github/workflows/release.yml
-Model: Codex Sonnet 5 (high), per the project routing convention — focused release completion and device debugging.
-Skills: handoff-memory, systematic-debugging if needed, verification-before-completion, handoff at session end.
-
-Publication is authorized and completed. Guide updating and pairing using the existing in-app update button.
-Do not claim real Mac insertion until tested. Do not add paid audio apps or lose the existing UI.
-```
-
-## Verified updater artifacts
-
-- Mac: `Lectus_aarch64.app.tar.gz`, SHA256 `fdeefd91a4a66b283e97e454a184ed188558e857dc0849f2f9b89ba29a724d77`.
-- Windows: `Lectus_0.7.1_x64-setup.exe`, SHA256 `77a0defa815885f6c132054ec0d110f0fe7201c2abeb8e708bb6643294660915`.
-- Signing keys were not read; validation used the embedded public key. The source tag is `f4627f2`; a later housekeeping commit aligns only the root package version in Cargo.lock plus this checkpoint.
-
-## Intermittent-volume follow-up
-
-User reports the first real dictation after installing the patch preserved volume,
-but explicitly warns that the old failure was intermittent. Do NOT mark the issue
-fully resolved. User also reports that manually increasing volume sometimes causes
-it to fall back again. Read-only Core Audio enumeration confirmed the current
-Windows default multimedia render endpoint is Logi Z407 over Bluetooth (friendly
-category Headphones). Nahimic services are running; no causal connection established.
-No audio settings changed during this investigation.
-Pending diagnostic question: does manual volume also fall back when Lectus is fully
-exited, including its tray process? No answer yet. This isolates an app-independent
-failure from dictation restoration. The source of the volume drop remains unknown.
-
-## 2026-10-12: persistent volume regression investigation
-
-User reports intermittent drops to Windows volume 1 after dictation and manual
-slider increases bouncing back down. Installed chirp.exe still matches the local
-volume-fix SHA256; process 41560 remains running. The earlier patch did not fully
-resolve the reported symptom. No new Lectus code edits or OS setting changes today.
-
-Read-only registry check: `HKLM/SYSTEM/CurrentControlSet/Control/Bluetooth/Audio/AVRCP/CT`,
-`DisableAbsoluteVolume` is DWORD 0 (enabled). UserDuckingPreference was not explicitly
-present in the inspected HKCU Multimedia/Audio key. Do not infer a configured value
-from absence. Active output was previously confirmed Logi Z407 via Bluetooth.
-
-Leading hypothesis to test: Windows/speaker absolute-volume synchronization.
-It remains unconfirmed; no reproduction with Lectus fully exited has been reported.
-Archived Microsoft guidance documents incompatible Bluetooth devices and a reversible
-DisableAbsoluteVolume=1 workaround (old Windows 10 guidance, not proof for this Z407).
-Source: https://learn.microsoft.com/en-us/answers/questions/2855800/windows-10-version-1803-april-2018-update-broke-bl?page=26
-A first-person Z407 report describes increasing a phone volume slider causing volume
-to decrease; anecdotal corroboration only (search excerpt retrieved, full page fetch failed):
-https://www.reddit.com/r/logitech/comments/sr9p7s
-Logitech troubleshooting also suggests testing one Bluetooth source at a time:
-https://support.logi.com/hc/en-us/articles/360053049953-No-audio-from-the-Z407-speakers
-
-## Prepared diagnostic artifacts (NOT APPLIED)
-
-In the Input Leap workspace: `setup-downloads/bluetooth-volume-test/` contains
-`disable-volume-sync.reg` (DWORD 1), `restore-volume-sync.reg` (original DWORD 0),
-and `original-setting.json`. The registry was read again and remained 0.
-The test affects Bluetooth volume synchronization globally and may require a Windows
-restart. Do not restart Windows without explicit authorization. Ask before applying
-this broader OS change; the user's current request was investigation/search.
-If authorized, apply only this setting, verify it, arrange restart, test normal
-manual adjustments and several dictations, and restore 0 if it does not help.
-
-## Suggested skills
-
-`systematic-debugging`, `verification-before-completion`, `handoff`.
-
-## Next-session prompt
-
-```
-The local Lectus volume patch is installed but intermittent volume drops persist.
-Read docs/HANDOFF.md and src-tauri/src/playback.rs. Bluetooth Absolute Volume is
-currently enabled; a reversible test is prepared but has NOT been applied.
-Model: Codex Sonnet 5 (high) � focused diagnosis per user routing.
-Skills: handoff-memory, systematic-debugging, verification-before-completion.
-Resolve whether the user authorizes the prepared Bluetooth setting test; do not
-claim the Z407 is faulty or reboot the PC without permission.
-```
+## Evidence correction
+The old fixed-output guided UI script overwrote October21 raw screenshots/results during an October22 run. EVIDENCE-NOTE.md at that old directory explains scope; original narrative remains historical, raw old evidence was not recovered. New runs use UI_SMOKE_OUTPUT and dated folders. Historical native receipts unaffected.
 
 ## Repo prune (2026-11-11)
 Deleted 31 tracked files: 20 of 23 dated handoffs, LECTUS-NEXT-PROMPT, phase2.5 plan, deploy-pipeline and app-shell specs, remote-dictation plan, docs/mockups, release-notes-0.7.1. Restore any file: `git show pre-cleanup-2026-11:<path>`. Open item carried from the deleted remote-dictation plan: real Windows-to-Mac insertion test not yet done. Kept pending a decision: two volume-bug handoffs, home-window and organic-token-gate specs, .claude/workflows/deep-research.js, mobile icons. Untracked artefacts (.context, scripts/diagnostics, docs/reviews) not touched.
 
+## Suggested skills
+verify and computer-use for authorized native acceptance; verification-before-completion; handoff; official OpenAI docs for protocol changes.
+
+## Generated artifacts this session
+Design/plan, subscriptions source and UI, local executable, source baseline and detailed logs/reports under .context/subscription-ai, portable docs/reviews/2026-10-22-subscription-ai* and three dated UI receipt directories. No accounts/services/real credentials created, no install/publish/commit. Shared task-observer observation0018 extended with authentication-mode smoke limitation; no skill changed.
+
+## Next-session prompt
+```text
+Continue Lectus subscription AI from docs/HANDOFF.md. CandidateF41A66B... is built/reviewed with274 native tests passing; installed app unchanged. No human login or authenticated inference accepted yet.
+Files: docs/reviews/2026-10-22-subscription-ai.md, docs/reviews/2026-10-22-subscription-ai-receipt.json, docs/superpowers/plans/2026-10-22-subscription-ai.md, src-tauri/src/subscriptions/mod.rs, src/components/settings/AIConnections.tsx.
+Model: gpt-6.1-sol high — native acceptance and provider diagnosis.
+Skills: verify, computer-use, verification-before-completion, handoff.
+Coordinate readiness before closing the installed app and opening the exact candidate temporarily; finish official logins and test synthetic text on each provider. Preserve installed files and all unrelated dirty work.
+```

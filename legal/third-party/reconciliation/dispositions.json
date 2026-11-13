@@ -1,0 +1,3236 @@
+{
+  "format": 1,
+  "scope": "Default feature dependency graphs for x86_64-pc-windows-msvc and aarch64-apple-darwin, without building/downloading packages. Runtime candidates exclude build edges and proc-macro subtrees. Exact link/bundle inclusion and license compliance remain separate review tasks.",
+  "lockfiles": {
+    "cargo_sha256": "aee4ac5e71719c9f3bdcaff97ed439503dea8191c843cf5b705747fecdafd28f",
+    "npm_sha256": "d11edf6a432ebd3815bf99299fbe4289e6b6f45f9fe0803948dc68ed4b38572a"
+  },
+  "evidence": [
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "src-tauri/Cargo.toml",
+        "--target",
+        "x86_64-pc-windows-msvc",
+        "--edges",
+        "normal,no-proc-macro",
+        "--prefix",
+        "none",
+        "--format",
+        "{p}"
+      ],
+      "file": "reconciliation/evidence/cargo-windows_x64-runtime_candidates.txt",
+      "sha256": "ccbd1cab1d40ce92cd7e91591c76dca139f967bc596469931a0d72c1ebf6f152",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "src-tauri/Cargo.toml",
+        "--target",
+        "x86_64-pc-windows-msvc",
+        "--edges",
+        "normal,build",
+        "--prefix",
+        "none",
+        "--format",
+        "{p}"
+      ],
+      "file": "reconciliation/evidence/cargo-windows_x64-production_with_build.txt",
+      "sha256": "c48bd91d915f5ca560ca64a309a9d3cdd24be849bdcc8d5a652cf69dc34cf977",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "src-tauri/Cargo.toml",
+        "--target",
+        "x86_64-pc-windows-msvc",
+        "--edges",
+        "normal,build,dev",
+        "--prefix",
+        "none",
+        "--format",
+        "{p}"
+      ],
+      "file": "reconciliation/evidence/cargo-windows_x64-including_dev.txt",
+      "sha256": "cc300c588b2fe9614acceccf4917b8cabb765ade1dc47a8b4fc3f5fd729583af",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "src-tauri/Cargo.toml",
+        "--target",
+        "aarch64-apple-darwin",
+        "--edges",
+        "normal,no-proc-macro",
+        "--prefix",
+        "none",
+        "--format",
+        "{p}"
+      ],
+      "file": "reconciliation/evidence/cargo-macos_arm64-runtime_candidates.txt",
+      "sha256": "f40387944bd88a9006e84bc8b17b15ed75b0c11ea3101189cb69e7cbf1716c02",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "src-tauri/Cargo.toml",
+        "--target",
+        "aarch64-apple-darwin",
+        "--edges",
+        "normal,build",
+        "--prefix",
+        "none",
+        "--format",
+        "{p}"
+      ],
+      "file": "reconciliation/evidence/cargo-macos_arm64-production_with_build.txt",
+      "sha256": "50b4b25dd80b2356d8287dd49e7c77d11c5d13c7d7f1f2d8df5d4bfdf8990d5e",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "tree",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "src-tauri/Cargo.toml",
+        "--target",
+        "aarch64-apple-darwin",
+        "--edges",
+        "normal,build,dev",
+        "--prefix",
+        "none",
+        "--format",
+        "{p}"
+      ],
+      "file": "reconciliation/evidence/cargo-macos_arm64-including_dev.txt",
+      "sha256": "d5e555bb321bfc5cea67f3a58a26bb63f5465c7aeeeea223e5be4818fc4adbf2",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "npm",
+        "ls",
+        "--omit=dev",
+        "--all",
+        "--json",
+        "--offline"
+      ],
+      "file": "reconciliation/evidence/npm-production-tree.json",
+      "sha256": "ddb7ce947daa48278166e553839247215a399890b4065c26b88a1f3a663b86fb",
+      "exit_code": 0
+    }
+  ],
+  "summary": {
+    "original_source_gaps": 130,
+    "npm_installed_production_gaps": 0,
+    "npm_build_only": 4,
+    "npm_optional_build_not_installed": 59,
+    "cargo_runtime_candidates": 28,
+    "cargo_runtime_notice_text_recovered": 25,
+    "cargo_runtime_full_license_text": 15,
+    "cargo_runtime_declaration_only": 10,
+    "cargo_runtime_no_full_notice": 3,
+    "windows_runtime_candidates": 11,
+    "macos_runtime_candidates": 25,
+    "cargo_build_only": 4,
+    "cargo_dev_only": 0,
+    "cargo_other_target_or_inactive": 35
+  },
+  "dispositions": [
+    {
+      "ecosystem": "cargo",
+      "name": "alloc-stdlib",
+      "version": "0.2.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "BSD-3-Clause",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "runtime_dependency_candidate",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/alloc-stdlib/0.2.2",
+      "repository": "https://github.com/dropbox/rust-alloc-no-stdlib",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "6032b6a9b20e03737135c55a0270ccffcc1438ef"
+        },
+        "path_in_vcs": "alloc-stdlib"
+      },
+      "cargo_vcs_sha256": "1b22f7f5b3d8bec180e807bacb215462c6a8437ff5fb49b270b8000fc2c61d3d",
+      "recovery": {
+        "name": "alloc-stdlib",
+        "version": "0.2.2",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "6032b6a9b20e03737135c55a0270ccffcc1438ef",
+        "repository": "https://github.com/dropbox/rust-alloc-no-stdlib",
+        "path_in_vcs": "alloc-stdlib",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE",
+            "source_url": "https://raw.githubusercontent.com/dropbox/rust-alloc-no-stdlib/6032b6a9b20e03737135c55a0270ccffcc1438ef/LICENSE",
+            "resolved_url": "https://raw.githubusercontent.com/dropbox/rust-alloc-no-stdlib/6032b6a9b20e03737135c55a0270ccffcc1438ef/LICENSE",
+            "copied_path": "reconciliation/recovered/alloc-stdlib-0.2.2/LICENSE",
+            "sha256": "c0c56f26d9c051cac4d200c34c84e7ae9aaa853e01a982a1df08b09931e518ae",
+            "bytes": 1483,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "block",
+      "version": "0.1.6",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/block/0.1.6",
+      "repository": "http://github.com/SSheldon/rust-block",
+      "cargo_vcs": null,
+      "cargo_vcs_sha256": null,
+      "recovery": {
+        "name": "block",
+        "version": "0.1.6",
+        "status": "no_ancestor_notice_at_exact_commit",
+        "commit": "47178790cfc9d4a8b092051d8b413b78bd31254a",
+        "repository": "https://github.com/SSheldon/rust-block",
+        "path_in_vcs": "",
+        "provenance": "Authoritative exact-version tag plus all packaged Rust source blobs matched to the upstream tree",
+        "notices": [],
+        "errors": [],
+        "release_tag": "0.1.6",
+        "release_tags_url": "https://api.github.com/repos/SSheldon/rust-block/tags?per_page=100",
+        "tree_url": "https://api.github.com/repos/SSheldon/rust-block/git/trees/47178790cfc9d4a8b092051d8b413b78bd31254a?recursive=1",
+        "tree_sha256": "a41e05fe112d31934a867ae5c43eac6e0ef82e29705fdd30d6b83eae186aa59e",
+        "matched_source_blobs": [
+          {
+            "path": "src/lib.rs",
+            "git_blob_sha1": "b9c5d1d77479727e0c5fa3ddbe018e060684f8f9"
+          },
+          {
+            "path": "src/test_utils.rs",
+            "git_blob_sha1": "940a3d22720618ca42752f890a00fd2b9ce8d2ee"
+          }
+        ],
+        "declaration_evidence": {
+          "source_url": "https://raw.githubusercontent.com/SSheldon/rust-block/47178790cfc9d4a8b092051d8b413b78bd31254a/Cargo.toml",
+          "copied_path": "reconciliation/recovered/block-0.1.6/DECLARATION-Cargo.toml",
+          "sha256": "24df2f33b48c9e756a4f864f882c1ab07a159b6c2b790f45af2e8162499b6719",
+          "bytes": 531,
+          "kind": "license_metadata_declaration_not_full_license_notice"
+        },
+        "material_scope": "metadata_declaration_only_no_full_license_or_copyright_notice_recovered"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "block-sys",
+      "version": "0.2.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/block-sys/0.2.1",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "01c7406f13e3f4abf75ec5e3d074893990c5eab5"
+        },
+        "path_in_vcs": "crates/block-sys"
+      },
+      "cargo_vcs_sha256": "bd7bbcf305c7fd330fe6bb7aa6e49807afba6396354dc9bb971bacb9d00297ed",
+      "recovery": {
+        "name": "block-sys",
+        "version": "0.2.1",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "01c7406f13e3f4abf75ec5e3d074893990c5eab5",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "crates/block-sys",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.txt",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/01c7406f13e3f4abf75ec5e3d074893990c5eab5/LICENSE.txt",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/01c7406f13e3f4abf75ec5e3d074893990c5eab5/LICENSE.txt",
+            "copied_path": "reconciliation/recovered/block-sys-0.2.1/LICENSE.txt",
+            "sha256": "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5",
+            "bytes": 1066,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "block2",
+      "version": "0.4.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/block2/0.4.0",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "8b04944ffde180e526a45fe154ee51c9ae14944f"
+        },
+        "path_in_vcs": "crates/block2"
+      },
+      "cargo_vcs_sha256": "40f67b343d57eaca650c2681bcdcbee2f75febc292677f89b7ab6960e78831ff",
+      "recovery": {
+        "name": "block2",
+        "version": "0.4.0",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "8b04944ffde180e526a45fe154ee51c9ae14944f",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "crates/block2",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.txt",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/8b04944ffde180e526a45fe154ee51c9ae14944f/LICENSE.txt",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/8b04944ffde180e526a45fe154ee51c9ae14944f/LICENSE.txt",
+            "copied_path": "reconciliation/recovered/block2-0.4.0/LICENSE.txt",
+            "sha256": "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5",
+            "bytes": 1066,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "block2",
+      "version": "0.6.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/block2/0.6.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "b4167b582b2f75f9a1be75495c41b765344fd03c"
+        },
+        "path_in_vcs": "crates/block2"
+      },
+      "cargo_vcs_sha256": "5b87885cad87999d141e83cc8af4b073192f584b2b92cea77e2d87636621a264",
+      "recovery": {
+        "name": "block2",
+        "version": "0.6.2",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "b4167b582b2f75f9a1be75495c41b765344fd03c",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "crates/block2",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.md",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/b4167b582b2f75f9a1be75495c41b765344fd03c/LICENSE.md",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/b4167b582b2f75f9a1be75495c41b765344fd03c/LICENSE.md",
+            "copied_path": "reconciliation/recovered/block2-0.6.2/LICENSE.md",
+            "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+            "bytes": 1339,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+          }
+        ],
+        "errors": [],
+        "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "clipboard-win",
+      "version": "5.4.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "BSL-1.0",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "runtime_dependency_candidate",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/clipboard-win/5.4.1",
+      "repository": "https://github.com/DoumanAsh/clipboard-win",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "3b27cf2bfd1adcfa6e0264eb51c1025ddaf0f342"
+        },
+        "path_in_vcs": ""
+      },
+      "cargo_vcs_sha256": "9ac15b717bdd816895d817d4f08b3acc55a0d2cf8fad4e4b30027f6ceec880bb",
+      "recovery": {
+        "name": "clipboard-win",
+        "version": "5.4.1",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "3b27cf2bfd1adcfa6e0264eb51c1025ddaf0f342",
+        "repository": "https://github.com/DoumanAsh/clipboard-win",
+        "path_in_vcs": "",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE",
+            "source_url": "https://raw.githubusercontent.com/DoumanAsh/clipboard-win/3b27cf2bfd1adcfa6e0264eb51c1025ddaf0f342/LICENSE",
+            "resolved_url": "https://raw.githubusercontent.com/DoumanAsh/clipboard-win/3b27cf2bfd1adcfa6e0264eb51c1025ddaf0f342/LICENSE",
+            "copied_path": "reconciliation/recovered/clipboard-win-5.4.1/LICENSE",
+            "sha256": "c9bff75738922193e67fa726fa225535870d2aa1059f91452c411736284ad566",
+            "bytes": 1338,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "dasp_sample",
+      "version": "0.11.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "runtime_dependency_candidate",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/dasp_sample/0.11.0",
+      "repository": "https://github.com/rustaudio/sample.git",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "97c3bb9b2363c0b46ac1633858bf1054fd02a980"
+        }
+      },
+      "cargo_vcs_sha256": "6087e3e70773558b775694400615f8ffc15ad269b0f7a741c26ef5c1e3696b7a",
+      "recovery": {
+        "name": "dasp_sample",
+        "version": "0.11.0",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "97c3bb9b2363c0b46ac1633858bf1054fd02a980",
+        "repository": "https://github.com/rustaudio/sample",
+        "path_in_vcs": "",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE-APACHE",
+            "source_url": "https://raw.githubusercontent.com/rustaudio/sample/97c3bb9b2363c0b46ac1633858bf1054fd02a980/LICENSE-APACHE",
+            "resolved_url": "https://raw.githubusercontent.com/rustaudio/sample/97c3bb9b2363c0b46ac1633858bf1054fd02a980/LICENSE-APACHE",
+            "copied_path": "reconciliation/recovered/dasp_sample-0.11.0/LICENSE-APACHE",
+            "sha256": "756c8d2ab2dc24f256e1455b5f03937f4933d83d7bc9f2d55009fc962377d512",
+            "bytes": 561,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "copyright_notice"
+          },
+          {
+            "source_path": "LICENSE-MIT",
+            "source_url": "https://raw.githubusercontent.com/rustaudio/sample/97c3bb9b2363c0b46ac1633858bf1054fd02a980/LICENSE-MIT",
+            "resolved_url": "https://raw.githubusercontent.com/rustaudio/sample/97c3bb9b2363c0b46ac1633858bf1054fd02a980/LICENSE-MIT",
+            "copied_path": "reconciliation/recovered/dasp_sample-0.11.0/LICENSE-MIT",
+            "sha256": "b1d6df41ed3aa96806e74c729444d7c121d90e6660a6aed01d298e03fde475a0",
+            "bytes": 1087,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "dispatch2",
+      "version": "0.3.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/dispatch2/0.3.1",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "8852b424193ca41602281b3d7540d7c8ed51e49a"
+        },
+        "path_in_vcs": "crates/dispatch2"
+      },
+      "cargo_vcs_sha256": "26f5e6d699ba3ce13b8eea253ad7a7f7feb9345e9da3c01bb9b9bd911a6a7dba",
+      "recovery": {
+        "name": "dispatch2",
+        "version": "0.3.1",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "8852b424193ca41602281b3d7540d7c8ed51e49a",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "crates/dispatch2",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.md",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md",
+            "copied_path": "reconciliation/recovered/dispatch2-0.3.1/LICENSE.md",
+            "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+            "bytes": 1339,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+          }
+        ],
+        "errors": [],
+        "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "dlopen2",
+      "version": "0.8.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/dlopen2/0.8.2",
+      "repository": "https://github.com/OpenByteDev/dlopen2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "cc80e4a0a90d499b677fdf7743699b4b3a43a989"
+        },
+        "path_in_vcs": "dlopen2"
+      },
+      "cargo_vcs_sha256": "ed795da0aa7789a000ca4c8708d047c26148b3938d44897c45c9acce4d3ae015",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "dlopen2_derive",
+      "version": "0.4.3",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/dlopen2_derive/0.4.3",
+      "repository": "https://github.com/OpenByteDev/dlopen2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "cc80e4a0a90d499b677fdf7743699b4b3a43a989"
+        },
+        "path_in_vcs": "dlopen2-derive"
+      },
+      "cargo_vcs_sha256": "90a5b706d2f492723b4c81afa07cea75eda9a4e4c7fc98c368931f539bf5b439",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "find_cuda_helper",
+      "version": "0.2.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "build_or_proc_macro_only",
+      "targets": {
+        "windows_x64": "build_or_proc_macro_only",
+        "macos_arm64": "build_or_proc_macro_only"
+      },
+      "source_package_url": "https://crates.io/crates/find_cuda_helper/0.2.0",
+      "repository": "https://github.com/Rust-GPU/Rust-CUDA",
+      "cargo_vcs": null,
+      "cargo_vcs_sha256": null,
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "jni",
+      "version": "0.22.4",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/jni/0.22.4",
+      "repository": "https://github.com/jni-rs/jni-rs",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "5ae9458a4ec44c5318f37ddc7569c1d4ae8a69e7"
+        },
+        "path_in_vcs": "crates/jni"
+      },
+      "cargo_vcs_sha256": "0619bb2725fac7b26a1935d1379d5eea7427eb987731a982500389de5efd5b8b",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "jni-macros",
+      "version": "0.22.4",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/jni-macros/0.22.4",
+      "repository": "https://github.com/jni-rs/jni-rs",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "33045a124105c939d1e2cbdcb5a39e5d868ffa03"
+        },
+        "path_in_vcs": "crates/jni-macros"
+      },
+      "cargo_vcs_sha256": "5b271175fb5d736bf6e71f696a8829f37c6c00391065111526d7e43fdeb537e1",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "jni-sys-macros",
+      "version": "0.4.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/jni-sys-macros/0.4.1",
+      "repository": "https://github.com/jni-rs/jni-sys",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "64d77b7a5f119d7b55b4e2c169a4668067ff59e6"
+        },
+        "path_in_vcs": "jni-sys-macros"
+      },
+      "cargo_vcs_sha256": "1824b83bc25a1e245bcb97a6503105bfe07078a47cddc924c6b7db91e8852f45",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "libappindicator-sys",
+      "version": "0.9.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/libappindicator-sys/0.9.0",
+      "repository": null,
+      "cargo_vcs": {
+        "git": {
+          "sha1": "eafd1e3682a1247f595410266091e9684021cb6f"
+        },
+        "path_in_vcs": "sys"
+      },
+      "cargo_vcs_sha256": "2eb6d78db3efbbb1c498618238bad1377e08f43f12e9ba7e1fb128a8aedfe2c5",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "llama-cpp-2",
+      "version": "0.1.151",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "runtime_dependency_candidate",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/llama-cpp-2/0.1.151",
+      "repository": "https://github.com/utilityai/llama-cpp-rs",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7f0a0d95514aebe86efab16527745852ee72931c"
+        },
+        "path_in_vcs": "llama-cpp-2"
+      },
+      "cargo_vcs_sha256": "ac3dc4682286f90c8539c34d671adbf7dc961a3cfb8f96a80c6d5b252db48250",
+      "recovery": {
+        "name": "llama-cpp-2",
+        "version": "0.1.151",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "7f0a0d95514aebe86efab16527745852ee72931c",
+        "repository": "https://github.com/utilityai/llama-cpp-rs",
+        "path_in_vcs": "llama-cpp-2",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE-APACHE",
+            "source_url": "https://raw.githubusercontent.com/utilityai/llama-cpp-rs/7f0a0d95514aebe86efab16527745852ee72931c/LICENSE-APACHE",
+            "resolved_url": "https://raw.githubusercontent.com/utilityai/llama-cpp-rs/7f0a0d95514aebe86efab16527745852ee72931c/LICENSE-APACHE",
+            "copied_path": "reconciliation/recovered/llama-cpp-2-0.1.151/LICENSE-APACHE",
+            "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+            "bytes": 9723,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          },
+          {
+            "source_path": "LICENSE-MIT",
+            "source_url": "https://raw.githubusercontent.com/utilityai/llama-cpp-rs/7f0a0d95514aebe86efab16527745852ee72931c/LICENSE-MIT",
+            "resolved_url": "https://raw.githubusercontent.com/utilityai/llama-cpp-rs/7f0a0d95514aebe86efab16527745852ee72931c/LICENSE-MIT",
+            "copied_path": "reconciliation/recovered/llama-cpp-2-0.1.151/LICENSE-MIT",
+            "sha256": "763912bd05f42956dbfa900bd1a2f8037c704f5c64d778c623ec5952454e24aa",
+            "bytes": 1046,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "malloc_buf",
+      "version": "0.0.6",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/malloc_buf/0.0.6",
+      "repository": "https://github.com/SSheldon/malloc_buf",
+      "cargo_vcs": null,
+      "cargo_vcs_sha256": null,
+      "recovery": {
+        "name": "malloc_buf",
+        "version": "0.0.6",
+        "status": "no_ancestor_notice_at_exact_commit",
+        "commit": "a7811e5f4c6f9685dd57ad9bfe34e9bf6b0ba4f9",
+        "repository": "https://github.com/SSheldon/malloc_buf",
+        "path_in_vcs": "",
+        "provenance": "Authoritative exact-version tag plus all packaged Rust source blobs matched to the upstream tree",
+        "notices": [],
+        "errors": [],
+        "release_tag": "0.0.6",
+        "release_tags_url": "https://api.github.com/repos/SSheldon/malloc_buf/tags?per_page=100",
+        "tree_url": "https://api.github.com/repos/SSheldon/malloc_buf/git/trees/a7811e5f4c6f9685dd57ad9bfe34e9bf6b0ba4f9?recursive=1",
+        "tree_sha256": "8356f2597ab05fde7560752eb9d8c356699967e803f8d7ae34f0eab97fb859b4",
+        "matched_source_blobs": [
+          {
+            "path": "src/lib.rs",
+            "git_blob_sha1": "24066b69d418d50a507fb91c0db3d4f607590680"
+          }
+        ],
+        "declaration_evidence": {
+          "source_url": "https://raw.githubusercontent.com/SSheldon/malloc_buf/a7811e5f4c6f9685dd57ad9bfe34e9bf6b0ba4f9/Cargo.toml",
+          "copied_path": "reconciliation/recovered/malloc_buf-0.0.6/DECLARATION-Cargo.toml",
+          "sha256": "1c70c91688d9850272e43cee9b189ffe3fe667151d7caf576a36a720f8b28194",
+          "bytes": 323,
+          "kind": "license_metadata_declaration_not_full_license_notice"
+        },
+        "material_scope": "metadata_declaration_only_no_full_license_or_copyright_notice_recovered"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "ndk",
+      "version": "0.8.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/ndk/0.8.0",
+      "repository": "https://github.com/rust-mobile/ndk",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "f414cabc12211ebcba4edb3da90950967d4a1933"
+        },
+        "path_in_vcs": "ndk"
+      },
+      "cargo_vcs_sha256": "d91a68fe1a8424942d69c501ebfd23b6bd06209f7843de2ba4e2eeb21b9e76cf",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "ndk",
+      "version": "0.9.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/ndk/0.9.0",
+      "repository": "https://github.com/rust-mobile/ndk",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "49bbbba16c58ff63cb8a0ad0eca5a9fb7ecaec25"
+        },
+        "path_in_vcs": "ndk"
+      },
+      "cargo_vcs_sha256": "77723ef695dbacca767bc080c017fe1c4ee651bb0bbd94512e0de3597558a536",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "ndk-context",
+      "version": "0.1.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/ndk-context/0.1.1",
+      "repository": "https://github.com/rust-windowing/android-ndk-rs",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "10f2ba388fca20f7349996ebae26ccda7a6fda5c"
+        },
+        "path_in_vcs": "ndk-context"
+      },
+      "cargo_vcs_sha256": "63e46f6a74bfd27b6634c1ebffab676492f589a2bc12010a2ef50a0f11660844",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "ndk-sys",
+      "version": "0.5.0+25.2.9519653",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/ndk-sys/0.5.0+25.2.9519653",
+      "repository": "https://github.com/rust-mobile/ndk",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "f414cabc12211ebcba4edb3da90950967d4a1933"
+        },
+        "path_in_vcs": "ndk-sys"
+      },
+      "cargo_vcs_sha256": "cf8bcf38ab4f6ae7d45f623c2cc244b1dff7a40b89e21e9ee50bb6392fa1da79",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "ndk-sys",
+      "version": "0.6.0+11769913",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/ndk-sys/0.6.0+11769913",
+      "repository": "https://github.com/rust-mobile/ndk",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "49bbbba16c58ff63cb8a0ad0eca5a9fb7ecaec25"
+        },
+        "path_in_vcs": "ndk-sys"
+      },
+      "cargo_vcs_sha256": "04855a5c956a06190b9aae90fe172c8857d1afbf8fd676acc4c555161537b06e",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc-sys",
+      "version": "0.3.5",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/objc-sys/0.3.5",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "4fc083f1c6d6784577e38b0ee8dbd344481e2fd2"
+        },
+        "path_in_vcs": "crates/objc-sys"
+      },
+      "cargo_vcs_sha256": "e29ffefb7383547f359963a78b8b7edaffe36b4ac85b4fd7561e8f7bb976f53c",
+      "recovery": {
+        "name": "objc-sys",
+        "version": "0.3.5",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "4fc083f1c6d6784577e38b0ee8dbd344481e2fd2",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "crates/objc-sys",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.txt",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/4fc083f1c6d6784577e38b0ee8dbd344481e2fd2/LICENSE.txt",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/4fc083f1c6d6784577e38b0ee8dbd344481e2fd2/LICENSE.txt",
+            "copied_path": "reconciliation/recovered/objc-sys-0.3.5/LICENSE.txt",
+            "sha256": "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5",
+            "bytes": 1066,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2",
+      "version": "0.5.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/objc2/0.5.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "4fc083f1c6d6784577e38b0ee8dbd344481e2fd2"
+        },
+        "path_in_vcs": "crates/objc2"
+      },
+      "cargo_vcs_sha256": "d03afa2337425d306d38828cb7b6b2a8f81222522fe0c6749bf332da23ca878d",
+      "recovery": {
+        "name": "objc2",
+        "version": "0.5.2",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "4fc083f1c6d6784577e38b0ee8dbd344481e2fd2",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "crates/objc2",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.txt",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/4fc083f1c6d6784577e38b0ee8dbd344481e2fd2/LICENSE.txt",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/4fc083f1c6d6784577e38b0ee8dbd344481e2fd2/LICENSE.txt",
+            "copied_path": "reconciliation/recovered/objc2-0.5.2/LICENSE.txt",
+            "sha256": "e353f37b12aefbb9f9b29490e837cfee05d9bda70804b3562839a3285c1df1e5",
+            "bytes": 1066,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2",
+      "version": "0.6.4",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/objc2/0.6.4",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "8852b424193ca41602281b3d7540d7c8ed51e49a"
+        },
+        "path_in_vcs": "crates/objc2"
+      },
+      "cargo_vcs_sha256": "45343a7cb8cebbb23c2804f99a14f01f6618ce0956dba62f387fb9ffaf00eff7",
+      "recovery": {
+        "name": "objc2",
+        "version": "0.6.4",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "8852b424193ca41602281b3d7540d7c8ed51e49a",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "crates/objc2",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.md",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md",
+            "copied_path": "reconciliation/recovered/objc2-0.6.4/LICENSE.md",
+            "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+            "bytes": 1339,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+          }
+        ],
+        "errors": [],
+        "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-app-kit",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-app-kit/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-app-kit"
+      },
+      "cargo_vcs_sha256": "07762c2a438c287ac124300928c9da0f96cefc1932ff8cadac13716fd1e195eb",
+      "recovery": {
+        "name": "objc2-app-kit",
+        "version": "0.3.2",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "framework-crates/objc2-app-kit",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.md",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+            "copied_path": "reconciliation/recovered/objc2-app-kit-0.3.2/LICENSE.md",
+            "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+            "bytes": 1339,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+          }
+        ],
+        "errors": [],
+        "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-cloud-kit",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-cloud-kit/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-cloud-kit"
+      },
+      "cargo_vcs_sha256": "62f199c0f8876bdc6d78976603201d3684c925632b1fe158f2d6816b28baf121",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-core-data",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-core-data/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-core-data"
+      },
+      "cargo_vcs_sha256": "7f8e9d957f5352b458a53d6e594c3f0f9033433224c6fb77823a6f0f421ef9e8",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-core-foundation",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-core-foundation/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-core-foundation"
+      },
+      "cargo_vcs_sha256": "1c1a87985a2bd25015f5e2413f4041379bea0172b2fce88dae3e6482b50aab26",
+      "recovery": {
+        "name": "objc2-core-foundation",
+        "version": "0.3.2",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "framework-crates/objc2-core-foundation",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.md",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+            "copied_path": "reconciliation/recovered/objc2-core-foundation-0.3.2/LICENSE.md",
+            "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+            "bytes": 1339,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+          }
+        ],
+        "errors": [],
+        "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-core-graphics",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-core-graphics/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-core-graphics"
+      },
+      "cargo_vcs_sha256": "264ea4e6453d508410c33c7e5c05ef71f067cac56efc06603862b36d1fe5dfc3",
+      "recovery": {
+        "name": "objc2-core-graphics",
+        "version": "0.3.2",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "framework-crates/objc2-core-graphics",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.md",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+            "copied_path": "reconciliation/recovered/objc2-core-graphics-0.3.2/LICENSE.md",
+            "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+            "bytes": 1339,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+          }
+        ],
+        "errors": [],
+        "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-core-image",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-core-image/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-core-image"
+      },
+      "cargo_vcs_sha256": "c894249d194f6678eab85405db96965489b93eba3863198439f1014a21421c31",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-core-location",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-core-location/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-core-location"
+      },
+      "cargo_vcs_sha256": "e5c887d503b15fdeedff465f5b2a20548c108c03a09e68cc6fa000083fcede82",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-core-text",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-core-text/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-core-text"
+      },
+      "cargo_vcs_sha256": "505aa6c21bf36109e6e050055d239bcaf791b18e63cdefb7d601922b9f864545",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-encode",
+      "version": "4.1.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-encode/4.1.0",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "8d214f5477365ffcbcbb7de058c86ed9a518efb7"
+        },
+        "path_in_vcs": "crates/objc2-encode"
+      },
+      "cargo_vcs_sha256": "b23c761215887d90ac44e18b18c8b386f93139c65a4a14f110e22405830cb3f1",
+      "recovery": {
+        "name": "objc2-encode",
+        "version": "4.1.0",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "8d214f5477365ffcbcbb7de058c86ed9a518efb7",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "crates/objc2-encode",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.md",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/8d214f5477365ffcbcbb7de058c86ed9a518efb7/LICENSE.md",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/8d214f5477365ffcbcbb7de058c86ed9a518efb7/LICENSE.md",
+            "copied_path": "reconciliation/recovered/objc2-encode-4.1.0/LICENSE.md",
+            "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+            "bytes": 1339,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+          }
+        ],
+        "errors": [],
+        "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-exception-helper",
+      "version": "0.1.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-exception-helper/0.1.1",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "8d214f5477365ffcbcbb7de058c86ed9a518efb7"
+        },
+        "path_in_vcs": "crates/objc2-exception-helper"
+      },
+      "cargo_vcs_sha256": "c7e239421c2f7dc6ec239f8d464ca656be3d325c801c780a341dfa99c79a0949",
+      "recovery": {
+        "name": "objc2-exception-helper",
+        "version": "0.1.1",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "8d214f5477365ffcbcbb7de058c86ed9a518efb7",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "crates/objc2-exception-helper",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.md",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/8d214f5477365ffcbcbb7de058c86ed9a518efb7/LICENSE.md",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/8d214f5477365ffcbcbb7de058c86ed9a518efb7/LICENSE.md",
+            "copied_path": "reconciliation/recovered/objc2-exception-helper-0.1.1/LICENSE.md",
+            "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+            "bytes": 1339,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+          }
+        ],
+        "errors": [],
+        "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-io-surface",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-io-surface/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-io-surface"
+      },
+      "cargo_vcs_sha256": "a68dbb39ef7cfef6062e3d2e49c59539c7a34d70d13c5bdf4a443d2475280011",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-osa-kit",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-osa-kit/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-osa-kit"
+      },
+      "cargo_vcs_sha256": "cd692f1027389e9d30cd16fd942fb614011ce09119c15051aa0e664ba3e326b2",
+      "recovery": {
+        "name": "objc2-osa-kit",
+        "version": "0.3.2",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "framework-crates/objc2-osa-kit",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.md",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+            "copied_path": "reconciliation/recovered/objc2-osa-kit-0.3.2/LICENSE.md",
+            "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+            "bytes": 1339,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+          }
+        ],
+        "errors": [],
+        "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-quartz-core",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-quartz-core/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-quartz-core"
+      },
+      "cargo_vcs_sha256": "d18b21bb115491577880f7f8c491ac10dd8d9947bd27fdc3f6dafcf4cf92b2e9",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-ui-kit",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-ui-kit/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-ui-kit"
+      },
+      "cargo_vcs_sha256": "4c63b7685ce9aa0273820c80801fbd582bb3431815a318d0180f2ee7de85ba00",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-user-notifications",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-user-notifications/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-user-notifications"
+      },
+      "cargo_vcs_sha256": "f9f9fc21b411afa8a20002f259187760b838f8fb6db54814db214c1682a14344",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "objc2-web-kit",
+      "version": "0.3.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/objc2-web-kit/0.3.2",
+      "repository": "https://github.com/madsmtm/objc2",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b"
+        },
+        "path_in_vcs": "framework-crates/objc2-web-kit"
+      },
+      "cargo_vcs_sha256": "af77e35da92d2c30dde7cd40ff3723ce9f312cddb639a388ae447979af630a30",
+      "recovery": {
+        "name": "objc2-web-kit",
+        "version": "0.3.2",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+        "repository": "https://github.com/madsmtm/objc2",
+        "path_in_vcs": "framework-crates/objc2-web-kit",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE.md",
+            "source_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+            "resolved_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md",
+            "copied_path": "reconciliation/recovered/objc2-web-kit-0.3.2/LICENSE.md",
+            "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+            "bytes": 1339,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "upstream_license_declaration_and_apple_sdk_caveat_not_full_license_text"
+          }
+        ],
+        "errors": [],
+        "material_scope": "licensing_declaration_only_manual_terms_and_sdk_review_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "oboe",
+      "version": "0.6.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/oboe/0.6.1",
+      "repository": "https://github.com/katyo/oboe-rs",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7ea2b9b3bc9cdfa9ed4cbfeafdcafb47b3fac4e7"
+        },
+        "path_in_vcs": ""
+      },
+      "cargo_vcs_sha256": "9fa2e5d1cd048a4f655abed7775e6af98b7df8588cd7fd5c92b49539192ccccb",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "oboe-sys",
+      "version": "0.6.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/oboe-sys/0.6.1",
+      "repository": "https://github.com/katyo/oboe-rs",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7ea2b9b3bc9cdfa9ed4cbfeafdcafb47b3fac4e7"
+        },
+        "path_in_vcs": "sys"
+      },
+      "cargo_vcs_sha256": "a09d9ec1ecc2f3bee326511739791e0a7201fce1ee15762fd684c935a27e0d1c",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "r-efi",
+      "version": "5.3.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0 OR LGPL-2.1-or-later",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/r-efi/5.3.0",
+      "repository": "https://github.com/r-efi/r-efi",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "97b55bed1c2c91dcbf787674849f05337ff80b33"
+        },
+        "path_in_vcs": ""
+      },
+      "cargo_vcs_sha256": "50e0c72ee0164f182d7b5db0213cdb1626bad950f2443b05d006c28c7f0641b5",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "r-efi",
+      "version": "6.0.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0 OR LGPL-2.1-or-later",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/r-efi/6.0.0",
+      "repository": "https://github.com/r-efi/r-efi",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "7e1b0322d31d625f81a5656096330934f9cd835d"
+        },
+        "path_in_vcs": ""
+      },
+      "cargo_vcs_sha256": "d8d0d853429b028d5e3c7b969f7c6b77b04e17486c57fac0759eb8083a359f3f",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "rustls-platform-verifier-android",
+      "version": "0.1.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/rustls-platform-verifier-android/0.1.1",
+      "repository": "https://github.com/rustls/rustls-platform-verifier",
+      "cargo_vcs": null,
+      "cargo_vcs_sha256": null,
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "selectors",
+      "version": "0.36.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MPL-2.0",
+      "classification": "build_or_proc_macro_only",
+      "targets": {
+        "windows_x64": "build_or_proc_macro_only",
+        "macos_arm64": "build_or_proc_macro_only"
+      },
+      "source_package_url": "https://crates.io/crates/selectors/0.36.1",
+      "repository": "https://github.com/servo/stylo",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "635e1a19d02960588a00e189bd4bd5bdb150ec3d"
+        },
+        "path_in_vcs": "selectors"
+      },
+      "cargo_vcs_sha256": "b9b619f8e31f591cd1326578b87ccb14b4f3687af65b505674522513ed4d276d",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "sigchld",
+      "version": "0.2.4",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/sigchld/0.2.4",
+      "repository": "https://github.com/oconnor663/sigchld.rs",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "07b95e2fe38b18b376b0f635f2766bf2e641b80b"
+        },
+        "path_in_vcs": ""
+      },
+      "cargo_vcs_sha256": "37c9f8fbca4917e4eb98c892cb7aae13b398953c81226f0ebf1f857ac5746ddf",
+      "recovery": {
+        "name": "sigchld",
+        "version": "0.2.4",
+        "status": "no_ancestor_notice_at_exact_commit",
+        "commit": "07b95e2fe38b18b376b0f635f2766bf2e641b80b",
+        "repository": "https://github.com/oconnor663/sigchld.rs",
+        "path_in_vcs": "",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [],
+        "errors": [],
+        "tree_url": "https://api.github.com/repos/oconnor663/sigchld.rs/git/trees/07b95e2fe38b18b376b0f635f2766bf2e641b80b?recursive=1",
+        "tree_sha256": "8f54edad542e541c36141b0676df48ef9329bb5738aa6b1ecd6f2e5c6cd5fadd",
+        "declaration_evidence": {
+          "source_url": "https://raw.githubusercontent.com/oconnor663/sigchld.rs/07b95e2fe38b18b376b0f635f2766bf2e641b80b/Cargo.toml",
+          "copied_path": "reconciliation/recovered/sigchld-0.2.4/DECLARATION-Cargo.toml",
+          "sha256": "79bbbf7c7e7c9dfad8d8592223ae4d7fe90f769ab4e65b9d2081b5e5335c8901",
+          "bytes": 646,
+          "kind": "license_metadata_declaration_not_full_license_notice"
+        },
+        "material_scope": "metadata_declaration_only_no_full_license_or_copyright_notice_recovered"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "tao-macros",
+      "version": "0.1.3",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT OR Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/tao-macros/0.1.3",
+      "repository": "https://github.com/tauri-apps/tao",
+      "cargo_vcs": null,
+      "cargo_vcs_sha256": null,
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "tauri-plugin",
+      "version": "2.6.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "build_or_proc_macro_only",
+      "targets": {
+        "windows_x64": "build_or_proc_macro_only",
+        "macos_arm64": "build_or_proc_macro_only"
+      },
+      "source_package_url": "https://crates.io/crates/tauri-plugin/2.6.2",
+      "repository": "https://github.com/tauri-apps/tauri",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "499df79be65ef8c0670abc0207cd9e37b55d8491"
+        },
+        "path_in_vcs": "crates/tauri-plugin"
+      },
+      "cargo_vcs_sha256": "a3c03e51ba9fecc3ebd1ffbe2850611d1c9fa705f32e8b4b1c3fc497aefbcb15",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "unic-char-property",
+      "version": "0.9.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT/Apache-2.0",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "runtime_dependency_candidate",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/unic-char-property/0.9.0",
+      "repository": "https://github.com/open-i18n/rust-unic/",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "5878605364af97a3358368a6eaef02104af2e016"
+        }
+      },
+      "cargo_vcs_sha256": "72a0e361aab8e7af18af799a6046b290a930d94b76c551bf0667e0726f9d42d1",
+      "recovery": {
+        "name": "unic-char-property",
+        "version": "0.9.0",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "5878605364af97a3358368a6eaef02104af2e016",
+        "repository": "https://github.com/open-i18n/rust-unic",
+        "path_in_vcs": "",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "COPYRIGHT.md",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+            "copied_path": "reconciliation/recovered/unic-char-property-0.9.0/COPYRIGHT.md",
+            "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+            "bytes": 608,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "copyright_notice"
+          },
+          {
+            "source_path": "LICENSE-APACHE",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+            "copied_path": "reconciliation/recovered/unic-char-property-0.9.0/LICENSE-APACHE",
+            "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+            "bytes": 10847,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          },
+          {
+            "source_path": "LICENSE-MIT",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+            "copied_path": "reconciliation/recovered/unic-char-property-0.9.0/LICENSE-MIT",
+            "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+            "bytes": 1023,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "unic-char-range",
+      "version": "0.9.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT/Apache-2.0",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "runtime_dependency_candidate",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/unic-char-range/0.9.0",
+      "repository": "https://github.com/open-i18n/rust-unic/",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "5878605364af97a3358368a6eaef02104af2e016"
+        }
+      },
+      "cargo_vcs_sha256": "72a0e361aab8e7af18af799a6046b290a930d94b76c551bf0667e0726f9d42d1",
+      "recovery": {
+        "name": "unic-char-range",
+        "version": "0.9.0",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "5878605364af97a3358368a6eaef02104af2e016",
+        "repository": "https://github.com/open-i18n/rust-unic",
+        "path_in_vcs": "",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "COPYRIGHT.md",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+            "copied_path": "reconciliation/recovered/unic-char-range-0.9.0/COPYRIGHT.md",
+            "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+            "bytes": 608,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "copyright_notice"
+          },
+          {
+            "source_path": "LICENSE-APACHE",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+            "copied_path": "reconciliation/recovered/unic-char-range-0.9.0/LICENSE-APACHE",
+            "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+            "bytes": 10847,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          },
+          {
+            "source_path": "LICENSE-MIT",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+            "copied_path": "reconciliation/recovered/unic-char-range-0.9.0/LICENSE-MIT",
+            "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+            "bytes": 1023,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "unic-common",
+      "version": "0.9.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT/Apache-2.0",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "runtime_dependency_candidate",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/unic-common/0.9.0",
+      "repository": "https://github.com/open-i18n/rust-unic/",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "5878605364af97a3358368a6eaef02104af2e016"
+        }
+      },
+      "cargo_vcs_sha256": "72a0e361aab8e7af18af799a6046b290a930d94b76c551bf0667e0726f9d42d1",
+      "recovery": {
+        "name": "unic-common",
+        "version": "0.9.0",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "5878605364af97a3358368a6eaef02104af2e016",
+        "repository": "https://github.com/open-i18n/rust-unic",
+        "path_in_vcs": "",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "COPYRIGHT.md",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+            "copied_path": "reconciliation/recovered/unic-common-0.9.0/COPYRIGHT.md",
+            "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+            "bytes": 608,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "copyright_notice"
+          },
+          {
+            "source_path": "LICENSE-APACHE",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+            "copied_path": "reconciliation/recovered/unic-common-0.9.0/LICENSE-APACHE",
+            "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+            "bytes": 10847,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          },
+          {
+            "source_path": "LICENSE-MIT",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+            "copied_path": "reconciliation/recovered/unic-common-0.9.0/LICENSE-MIT",
+            "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+            "bytes": 1023,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "unic-ucd-ident",
+      "version": "0.9.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT/Apache-2.0",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "runtime_dependency_candidate",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/unic-ucd-ident/0.9.0",
+      "repository": "https://github.com/open-i18n/rust-unic/",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "8a6ce83063d90b91ae2ce59eddb803edd393fca9"
+        }
+      },
+      "cargo_vcs_sha256": "64e154b113a16828624a2baedc6e70e8e6ea8f5c8cf8455d2c255762c0f43a8a",
+      "recovery": {
+        "name": "unic-ucd-ident",
+        "version": "0.9.0",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "8a6ce83063d90b91ae2ce59eddb803edd393fca9",
+        "repository": "https://github.com/open-i18n/rust-unic",
+        "path_in_vcs": "",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "COPYRIGHT.md",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/COPYRIGHT.md",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/COPYRIGHT.md",
+            "copied_path": "reconciliation/recovered/unic-ucd-ident-0.9.0/COPYRIGHT.md",
+            "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+            "bytes": 608,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "copyright_notice"
+          },
+          {
+            "source_path": "LICENSE-APACHE",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/LICENSE-APACHE",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/LICENSE-APACHE",
+            "copied_path": "reconciliation/recovered/unic-ucd-ident-0.9.0/LICENSE-APACHE",
+            "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+            "bytes": 10847,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          },
+          {
+            "source_path": "LICENSE-MIT",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/LICENSE-MIT",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/8a6ce83063d90b91ae2ce59eddb803edd393fca9/LICENSE-MIT",
+            "copied_path": "reconciliation/recovered/unic-ucd-ident-0.9.0/LICENSE-MIT",
+            "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+            "bytes": 1023,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "unic-ucd-version",
+      "version": "0.9.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT/Apache-2.0",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "runtime_dependency_candidate",
+        "macos_arm64": "runtime_dependency_candidate"
+      },
+      "source_package_url": "https://crates.io/crates/unic-ucd-version/0.9.0",
+      "repository": "https://github.com/open-i18n/rust-unic/",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "5878605364af97a3358368a6eaef02104af2e016"
+        }
+      },
+      "cargo_vcs_sha256": "72a0e361aab8e7af18af799a6046b290a930d94b76c551bf0667e0726f9d42d1",
+      "recovery": {
+        "name": "unic-ucd-version",
+        "version": "0.9.0",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "5878605364af97a3358368a6eaef02104af2e016",
+        "repository": "https://github.com/open-i18n/rust-unic",
+        "path_in_vcs": "",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "COPYRIGHT.md",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md",
+            "copied_path": "reconciliation/recovered/unic-ucd-version-0.9.0/COPYRIGHT.md",
+            "sha256": "f5c342c49f3ac804f3e8e7bb62a8040a44c50d47bb36902b1abd13f66a1adf8b",
+            "bytes": 608,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "copyright_notice"
+          },
+          {
+            "source_path": "LICENSE-APACHE",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-APACHE",
+            "copied_path": "reconciliation/recovered/unic-ucd-version-0.9.0/LICENSE-APACHE",
+            "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+            "bytes": 10847,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          },
+          {
+            "source_path": "LICENSE-MIT",
+            "source_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+            "resolved_url": "https://raw.githubusercontent.com/open-i18n/rust-unic/5878605364af97a3358368a6eaef02104af2e016/LICENSE-MIT",
+            "copied_path": "reconciliation/recovered/unic-ucd-version-0.9.0/LICENSE-MIT",
+            "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+            "bytes": 1023,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "valuable",
+      "version": "0.1.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/valuable/0.1.1",
+      "repository": "https://github.com/tokio-rs/valuable",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "9efc29b6e58cef28f6566a47aa7e142a55fead77"
+        },
+        "path_in_vcs": "valuable"
+      },
+      "cargo_vcs_sha256": "34111200d67ce91680f8c64c5bfd537fc251f7ed7bb3a4e6110cb9299dacc0b2",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "wasip3",
+      "version": "0.4.0+wasi-0.3.0-rc-2026-01-06",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/wasip3/0.4.0+wasi-0.3.0-rc-2026-01-06",
+      "repository": "https://github.com/bytecodealliance/wasi-rs",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "06ce201370fcde0d1b0d47cac8ecb1b0b312c9f9"
+        },
+        "path_in_vcs": "crates/wasip3"
+      },
+      "cargo_vcs_sha256": "ff6bad2aacca7c90554087926de8a70a68a5897ef39da03fd008d8eb11e50a50",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "wasm-encoder",
+      "version": "0.244.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/wasm-encoder/0.244.0",
+      "repository": "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasm-encoder",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "d4e317f22c3bace76cb3205003bcc34b4929037d"
+        },
+        "path_in_vcs": "crates/wasm-encoder"
+      },
+      "cargo_vcs_sha256": "bd63130d375371bd71320677ae3c908e07defde1af52bc52fec2686fbc5b6a25",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "wasm-metadata",
+      "version": "0.244.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/wasm-metadata/0.244.0",
+      "repository": "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasm-metadata",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "d4e317f22c3bace76cb3205003bcc34b4929037d"
+        },
+        "path_in_vcs": "crates/wasm-metadata"
+      },
+      "cargo_vcs_sha256": "bb4b208d21ba2d17b8633caf9f9e4f9bf2ff6eb9abb9032ef4e8e17051fdb732",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "wasmparser",
+      "version": "0.244.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/wasmparser/0.244.0",
+      "repository": "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasmparser",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "d4e317f22c3bace76cb3205003bcc34b4929037d"
+        },
+        "path_in_vcs": "crates/wasmparser"
+      },
+      "cargo_vcs_sha256": "57f74377f548fbafc63ed431ef9c63fc201cbdb7c8c96b2493d98766d3b12420",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "webview2-com",
+      "version": "0.38.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "runtime_dependency_candidate",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/webview2-com/0.38.2",
+      "repository": "https://github.com/wravery/webview2-rs",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "b74dc5e2b394044bea5191052868ce7a106c202c"
+        },
+        "path_in_vcs": "crates/webview2-com"
+      },
+      "cargo_vcs_sha256": "cd98f3865caa97f47155b4238ea574245680de51fc689ab117b29ccac7566221",
+      "recovery": {
+        "name": "webview2-com",
+        "version": "0.38.2",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "b74dc5e2b394044bea5191052868ce7a106c202c",
+        "repository": "https://github.com/wravery/webview2-rs",
+        "path_in_vcs": "crates/webview2-com",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE",
+            "source_url": "https://raw.githubusercontent.com/wravery/webview2-rs/b74dc5e2b394044bea5191052868ce7a106c202c/LICENSE",
+            "resolved_url": "https://raw.githubusercontent.com/wravery/webview2-rs/b74dc5e2b394044bea5191052868ce7a106c202c/LICENSE",
+            "copied_path": "reconciliation/recovered/webview2-com-0.38.2/LICENSE",
+            "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73",
+            "bytes": 1067,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "webview2-com-macros",
+      "version": "0.8.1",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "build_or_proc_macro_only",
+      "targets": {
+        "windows_x64": "build_or_proc_macro_only",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/webview2-com-macros/0.8.1",
+      "repository": "https://github.com/wravery/webview2-rs",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "dffa41a8a46d3f5565eefbff2de57d38d399f158"
+        },
+        "path_in_vcs": "crates/callback-macros"
+      },
+      "cargo_vcs_sha256": "c24c2646f52e6cb4c1f382afc69fa99c0dc78d6d8e4316ade7e51707b4f9af8e",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "webview2-com-sys",
+      "version": "0.38.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "runtime_candidate_needs_notice_review",
+      "targets": {
+        "windows_x64": "runtime_dependency_candidate",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/webview2-com-sys/0.38.2",
+      "repository": "https://github.com/wravery/webview2-rs",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "b74dc5e2b394044bea5191052868ce7a106c202c"
+        },
+        "path_in_vcs": "crates/bindings"
+      },
+      "cargo_vcs_sha256": "8af502bd8832383dc1dd8bbd7fb00eb76a72b111688bc492e110bbac44cb005f",
+      "recovery": {
+        "name": "webview2-com-sys",
+        "version": "0.38.2",
+        "status": "exact_commit_notice_text_recovered_review_required",
+        "commit": "b74dc5e2b394044bea5191052868ce7a106c202c",
+        "repository": "https://github.com/wravery/webview2-rs",
+        "path_in_vcs": "crates/bindings",
+        "provenance": "Commit from exact installed crate .cargo_vcs_info.json; upstream files fetched at that immutable commit",
+        "notices": [
+          {
+            "source_path": "LICENSE",
+            "source_url": "https://raw.githubusercontent.com/wravery/webview2-rs/b74dc5e2b394044bea5191052868ce7a106c202c/LICENSE",
+            "resolved_url": "https://raw.githubusercontent.com/wravery/webview2-rs/b74dc5e2b394044bea5191052868ce7a106c202c/LICENSE",
+            "copied_path": "reconciliation/recovered/webview2-com-sys-0.38.2/LICENSE",
+            "sha256": "0dcf41516e608bbcb6cdc5229feb7b86fe4a643b85e7df251133c93408fdac73",
+            "bytes": 1067,
+            "kind": "upstream_notice_at_crate_commit",
+            "content_kind": "full_license_text_present"
+          }
+        ],
+        "errors": [],
+        "material_scope": "full_license_text_recovered_legal_selection_and_artifact_review_still_required"
+      },
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "winapi-i686-pc-windows-gnu",
+      "version": "0.4.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT/Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/winapi-i686-pc-windows-gnu/0.4.0",
+      "repository": "https://github.com/retep998/winapi-rs",
+      "cargo_vcs": null,
+      "cargo_vcs_sha256": null,
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "winapi-x86_64-pc-windows-gnu",
+      "version": "0.4.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT/Apache-2.0",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/winapi-x86_64-pc-windows-gnu/0.4.0",
+      "repository": "https://github.com/retep998/winapi-rs",
+      "cargo_vcs": null,
+      "cargo_vcs_sha256": null,
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "wit-component",
+      "version": "0.244.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/wit-component/0.244.0",
+      "repository": "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wit-component",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "d4e317f22c3bace76cb3205003bcc34b4929037d"
+        },
+        "path_in_vcs": "crates/wit-component"
+      },
+      "cargo_vcs_sha256": "8456162b205395e1ccae297c7bff238bc11090019a7807fee70463494697bffa",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "cargo",
+      "name": "wit-parser",
+      "version": "0.244.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "classification": "other_target_or_inactive_dependency",
+      "targets": {
+        "windows_x64": "not_in_this_target_graph",
+        "macos_arm64": "not_in_this_target_graph"
+      },
+      "source_package_url": "https://crates.io/crates/wit-parser/0.244.0",
+      "repository": "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wit-parser",
+      "cargo_vcs": {
+        "git": {
+          "sha1": "d4e317f22c3bace76cb3205003bcc34b4929037d"
+        },
+        "path_in_vcs": "crates/wit-parser"
+      },
+      "cargo_vcs_sha256": "e701d7ace82ec8996103713a5ba11137b8188a7084ce2200d5250f7180c21c4a",
+      "recovery": null,
+      "action": "Review exact upstream text and final distributed artifact; graph reachability is not proof of binary inclusion."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/aix-ppc64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/aix-ppc64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/android-arm",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/android-arm/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/android-arm64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/android-arm64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/android-x64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/android-x64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/darwin-arm64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/darwin-arm64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/darwin-x64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/darwin-x64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/freebsd-arm64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/freebsd-arm64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/freebsd-x64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/freebsd-x64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/linux-arm",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/linux-arm/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/linux-arm64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/linux-arm64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/linux-ia32",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/linux-ia32/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/linux-loong64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/linux-loong64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/linux-mips64el",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/linux-mips64el/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/linux-ppc64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/linux-ppc64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/linux-riscv64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/linux-riscv64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/linux-s390x",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/linux-s390x/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/linux-x64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/linux-x64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/netbsd-arm64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/netbsd-arm64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/netbsd-x64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/netbsd-x64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/openbsd-arm64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/openbsd-arm64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/openbsd-x64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/openbsd-x64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/openharmony-arm64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/openharmony-arm64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/sunos-x64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/sunos-x64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/win32-arm64",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/win32-arm64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/win32-ia32",
+      "version": "0.27.7",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/win32-ia32/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@esbuild/win32-x64",
+      "version": "0.27.7",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "build_tool_dependency",
+      "source_package_url": "https://www.npmjs.com/package/@esbuild/win32-x64/v/0.27.7",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-android-arm-eabi",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-android-arm-eabi/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-android-arm64",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-android-arm64/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-darwin-arm64",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-darwin-arm64/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-darwin-x64",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-darwin-x64/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-freebsd-arm64",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-freebsd-arm64/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-freebsd-x64",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-freebsd-x64/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-arm-gnueabihf",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-arm-gnueabihf/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-arm-musleabihf",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-arm-musleabihf/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-arm64-gnu",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-arm64-gnu/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-arm64-musl",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-arm64-musl/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-loong64-gnu",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-loong64-gnu/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-loong64-musl",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-loong64-musl/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-ppc64-gnu",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-ppc64-gnu/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-ppc64-musl",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-ppc64-musl/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-riscv64-gnu",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-riscv64-gnu/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-riscv64-musl",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-riscv64-musl/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-s390x-gnu",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-s390x-gnu/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-x64-gnu",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-x64-gnu/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-linux-x64-musl",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-linux-x64-musl/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-openbsd-x64",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-openbsd-x64/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-openharmony-arm64",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-openharmony-arm64/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-win32-arm64-msvc",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-win32-arm64-msvc/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-win32-ia32-msvc",
+      "version": "4.61.0",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-win32-ia32-msvc/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-win32-x64-gnu",
+      "version": "4.61.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "build_tool_dependency",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-win32-x64-gnu/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rollup/rollup-win32-x64-msvc",
+      "version": "4.61.0",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "MIT",
+      "classification": "build_tool_dependency",
+      "source_package_url": "https://www.npmjs.com/package/@rollup/rollup-win32-x64-msvc/v/4.61.0",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@tauri-apps/cli-darwin-arm64",
+      "version": "2.11.2",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@tauri-apps/cli-darwin-arm64/v/2.11.2",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@tauri-apps/cli-darwin-x64",
+      "version": "2.11.2",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@tauri-apps/cli-darwin-x64/v/2.11.2",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@tauri-apps/cli-linux-arm-gnueabihf",
+      "version": "2.11.2",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@tauri-apps/cli-linux-arm-gnueabihf/v/2.11.2",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@tauri-apps/cli-linux-arm64-gnu",
+      "version": "2.11.2",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@tauri-apps/cli-linux-arm64-gnu/v/2.11.2",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@tauri-apps/cli-linux-arm64-musl",
+      "version": "2.11.2",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@tauri-apps/cli-linux-arm64-musl/v/2.11.2",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@tauri-apps/cli-linux-riscv64-gnu",
+      "version": "2.11.2",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@tauri-apps/cli-linux-riscv64-gnu/v/2.11.2",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@tauri-apps/cli-linux-x64-gnu",
+      "version": "2.11.2",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@tauri-apps/cli-linux-x64-gnu/v/2.11.2",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@tauri-apps/cli-linux-x64-musl",
+      "version": "2.11.2",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@tauri-apps/cli-linux-x64-musl/v/2.11.2",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@tauri-apps/cli-win32-arm64-msvc",
+      "version": "2.11.2",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@tauri-apps/cli-win32-arm64-msvc/v/2.11.2",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@tauri-apps/cli-win32-ia32-msvc",
+      "version": "2.11.2",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/@tauri-apps/cli-win32-ia32-msvc/v/2.11.2",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@tauri-apps/cli-win32-x64-msvc",
+      "version": "2.11.2",
+      "reason": "no_license_notice_file_in_installed_source",
+      "declared_license": "Apache-2.0 OR MIT",
+      "classification": "build_tool_dependency",
+      "source_package_url": "https://www.npmjs.com/package/@tauri-apps/cli-win32-x64-msvc/v/2.11.2",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    },
+    {
+      "ecosystem": "npm",
+      "name": "fsevents",
+      "version": "2.3.3",
+      "reason": "source_not_installed_on_this_platform",
+      "declared_license": "MIT",
+      "classification": "optional_build_dependency_not_installed_on_this_host",
+      "source_package_url": "https://www.npmjs.com/package/fsevents/v/2.3.3",
+      "declared_dev": true,
+      "declared_optional": true,
+      "recovery": null,
+      "action": "No unused platform package downloaded. Check toolchain redistribution only if the tool binary/package is actually included in the release."
+    }
+  ]
+}

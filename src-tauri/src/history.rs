@@ -5,6 +5,12 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::io::Write;
+use std::sync::Mutex;
+
+// Serialize the entire read/modify/replace operation, including explicit clear.
+// A shared temp filename alone is not a transaction boundary.
+static MUTATION: Mutex<()> = Mutex::new(());
 
 /// Keep at most this many entries (newest last); older ones are dropped.
 /// Home's "this week" stats read this list, so the cap has to survive a busy day.
@@ -93,6 +99,12 @@ pub struct HistoryEntry {
     pub timestamp: i64,
     /// The language used, when known (`None` for auto-detect).
     pub language: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_text: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_language: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub translation_error: Option<String>,
 }
 
 /// `<app_data>/history.json`.
@@ -111,7 +123,8 @@ pub fn load(dir: &Path) -> Vec<HistoryEntry> {
 
 /// Append an entry, enforce the cap, and persist atomically.
 pub fn append(dir: &Path, entry: HistoryEntry) -> Result<Vec<HistoryEntry>> {
-    let mut entries = load(dir);
+    let _transaction = MUTATION.lock().map_err(|_| anyhow::anyhow!("History storage is unavailable."))?;
+    let mut entries = load_for_mutation(dir)?;
     entries.push(entry);
     if entries.len() > MAX_ENTRIES {
         let overflow = entries.len() - MAX_ENTRIES;
@@ -123,7 +136,19 @@ pub fn append(dir: &Path, entry: HistoryEntry) -> Result<Vec<HistoryEntry>> {
 
 /// Clear all history.
 pub fn clear(dir: &Path) -> Result<()> {
+    let _transaction = MUTATION.lock().map_err(|_| anyhow::anyhow!("History storage is unavailable."))?;
+    load_for_mutation(dir)?;
     save(dir, &[])
+}
+
+/// An absent file is an empty history; unreadable or invalid existing data is
+/// preserved for recovery, never silently replaced by a new one-entry history.
+fn load_for_mutation(dir: &Path) -> Result<Vec<HistoryEntry>> {
+    match std::fs::read_to_string(history_path(dir)) {
+        Ok(text) => serde_json::from_str(&text).map_err(|_| anyhow::anyhow!("Existing history could not be read. It was preserved unchanged.")),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
+        Err(_) => Err(anyhow::anyhow!("Existing history could not be opened. It was preserved unchanged.")),
+    }
 }
 
 /// Write the list atomically: serialize to a `.tmp` sibling, then rename over
@@ -133,7 +158,10 @@ fn save(dir: &Path, entries: &[HistoryEntry]) -> Result<()> {
     let path = history_path(dir);
     let tmp = path.with_extension("json.tmp");
     let text = serde_json::to_string_pretty(entries)?;
-    std::fs::write(&tmp, text)?;
+    let mut file = std::fs::File::create(&tmp)?;
+    file.write_all(text.as_bytes())?;
+    file.sync_all()?;
+    drop(file);
     std::fs::rename(&tmp, &path)?;
     Ok(())
 }
@@ -144,7 +172,88 @@ mod tests {
     use tempfile::tempdir;
 
     fn entry(text: &str, ts: i64) -> HistoryEntry {
-        HistoryEntry { text: text.into(), timestamp: ts, language: None }
+        HistoryEntry { text: text.into(), timestamp: ts, language: None, source_text: None, source_language: None, translation_error: None }
+    }
+
+    #[test]
+    fn corrupt_existing_history_is_preserved_by_append_and_clear() {
+        let dir = tempdir().unwrap();
+        let path = history_path(dir.path());
+        let original = b"{partial history from an interrupted older build";
+        std::fs::write(&path, original).unwrap();
+        assert!(append(dir.path(), entry("new text", 1)).is_err());
+        assert!(clear(dir.path()).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+    }
+
+    #[test]
+    fn temporary_file_failure_leaves_original_history_intact() {
+        let dir = tempdir().unwrap();
+        append(dir.path(), entry("original", 1)).unwrap();
+        std::fs::create_dir(history_path(dir.path()).with_extension("json.tmp")).unwrap();
+        assert!(append(dir.path(), entry("unsaved", 2)).is_err());
+        assert!(clear(dir.path()).is_err());
+        assert_eq!(load(dir.path()), vec![entry("original", 1)]);
+    }
+
+    #[test]
+    fn unreadable_existing_history_is_not_replaced() {
+        let dir = tempdir().unwrap();
+        let path = history_path(dir.path());
+        // Deterministic I/O failure without changing real OS permissions.
+        std::fs::create_dir(&path).unwrap();
+        assert!(append(dir.path(), entry("unsaved", 1)).is_err());
+        assert!(clear(dir.path()).is_err());
+        assert!(path.is_dir());
+        assert!(!path.with_extension("json.tmp").exists());
+    }
+
+    #[test]
+    fn translation_recovery_fields_survive_history_persistence() {
+        let dir = tempdir().unwrap();
+        let original = HistoryEntry {
+            text: "João，发票 123".into(), timestamp: 1, language: Some("zh".into()),
+            source_text: Some("João，发票 123".into()), source_language: Some("zh".into()),
+            translation_error: Some("Translation was incomplete".into()),
+        };
+        append(dir.path(), original.clone()).unwrap();
+        assert_eq!(load(dir.path()), vec![original]);
+    }
+
+    #[test]
+    fn concurrent_appends_retain_every_completed_entry() {
+        let dir = tempdir().unwrap();
+        let barrier = std::sync::Barrier::new(16);
+        std::thread::scope(|scope| {
+            for index in 0..16 {
+                let path = dir.path();
+                let barrier = &barrier;
+                scope.spawn(move || { barrier.wait(); append(path, entry(&format!("entry-{index}"), index)).unwrap(); });
+            }
+        });
+        let entries = load(dir.path());
+        assert_eq!(entries.len(), 16);
+        for index in 0..16 { assert!(entries.iter().any(|item| item.text == format!("entry-{index}"))); }
+    }
+
+    #[test]
+    fn concurrent_append_and_clear_cannot_resurrect_preclear_history() {
+        for _ in 0..8 {
+            let dir = tempdir().unwrap();
+            append(dir.path(), entry("before-clear", 0)).unwrap();
+            let barrier = std::sync::Barrier::new(9);
+            std::thread::scope(|scope| {
+                for index in 0..8 {
+                    let path = dir.path();
+                    let barrier = &barrier;
+                    scope.spawn(move || { barrier.wait(); append(path, entry(&format!("concurrent-{index}"), index)).unwrap(); });
+                }
+                let path = dir.path();
+                let barrier = &barrier;
+                scope.spawn(move || { barrier.wait(); clear(path).unwrap(); });
+            });
+            assert!(!load(dir.path()).iter().any(|item| item.text == "before-clear"));
+        }
     }
 
     #[test]

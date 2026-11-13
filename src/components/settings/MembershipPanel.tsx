@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { LicenseFloor, LicenseStatus } from './types';
 import { shortAddress } from './types';
+import { HelpTip } from '../HelpTip';
 
 const EXPLORER = 'https://solscan.io/account/';
 
@@ -86,6 +87,10 @@ export function MembershipPanel() {
       <p className="settings-panel-sub">
         Lectus is free for people who hold ORGANIC or Mycel. No account, no subscription.
       </p>
+      <HelpTip title="membership checks"
+        why="Confirm that your linked wallet meets the current token-holding requirement for dictation."
+        setup="Connect your wallet, review the message-signing request and use Check again after a balance change."
+        privacy="Lectus does not need your seed phrase or private key; it stores the linked public address locally and contacts RPC and pricing services to check holdings." />
 
       <div className="card">
         <div className="row">

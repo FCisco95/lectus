@@ -33,11 +33,23 @@ pub trait OutputVolume {
     fn get(&self) -> Result<VolumeSnapshot, String>;
     fn set_muted(&self, muted: bool) -> Result<(), String>;
     fn set_volume(&self, volume: f32) -> Result<(), String>;
+    /// Bind the snapshot to one endpoint. Single-endpoint adapters can retain
+    /// the default methods; Windows supplies the stable Core Audio device ID.
+    fn get_bound(&self) -> Result<(VolumeSnapshot, Option<String>), String> {
+        self.get().map(|snapshot| (snapshot, None))
+    }
+    fn set_muted_on(&self, _endpoint: Option<&str>, muted: bool) -> Result<(), String> {
+        self.set_muted(muted)
+    }
+    fn set_volume_on(&self, _endpoint: Option<&str>, volume: f32) -> Result<(), String> {
+        self.set_volume(volume)
+    }
 }
 
 struct Ducked {
     snapshot: VolumeSnapshot,
     action: DuckAction,
+    endpoint: Option<String>,
 }
 
 pub struct PlaybackDucker<V: OutputVolume> {
@@ -61,7 +73,7 @@ impl<V: OutputVolume> PlaybackDucker<V> {
         if slot.is_some() {
             return;
         }
-        let snapshot = match self.volume.get() {
+        let (snapshot, endpoint) = match self.volume.get_bound() {
             Ok(s) => s,
             Err(e) => {
                 log::warn!("playback: could not read output volume: {e}");
@@ -72,11 +84,11 @@ impl<V: OutputVolume> PlaybackDucker<V> {
             log::info!("playback: output already muted, leaving as-is");
             return;
         }
-        let action = match self.volume.set_muted(true) {
+        let action = match self.volume.set_muted_on(endpoint.as_deref(), true) {
             Ok(()) => DuckAction::Mute,
             Err(e) => {
                 log::warn!("playback: SetMute failed ({e}), ducking volume to 0");
-                if let Err(e) = self.volume.set_volume(0.0) {
+                if let Err(e) = self.volume.set_volume_on(endpoint.as_deref(), 0.0) {
                     log::warn!("playback: volume duck failed: {e}");
                     return;
                 }
@@ -87,7 +99,7 @@ impl<V: OutputVolume> PlaybackDucker<V> {
             "playback: ducked default output ({action:?}), saved {:.0}%",
             snapshot.volume * 100.0
         );
-        *slot = Some(Ducked { snapshot, action });
+        *slot = Some(Ducked { snapshot, action, endpoint });
     }
 
     /// Restore the pre-duck mute AND volume. Keep the snapshot on failure
@@ -101,9 +113,9 @@ impl<V: OutputVolume> PlaybackDucker<V> {
         };
         // Restore the level while still muted to avoid a loud transient.
         // Always try to unmute even if restoring the level fails.
-        let volume_result = self.volume.set_volume(ducked.snapshot.volume);
+        let volume_result = self.volume.set_volume_on(ducked.endpoint.as_deref(), ducked.snapshot.volume);
         let mute_result = match ducked.action {
-            DuckAction::Mute => self.volume.set_muted(ducked.snapshot.muted),
+            DuckAction::Mute => self.volume.set_muted_on(ducked.endpoint.as_deref(), ducked.snapshot.muted),
             DuckAction::VolumeZero => Ok(()),
         };
         match volume_result.and(mute_result) {
@@ -173,10 +185,12 @@ mod win {
         eMultimedia, eRender, IMMDeviceEnumerator, MMDeviceEnumerator,
     };
     use windows::Win32::System::Com::{
-        CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED,
+        CoCreateInstance, CoInitializeEx, CoTaskMemFree, CLSCTX_ALL, COINIT_MULTITHREADED,
     };
+    use windows::core::PCWSTR;
 
     fn with_endpoint<T>(
+        endpoint: Option<&str>,
         f: impl FnOnce(&IAudioEndpointVolume) -> Result<T, String>,
     ) -> Result<T, String> {
         unsafe {
@@ -185,9 +199,16 @@ mod win {
             let enumerator: IMMDeviceEnumerator =
                 CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)
                     .map_err(|e| format!("MMDeviceEnumerator: {e}"))?;
-            let device = enumerator
-                .GetDefaultAudioEndpoint(eRender, eMultimedia)
-                .map_err(|e| format!("GetDefaultAudioEndpoint: {e}"))?;
+            // A missing saved device is an error, never permission to mutate
+            // whichever unrelated endpoint became the default in its place.
+            let device = if let Some(id) = endpoint {
+                let wide: Vec<u16> = id.encode_utf16().chain(Some(0)).collect();
+                enumerator.GetDevice(PCWSTR(wide.as_ptr()))
+                    .map_err(|e| format!("GetDevice for saved playback endpoint: {e}"))?
+            } else {
+                enumerator.GetDefaultAudioEndpoint(eRender, eMultimedia)
+                    .map_err(|e| format!("GetDefaultAudioEndpoint: {e}"))?
+            };
             let volume: IAudioEndpointVolume = device
                 .Activate(CLSCTX_ALL, None)
                 .map_err(|e| format!("Activate IAudioEndpointVolume: {e}"))?;
@@ -197,7 +218,7 @@ mod win {
 
     impl OutputVolume for super::PlatformOutput {
         fn get(&self) -> Result<VolumeSnapshot, String> {
-            with_endpoint(|vol| unsafe {
+            with_endpoint(None, |vol| unsafe {
                 let muted = vol
                     .GetMute()
                     .map_err(|e| format!("GetMute: {e}"))?
@@ -210,7 +231,32 @@ mod win {
         }
 
         fn set_muted(&self, muted: bool) -> Result<(), String> {
-            with_endpoint(|vol| unsafe {
+            self.set_muted_on(None, muted)
+        }
+
+        fn get_bound(&self) -> Result<(VolumeSnapshot, Option<String>), String> {
+            let id = unsafe {
+                let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+                let enumerator: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)
+                    .map_err(|e| format!("MMDeviceEnumerator: {e}"))?;
+                let device = enumerator.GetDefaultAudioEndpoint(eRender, eMultimedia)
+                    .map_err(|e| format!("GetDefaultAudioEndpoint: {e}"))?;
+                let allocated = device.GetId().map_err(|e| format!("GetId for playback endpoint: {e}"))?;
+                let id = allocated.to_string().map_err(|e| format!("Playback endpoint ID: {e}"));
+                CoTaskMemFree(Some(allocated.0.cast()));
+                id?
+            };
+            let snapshot = with_endpoint(Some(&id), |vol| unsafe {
+                Ok(VolumeSnapshot {
+                    muted: vol.GetMute().map_err(|e| format!("GetMute: {e}"))?.as_bool(),
+                    volume: vol.GetMasterVolumeLevelScalar().map_err(|e| format!("GetMasterVolumeLevelScalar: {e}"))?,
+                })
+            })?;
+            Ok((snapshot, Some(id)))
+        }
+
+        fn set_muted_on(&self, endpoint: Option<&str>, muted: bool) -> Result<(), String> {
+            with_endpoint(endpoint, |vol| unsafe {
                 vol.SetMute(muted, std::ptr::null())
                     .map_err(|e| format!("SetMute: {e}"))?;
                 Ok(())
@@ -218,7 +264,11 @@ mod win {
         }
 
         fn set_volume(&self, volume: f32) -> Result<(), String> {
-            with_endpoint(|vol| unsafe {
+            self.set_volume_on(None, volume)
+        }
+
+        fn set_volume_on(&self, endpoint: Option<&str>, volume: f32) -> Result<(), String> {
+            with_endpoint(endpoint, |vol| unsafe {
                 vol.SetMasterVolumeLevelScalar(volume, std::ptr::null())
                     .map_err(|e| format!("SetMasterVolumeLevelScalar: {e}"))?;
                 Ok(())
@@ -480,5 +530,124 @@ mod tests {
                 "restore on {event:?} must unmute"
             );
         }
+    }
+
+    struct RoutedState {
+        default: usize,
+        devices: [Option<VolumeSnapshot>; 2],
+        switch_after_snapshot: bool,
+        fail_volume: bool,
+    }
+
+    #[derive(Clone)]
+    struct RoutedOutput(Arc<Mutex<RoutedState>>);
+
+    impl RoutedOutput {
+        fn new() -> Self {
+            Self(Arc::new(Mutex::new(RoutedState {
+                default: 0,
+                devices: [Some(VolumeSnapshot { muted: false, volume: 0.7 }), Some(VolumeSnapshot { muted: true, volume: 0.2 })],
+                switch_after_snapshot: false,
+                fail_volume: false,
+            })))
+        }
+    }
+
+    impl OutputVolume for RoutedOutput {
+        fn get(&self) -> Result<VolumeSnapshot, String> {
+            let state = self.0.lock().unwrap();
+            state.devices[state.default].ok_or_else(|| "endpoint unavailable".into())
+        }
+        fn set_muted(&self, _: bool) -> Result<(), String> { Err("unbound write forbidden".into()) }
+        fn set_volume(&self, _: f32) -> Result<(), String> { Err("unbound write forbidden".into()) }
+        fn get_bound(&self) -> Result<(VolumeSnapshot, Option<String>), String> {
+            let mut state = self.0.lock().unwrap();
+            let index = state.default;
+            let snapshot = state.devices[index].ok_or("endpoint unavailable")?;
+            if state.switch_after_snapshot { state.default = 1; }
+            Ok((snapshot, Some(index.to_string())))
+        }
+        fn set_muted_on(&self, endpoint: Option<&str>, muted: bool) -> Result<(), String> {
+            let index = endpoint.ok_or("unbound endpoint")?.parse::<usize>().map_err(|e| e.to_string())?;
+            let mut state = self.0.lock().unwrap();
+            state.devices[index].as_mut().ok_or("endpoint unavailable")?.muted = muted;
+            Ok(())
+        }
+        fn set_volume_on(&self, endpoint: Option<&str>, volume: f32) -> Result<(), String> {
+            let index = endpoint.ok_or("unbound endpoint")?.parse::<usize>().map_err(|e| e.to_string())?;
+            let mut state = self.0.lock().unwrap();
+            if state.fail_volume { return Err("volume restore failed".into()); }
+            state.devices[index].as_mut().ok_or("endpoint unavailable")?.volume = volume;
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn endpoint_change_between_snapshot_and_mute_preserves_new_default() {
+        let output = RoutedOutput::new();
+        output.0.lock().unwrap().switch_after_snapshot = true;
+        let ducker = PlaybackDucker::new(output.clone());
+        ducker.duck();
+        {
+            let mut state = output.0.lock().unwrap();
+            assert_eq!(state.devices[0].unwrap().muted, true);
+            assert_eq!(state.devices[1].unwrap(), VolumeSnapshot { muted: true, volume: 0.2 });
+            // A user's independent adjustment to B must survive restoring A.
+            state.devices[1].as_mut().unwrap().volume = 0.33;
+        }
+        ducker.restore();
+        let state = output.0.lock().unwrap();
+        assert_eq!(state.devices[0].unwrap(), VolumeSnapshot { muted: false, volume: 0.7 });
+        assert_eq!(state.devices[1].unwrap(), VolumeSnapshot { muted: true, volume: 0.33 });
+    }
+
+    #[test]
+    fn missing_original_endpoint_retains_snapshot_without_touching_replacement() {
+        let output = RoutedOutput::new();
+        let ducker = PlaybackDucker::new(output.clone());
+        ducker.duck();
+        {
+            let mut state = output.0.lock().unwrap();
+            state.default = 1;
+            state.devices[0] = None;
+        }
+        ducker.restore();
+        ducker.duck(); // must not replace the pending A snapshot with B
+        {
+            let mut state = output.0.lock().unwrap();
+            assert_eq!(state.devices[1].unwrap(), VolumeSnapshot { muted: true, volume: 0.2 });
+            state.devices[0] = Some(VolumeSnapshot { muted: true, volume: 0.01 });
+        }
+        ducker.restore();
+        let state = output.0.lock().unwrap();
+        assert_eq!(state.devices[0].unwrap(), VolumeSnapshot { muted: false, volume: 0.7 });
+        assert_eq!(state.devices[1].unwrap(), VolumeSnapshot { muted: true, volume: 0.2 });
+    }
+
+    #[test]
+    fn failed_bound_restore_retries_original_endpoint_after_default_change() {
+        let output = RoutedOutput::new();
+        let ducker = PlaybackDucker::new(output.clone());
+        ducker.duck();
+        {
+            let mut state = output.0.lock().unwrap();
+            state.default = 1;
+            state.fail_volume = true;
+            state.devices[0].as_mut().unwrap().volume = 0.04;
+        }
+        ducker.restore();
+        output.0.lock().unwrap().fail_volume = false;
+        on_event(&ducker, true, PlaybackEvent::Idle);
+        let state = output.0.lock().unwrap();
+        assert_eq!(state.devices[0].unwrap(), VolumeSnapshot { muted: false, volume: 0.7 });
+        assert_eq!(state.devices[1].unwrap(), VolumeSnapshot { muted: true, volume: 0.2 });
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_bound_snapshot_is_readable_without_mutating_audio() {
+        let (snapshot, endpoint) = PlatformOutput.get_bound().expect("read bound render endpoint");
+        assert!(!endpoint.expect("stable Windows endpoint ID").is_empty());
+        assert!((0.0..=1.0).contains(&snapshot.volume));
     }
 }

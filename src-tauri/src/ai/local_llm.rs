@@ -32,6 +32,28 @@ static BACKEND: OnceLock<LlamaBackend> = OnceLock::new();
 /// path change reloads it.
 static MODEL: Mutex<Option<(PathBuf, LlamaModel)>> = Mutex::new(None);
 
+fn load_model_backends(dir: &Path) -> Result<()> {
+    #[cfg(windows)]
+    {
+        // Whisper links another ggml statically. Calling the Rust ggml symbol
+        // may populate Whisper's registry, leaving llama.dll's registry empty.
+        // Resolve the loader from llama's shared ggml.dll explicitly.
+        use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
+        let path = std::ffi::CString::new(dir.to_string_lossy().as_bytes())?;
+        unsafe {
+            let module = GetModuleHandleW(windows::core::w!("ggml.dll"))
+                .map_err(|_| anyhow!("The local text-model runtime DLL is unavailable"))?;
+            let symbol = GetProcAddress(module, windows::core::s!("ggml_backend_load_all_from_path"))
+                .ok_or_else(|| anyhow!("The local text-model runtime cannot load its backends"))?;
+            let loader: unsafe extern "C" fn(*const std::ffi::c_char) = std::mem::transmute(symbol);
+            loader(path.as_ptr());
+        }
+    }
+    #[cfg(not(windows))]
+    llama_cpp_2::llama_backend::load_backends_from_path(dir);
+    Ok(())
+}
+
 fn backend() -> Result<&'static LlamaBackend> {
     if BACKEND.get().is_none() {
         // dynamic-backends build: register the GGML backend DLLs
@@ -41,7 +63,7 @@ fn backend() -> Result<&'static LlamaBackend> {
             .map(Path::new)
             .filter(|p| p.exists());
         match compile_time_dir {
-            Some(_) => llama_cpp_2::llama_backend::load_backends(),
+            Some(dir) => load_model_backends(dir)?,
             None => {
                 // Shipped-build search order: next to the exe, then the Windows
                 // installer's backends/ dir (tauri.windows.conf.json), then the macOS .app bundle's Resources/backends dir
@@ -54,7 +76,7 @@ fn backend() -> Result<&'static LlamaBackend> {
                     ];
                     for dir in candidates {
                         if dir.exists() {
-                            llama_cpp_2::llama_backend::load_backends_from_path(&dir);
+                            load_model_backends(&dir)?;
                         }
                     }
                 }
@@ -70,18 +92,29 @@ fn backend() -> Result<&'static LlamaBackend> {
 /// (~0.5 s); call off the UI thread. Used by the startup warmup too.
 pub fn ensure_loaded(model_path: &Path) -> Result<()> {
     let mut guard = MODEL.lock().unwrap();
-    if matches!(&*guard, Some((p, _)) if p == model_path) {
+    load_into_slot(&mut guard, model_path)
+}
+
+fn load_into_slot(slot: &mut Option<(PathBuf, LlamaModel)>, model_path: &Path) -> Result<()> {
+    if model_path.file_name().and_then(|name| name.to_str()).is_some_and(|name| name.eq_ignore_ascii_case(CLEANUP_MODEL_NAME)) {
+        crate::model_license::ensure_accepted()?;
+    }
+    // Catalogued legacy files need the same integrity guarantee as downloads.
+    // Check before reusing the resident slot too: replacing a path on disk must
+    // never silently retain a ready state for invalid model bytes.
+    crate::transcription::model::verify_known_model_path(model_path)?;
+    if matches!(slot.as_ref(), Some((p, _)) if p == model_path) {
         return Ok(());
     }
     if !model_path.exists() {
-        return Err(anyhow!("local cleanup model not downloaded"));
+        return Err(anyhow!("Local text model is not downloaded. Download it in Settings first."));
     }
     let t = std::time::Instant::now();
     let params = LlamaModelParams::default().with_n_gpu_layers(1_000_000); // all layers on GPU
     let model = LlamaModel::load_from_file(backend()?, model_path, &params)
         .map_err(|e| anyhow!("cleanup model load failed: {e}"))?;
     log::info!("cleanup LLM loaded in {} ms", t.elapsed().as_millis());
-    *guard = Some((model_path.to_path_buf(), model));
+    *slot = Some((model_path.to_path_buf(), model));
     Ok(())
 }
 
@@ -91,9 +124,18 @@ pub fn ensure_loaded(model_path: &Path) -> Result<()> {
 /// TRANSLATE the transcript into the example's language (measured in the B2
 /// bench) — worse than under-cleaning.
 fn build_prompt(text: &str, system: &str, model_file: &str) -> String {
+    build_task_prompt(text, system, model_file, Task::Cleanup)
+}
+
+#[derive(Clone, Copy)]
+enum Task { Cleanup, Translation }
+
+fn build_task_prompt(text: &str, system: &str, model_file: &str, task: Task) -> String {
     let f = model_file.to_ascii_lowercase();
-    let instruction =
-        format!("{system}\nNever translate — keep the transcript's own language.");
+    let instruction = match task {
+        Task::Cleanup => format!("{system}\nNever translate — keep the transcript's own language."),
+        Task::Translation => system.to_string(),
+    };
     if f.contains("qwen") {
         // ChatML (Qwen3). ` /no_think` in the user turn plus an empty-<think>
         // assistant prefill disables Qwen3's thinking mode (llama.cpp-friendly;
@@ -142,27 +184,52 @@ pub fn warmup(model_path: &Path) -> Result<()> {
 /// Clean `text` with the resident local model. Greedy decoding for
 /// deterministic output (the model card's temp 1.0 is for chat, not cleanup).
 pub fn cleanup_local(text: &str, system: &str, model_path: &Path) -> Result<String> {
-    ensure_loaded(model_path)?;
-    let guard = MODEL.lock().unwrap();
+    generate_local(text, system, model_path, Task::Cleanup)
+}
+
+pub fn translate_local(text: &str, system: &str, model_path: &Path) -> Result<String> {
+    generate_local(text, system, model_path, Task::Translation)
+}
+
+const MAX_INPUT_CHARS: usize = 12_000;
+const MAX_PROMPT_TOKENS: usize = 4096;
+const MAX_OUTPUT_BYTES: usize = 32 * 1024;
+
+fn generate_local(text: &str, system: &str, model_path: &Path, task: Task) -> Result<String> {
+    if text.chars().count() > MAX_INPUT_CHARS {
+        return Err(anyhow!("Text is too long for the local text model. Split it into shorter dictations."));
+    }
+    // Keep model choice and inference in one critical section. A translation
+    // model must not replace the cleanup model between load and generation.
+    let mut guard = MODEL.lock().unwrap();
+    load_into_slot(&mut guard, model_path)?;
     let (_, model) = guard.as_ref().ok_or_else(|| anyhow!("cleanup model not loaded"))?;
 
     let model_file = model_path
         .file_name()
         .and_then(|f| f.to_str())
         .unwrap_or(CLEANUP_MODEL_NAME);
-    let prompt = build_prompt(text, system, model_file);
+    let prompt = build_task_prompt(text, system, model_file, task);
     let tokens = model
         .str_to_token(&prompt, AddBos::Always)
         .map_err(|e| anyhow!("tokenize failed: {e}"))?;
 
-    // Cleanup output is roughly input-sized; leave generous headroom.
-    let max_out = (tokens.len() * 2 + 64).min(1024);
+    if tokens.is_empty() || tokens.len() > MAX_PROMPT_TOKENS {
+        return Err(anyhow!("Text exceeds the local model input limit. Split it into shorter dictations."));
+    }
+    // Translation can expand text, particularly across scripts. Neither task
+    // returns a silently truncated result when its generation budget runs out.
+    let max_out = match task {
+        Task::Cleanup => (tokens.len() * 2 + 64).min(1024),
+        Task::Translation => (tokens.len() * 3 + 128).min(2048),
+    };
     let n_ctx = (tokens.len() + max_out + 8).max(512) as u32;
 
     let mut ctx = model
         .new_context(
             backend()?,
-            LlamaContextParams::default().with_n_ctx(NonZeroU32::new(n_ctx)),
+            LlamaContextParams::default().with_n_ctx(NonZeroU32::new(n_ctx))
+                .with_n_batch(tokens.len().max(512) as u32),
         )
         .map_err(|e| anyhow!("context creation failed: {e}"))?;
 
@@ -181,20 +248,28 @@ pub fn cleanup_local(text: &str, system: &str, model_path: &Path) -> Result<Stri
     let mut decoder = encoding_rs::UTF_8.new_decoder();
     let mut n_pos = tokens.len() as i32;
     let mut ttft_ms: Option<u128> = None;
+    let mut ended = false;
 
     for _ in 0..max_out {
+        if t_start.elapsed() > std::time::Duration::from_secs(45) {
+            return Err(anyhow!("Local text generation timed out. Try a shorter dictation."));
+        }
         let next = sampler.sample(&ctx, batch.n_tokens() - 1);
         sampler.accept(next);
         if ttft_ms.is_none() {
             ttft_ms = Some(t_start.elapsed().as_millis());
         }
         if model.is_eog_token(next) {
+            ended = true;
             break;
         }
         let piece = model
             .token_to_piece(next, &mut decoder, false, None)
-            .unwrap_or_default();
+            .map_err(|_| anyhow!("Could not decode the local model response."))?;
         out.push_str(&piece);
+        if out.len() > MAX_OUTPUT_BYTES {
+            return Err(anyhow!("Local text generation exceeded its output limit."));
+        }
 
         batch.clear();
         batch
@@ -211,6 +286,7 @@ pub fn cleanup_local(text: &str, system: &str, model_path: &Path) -> Result<Stri
         tokens.len()
     );
 
+    validate_completion(ended, &out)?;
     let cleaned = clean_output(&out);
     if cleaned.is_empty() {
         return Err(anyhow!("local cleanup returned empty output"));
@@ -218,9 +294,42 @@ pub fn cleanup_local(text: &str, system: &str, model_path: &Path) -> Result<Stri
     Ok(cleaned)
 }
 
+fn validate_completion(ended: bool, output: &str) -> Result<()> {
+    if !ended { return Err(anyhow!("Local text generation was incomplete. Try a shorter dictation or another model.")); }
+    if output.contains("<think>") && !output.contains("</think>") {
+        return Err(anyhow!("The local model did not finish its response."));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn translation_prompt_does_not_inherit_cleanup_language_lock() {
+        let model = "Qwen3-4B-Q4_K_M.gguf";
+        let cleanup = build_task_prompt("Olá João 123", "Clean this text.", model, Task::Cleanup);
+        let translation = build_task_prompt("Olá João 123", "Translate into 简体中文.", model, Task::Translation);
+        assert!(cleanup.contains("Never translate"));
+        assert!(!translation.contains("Never translate"));
+        assert!(translation.contains("Translate into 简体中文."));
+        assert!(translation.contains("Olá João 123"));
+        assert!(translation.contains("/no_think"));
+    }
+
+    #[test]
+    fn rejects_truncated_or_unfinished_generation_instead_of_returning_partial_text() {
+        assert!(validate_completion(false, "partial translation").is_err());
+        assert!(validate_completion(true, "<think>unfinished").is_err());
+        assert!(validate_completion(true, "你好 João 123").is_ok());
+    }
+
+    #[test]
+    fn oversized_local_input_fails_before_loading_a_model() {
+        let result = translate_local(&"字".repeat(MAX_INPUT_CHARS + 1), "Translate.", Path::new("not-downloaded.gguf"));
+        assert!(result.unwrap_err().to_string().contains("too long"));
+    }
 
     /// B2 measurement: local cleanup quality + latency on real dictation-shaped
     /// input. Run: cargo test --release bench_cleanup -- --ignored --nocapture

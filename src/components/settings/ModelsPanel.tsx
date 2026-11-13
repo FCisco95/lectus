@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getVersion } from '@tauri-apps/api/app';
 import type { PanelProps } from './types';
 import { BrandMark } from '../BrandMark';
-
-const SWATCHES = ['#1db584', '#17a2a2', '#3b82f6', '#e91e8c', '#ff6b5a', '#ffa500'];
+import { HelpTip } from '../HelpTip';
+import { ModelDownloadProgress, type DownloadState } from './ModelDownloadProgress';
+import { ModelResourceGuide } from './ModelResourceGuide';
 
 interface ModelStatus {
   name: string;
@@ -15,20 +16,21 @@ interface ModelStatus {
   description: string;
   downloaded: boolean;
   active: boolean;
+  loading: boolean;
+  download: DownloadState;
 }
 
 export function ModelsPanel({ config }: PanelProps) {
   const [models, setModels] = useState<ModelStatus[]>([]);
-  const [downloading, setDownloading] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [loading, setLoading] = useState<string | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+  const [error, setError] = useState('');
   const [version, setVersion] = useState('');
   const [updateStatus, setUpdateStatus] = useState('');
   const [updateAvailable, setUpdateAvailable] = useState('');
   const [lastUpdateError, setLastUpdateError] = useState('');
 
-  const refresh = () =>
-    invoke<ModelStatus[]>('get_models_status').then(setModels).catch(console.error);
+  const refresh = useCallback(() =>
+    invoke<ModelStatus[]>('get_models_status').then(setModels).catch((e) => setError(String(e))), []);
 
   useEffect(() => {
     getVersion().then(setVersion).catch(() => {});
@@ -38,27 +40,17 @@ export function ModelsPanel({ config }: PanelProps) {
       .catch(() => {});
     refresh();
     const unlistens = [
-      listen<number>('model-download-progress', (e) => setProgress(e.payload)),
-      listen<string>('model-ready', (e) => {
-        setDownloading(null);
-        setProgress(0);
-        refresh();
-        // If this is the first time tiny downloads, auto-select it.
-        if (e.payload === config.model_name) refresh();
-      }),
-      listen<string>('model-download-failed', () => {
-        setDownloading(null);
-        setProgress(0);
-      }),
-      listen<string>('model-loading', (e) => setLoading(e.payload)),
-      listen<string>('model-active', () => {
-        setLoading(null);
-        refresh();
-      }),
-      listen<string>('model-load-failed', () => setLoading(null)),
+      listen('model-download-state', refresh),
+      listen('model-ready', refresh),
+      listen('model-loading', refresh),
+      listen('model-active', refresh),
+      listen<string>('model-load-failed', (e) => { setError(e.payload); refresh(); }),
     ];
-    return () => { unlistens.forEach((u) => u.then((f) => f())); };
-  }, [config.model_name]);
+    // Retained backend state restores progress when this panel is reopened and
+    // covers completion events emitted before listener registration.
+    const timer = window.setInterval(refresh, 1500);
+    return () => { window.clearInterval(timer); unlistens.forEach((u) => u.then((f) => f())); };
+  }, [refresh]);
 
   const checkUpdates = async () => {
     setUpdateStatus('Checking…');
@@ -71,32 +63,43 @@ export function ModelsPanel({ config }: PanelProps) {
     }
   };
 
-  const handleDownload = (name: string) => {
-    setDownloading(name);
-    setProgress(0);
-    invoke('download_model', { modelName: name }).catch((e) => {
-      console.error(e);
-      setDownloading(null);
-    });
+  const runModelAction = async (command: 'download_model' | 'select_model', name: string) => {
+    setPending(name);
+    setError('');
+    try {
+      await invoke(command, { modelName: name });
+    } catch (e) {
+      if (command === 'download_model') {
+        try {
+          const current = await invoke<ModelStatus[]>('get_models_status');
+          setModels(current);
+          const download = current.find(model => model.name === name)?.download;
+          // The original request finishes with a cancellation result. A
+          // deliberate pause is retained progress, not a failed download.
+          if (!download?.paused || download.error) setError(String(e));
+        } catch { setError('Could not check saved download progress. Reopen Models to retry.'); }
+      } else { setError(String(e)); }
+    }
+    finally { await refresh(); setPending(null); }
   };
 
-  const handleSelect = (name: string) => {
-    setLoading(name);
-    invoke('select_model', { modelName: name }).catch((e) => {
-      console.error(e);
-      setLoading(null);
-    });
-  };
-
-  const pct = Math.round(progress * 100);
+  const busy = pending !== null || models.some((m) => m.loading || m.download.downloading);
 
   return (
     <div>
       <h2 className="settings-panel-title">Models</h2>
       <p className="settings-panel-sub">
-        The active model is remembered across restarts. Large v3 Turbo is the usual pick for
-        Portuguese; Tiny/Base stay available when you want speed over accuracy.
+        Download once, then transcribe on this computer. Smaller models use less memory;
+        larger models can improve recognition but need more resources.
       </p>
+      <HelpTip title="choosing a speech model"
+        why="Balance recognition quality against memory use and processing time on your computer."
+        setup="Download a multilingual model, select Use this model and compare a short recording in your spoken language."
+        privacy="Downloads use the internet; local recognition keeps audio on this device, while cleanup and translation have their own data destinations." />
+      {config.use_cloud && <p className="field-hint">Cloud transcription is enabled. These models are used when you switch back to local transcription.</p>}
+      <ModelResourceGuide />
+      {error && <div className="banner" role="alert">{error}</div>}
+      {models.length === 0 && !error && <p role="status">Loading available models…</p>}
 
       <div className="model-list">
         {models.map((m) => (
@@ -108,37 +111,30 @@ export function ModelsPanel({ config }: PanelProps) {
               <span className="model-card-name">{m.display_name}</span>
               <span className="model-card-size">{m.size_mb} MB</span>
               {m.multilingual && <span className="badge ok model-card-lang">Multilingual</span>}
-              {m.active && <span className="badge ok">Active</span>}
+              {m.active && <span className="badge ok">{config.use_cloud ? 'Local model ready' : 'Active'}</span>}
             </div>
             <p className="model-card-desc">{m.description}</p>
 
-            {downloading === m.name && (
-              <div style={{ marginTop: 8 }}>
-                <div className="progress-track">
-                  <div className="progress-fill" style={{ width: `${pct}%` }} />
-                </div>
-                <div className="field-hint" style={{ marginTop: 4 }}>Downloading… {pct}%</div>
-              </div>
-            )}
+            <ModelDownloadProgress name={m.name} label={m.display_name} download={m.download} />
 
             <div className="model-card-actions">
-              {!m.downloaded && downloading !== m.name && (
-                <button className="btn btn-secondary" onClick={() => handleDownload(m.name)}>
-                  Download
+              {!m.downloaded && !m.download.downloading && (
+                <button className="btn btn-secondary" disabled={busy} onClick={() => runModelAction('download_model', m.name)}>
+                  {pending === m.name ? 'Starting…' : m.download.paused || !!m.download.downloaded_bytes ? 'Resume download' : m.download.error ? 'Retry download' : 'Download'}
                 </button>
               )}
-              {m.downloaded && !m.active && loading !== m.name && (
-                <button className="btn btn-primary" onClick={() => handleSelect(m.name)}>
+              {m.downloaded && !m.active && !m.loading && (
+                <button className="btn btn-primary" disabled={busy} onClick={() => runModelAction('select_model', m.name)}>
                   Use this model
                 </button>
               )}
-              {loading === m.name && (
+              {m.loading && (
                 <button className="btn btn-secondary" disabled>
                   Loading…
                 </button>
               )}
               {m.active && (
-                <span className="field-hint">Currently active</span>
+                <span className="field-hint">{config.use_cloud ? 'Ready for offline use' : 'Ready to transcribe'}</span>
               )}
             </div>
           </div>
@@ -168,11 +164,6 @@ export function ModelsPanel({ config }: PanelProps) {
           {lastUpdateError && !updateStatus && (
             <div className="field-hint" style={{ marginTop: 6 }}>Last background check: {lastUpdateError}</div>
           )}
-          <div className="swatches">
-            {SWATCHES.map((c) => (
-              <span className="swatch" key={c} style={{ background: c }} />
-            ))}
-          </div>
         </div>
       </div>
     </div>

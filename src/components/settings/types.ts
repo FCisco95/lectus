@@ -20,6 +20,17 @@ export interface Config {
   use_cloud: boolean;
   cloud_base_url: string;
   cloud_api_key: string;
+  cloud_transcription_model: string;
+  cloud_cleanup_model: string;
+  output_language: string;
+  translation_engine: string;
+  translation_model: string;
+  cloud_translation_model: string;
+  cloud_processing_acknowledged: boolean;
+  claude_processing_acknowledged: boolean;
+  chatgpt_processing_acknowledged: boolean;
+  chatgpt_model: string;
+  claude_model: string;
   hold_hotkey: string;
   toggle_hotkey: string;
   pill_x: number;

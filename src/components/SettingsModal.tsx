@@ -6,16 +6,18 @@ import { GeneralPanel } from './settings/GeneralPanel';
 import { DictationPanel } from './settings/DictationPanel';
 import { AIPanel } from './settings/AIPanel';
 import { ModelsPanel } from './settings/ModelsPanel';
+import { ApiPanel } from './settings/ApiPanel';
 
 /** Everything configurable. The four panels are reused unchanged — only their
  *  container moved. */
-export type SettingsTab = 'general' | 'dictation' | 'models' | 'ai';
+export type SettingsTab = 'general' | 'dictation' | 'models' | 'ai' | 'api';
 
 const TABS: Array<{ id: SettingsTab; label: string; icon: IconName }> = [
   { id: 'general', label: 'General', icon: 'general' },
   { id: 'dictation', label: 'Dictation', icon: 'dictation' },
   { id: 'models', label: 'Models', icon: 'models' },
   { id: 'ai', label: 'AI cleanup', icon: 'ai' },
+  { id: 'api', label: 'Local API', icon: 'key' },
 ];
 
 interface SettingsModalProps {
@@ -67,8 +69,11 @@ export function SettingsModal({ config, update, initialTab, version, onClose }: 
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('keydown', onKey);
-      const trigger = document.querySelector<HTMLElement>('[data-settings-trigger]');
-      trigger?.focus();
+      // Shell removes `inert` after the dialog unmounts. Restore focus once
+      // that effect has run, otherwise the browser refuses to focus the rail.
+      requestAnimationFrame(() => {
+        document.querySelector<HTMLElement>('[data-settings-trigger]')?.focus();
+      });
     };
   }, []);
 
@@ -112,6 +117,7 @@ export function SettingsModal({ config, update, initialTab, version, onClose }: 
           {tab === 'dictation' && <DictationPanel config={config} update={update} />}
           {tab === 'models' && <ModelsPanel config={config} update={update} />}
           {tab === 'ai' && <AIPanel config={config} update={update} />}
+          {tab === 'api' && <ApiPanel />}
         </div>
       </div>
     </div>

@@ -1,8 +1,14 @@
 # Local transcription API — Lectus
 
 **Date:** 2026-09-17
-**Status:** specified, not implemented
+**Status:** implemented locally 2026-10-21; native protocol tests and real-model HTTP round trip passed; not installed or published
 **Depends on:** the Organic token gate (`docs/superpowers/specs/2026-09-17-organic-token-gate.md`)
+
+Implementation and client guide: `docs/LOCAL-API.md`. Current implementation decisions:
+settings and token are persisted atomically together in `api.json`; cleanup is local-only;
+the bounded HTTP server uses `std::net` to enforce read deadlines without new dependencies.
+Disabling revokes pending uploads, while an already-admitted inference may finish with a
+visible indicator. General settings, microphone capture and insertion are not exposed.
 
 ## What this is
 
@@ -86,7 +92,7 @@ multipart parser to write and harden.
 
 ### `GET /v1/health`
 
-Token required. Returns `{"ok":true,"version":"0.6.0","busy":false}`. Callers use
+Token required. Returns `{"ok":true,"version":"0.7.1","busy":false}` (version follows the installed package). Callers use
 it to decide whether to show a "dictate with Lectus" button.
 
 Presence is not a secret worth defending: any page can already distinguish
@@ -190,8 +196,9 @@ benefit from it. `bias_prompt` is fed to the engine as `initial_prompt`, same as
 dictation.
 
 AI cleanup is **off** for API calls unless the caller asks (`X-Lectus-Cleanup: 1`)
-*and* the user has cleanup enabled. It costs 111–166 ms locally and can spawn the
-Claude CLI; a remote caller should not trigger process spawns by default.
+*and* the user has the local cleanup engine enabled and downloaded. It never
+launches the Claude CLI or contacts a cloud provider. This preserves the API's
+local-only boundary even if normal dictation uses a cloud cleanup engine.
 
 History: API transcripts are **not** written to `history.json` in v1. History is
 the user's own dictation record and it feeds vocabulary work; another app's audio
@@ -203,13 +210,14 @@ that turns out wrong.
 ```
 src-tauri/src/api/
   mod.rs      ApiState, enable/disable, config plumbing, the call log
-  server.rs   tiny_http loop, routing, Host/Origin/CORS, size caps  (models connect.rs)
+  server.rs   bounded std::net HTTP loop, routing, Host/Origin/CORS, size/deadline caps
   token.rs    generate, load/save api.json, constant-time compare
   audio.rs    WAV bytes -> Vec<f32>, shape validation (hound, in memory)
 ```
 
-Config additions (`config.rs`): `api_enabled: bool` (false), `api_port: u16`
-(8756), `api_allowed_origins: Vec<String>` (empty).
+API Settings: `enabled: bool` (false), `port: u16` (8756),
+`allowed_origins: Vec<String>` (empty). They live with the token in `api.json`,
+outside general Config autosave, so a stale settings form cannot overwrite them.
 
 The **token lives in `api.json`**, next to `license.json` in
 `%APPDATA%\ai.organic.lectus\` — never in `config.json`, for the same reason the
@@ -218,7 +226,7 @@ Same atomic-rename write discipline as `license::save_to`.
 
 Frontend: a Settings → API tab, and the pill indicator.
 
-Reused, nothing new added to `Cargo.toml`: `tiny_http`, `bs58`, `getrandom`,
+Reused, nothing new added to `Cargo.toml`: `std::net`, `bs58`, `getrandom`,
 `hound`, `serde_json`, `worker::TranscribeWorker`.
 
 ## Tests

@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Whisper weights",
+    "file": "whisper/LICENSE",
+    "url": "https://raw.githubusercontent.com/openai/whisper/main/LICENSE",
+    "type": "text",
+    "license": "MIT",
+    "sha256": "b5d65a59060e68c4ff940e1eddfa6f94b2d68fdf58ed7f4dd57721c997e35e9d",
+    "bytes": 1063,
+    "retrieved_at": "2026-10-21T16:53:33.582Z",
+    "resolved_url": "https://raw.githubusercontent.com/openai/whisper/main/LICENSE",
+    "scope": "Official-source snapshot; moving upstream URL. Match terms/provenance to exact distributed model revision before release."
+  },
+  {
+    "name": "Whisper.cpp runtime",
+    "file": "whisper-cpp/LICENSE",
+    "url": "https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/LICENSE",
+    "type": "text",
+    "license": "MIT",
+    "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+    "bytes": 1078,
+    "retrieved_at": "2026-10-21T16:53:33.960Z",
+    "resolved_url": "https://raw.githubusercontent.com/ggml-org/whisper.cpp/master/LICENSE",
+    "scope": "Official-source snapshot; moving upstream URL. Match terms/provenance to exact distributed model revision before release."
+  },
+  {
+    "name": "Silero VAD",
+    "file": "silero-vad/LICENSE",
+    "url": "https://raw.githubusercontent.com/snakers4/silero-vad/master/LICENSE",
+    "type": "text",
+    "license": "MIT",
+    "sha256": "2e63e9a38b6e8fc0c7bc37ce174caca1862870856c6daf5697cfb785e925520b",
+    "bytes": 1075,
+    "retrieved_at": "2026-10-21T16:53:34.208Z",
+    "resolved_url": "https://raw.githubusercontent.com/snakers4/silero-vad/master/LICENSE",
+    "scope": "Official-source snapshot; moving upstream URL. Match terms/provenance to exact distributed model revision before release."
+  },
+  {
+    "name": "Qwen3-4B-GGUF",
+    "file": "qwen3-4b/LICENSE",
+    "url": "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/main/LICENSE",
+    "type": "text",
+    "license": "Apache-2.0",
+    "sha256": "5de36594c10839788a8c589443a8ef9d8b8d17c65a1b5807206ae037fc36c6bd",
+    "bytes": 11544,
+    "retrieved_at": "2026-10-21T16:53:34.439Z",
+    "resolved_url": "https://huggingface.co/api/resolve-cache/models/Qwen/Qwen3-4B-GGUF/bc640142c66e1fdd12af0bd68f40445458f3869b/LICENSE?%2FQwen%2FQwen3-4B-GGUF%2Fresolve%2Fmain%2FLICENSE=&etag=%226f9739bb281a3d2ade8fb5f6dd6dde597a739c80%22",
+    "scope": "Official-source snapshot; moving upstream URL. Match terms/provenance to exact distributed model revision before release."
+  },
+  {
+    "name": "Gemma 3 terms",
+    "file": "gemma-3/TERMS.html",
+    "url": "https://ai.google.dev/gemma/terms",
+    "type": "html",
+    "license": "Gemma Terms of Use; not Apache-2.0",
+    "sha256": "90b340131c115d8eac9deb9b6ad3a7491e5a42f8f28ac2f855213b018e40757b",
+    "bytes": 144359,
+    "retrieved_at": "2026-10-21T16:53:34.999Z",
+    "resolved_url": "https://ai.google.dev/gemma/terms",
+    "scope": "Official-source snapshot; moving upstream URL. Match terms/provenance to exact distributed model revision before release."
+  },
+  {
+    "name": "Gemma prohibited use policy",
+    "file": "gemma-3/PROHIBITED-USE-POLICY.html",
+    "url": "https://ai.google.dev/gemma/prohibited_use_policy",
+    "type": "html",
+    "license": "Incorporated into Gemma Terms of Use",
+    "sha256": "6cf57af8d138fec5232141a885f4b6445786e2d0895dd8bf552d5ab61a2db8c2",
+    "bytes": 135388,
+    "retrieved_at": "2026-10-21T16:53:35.383Z",
+    "resolved_url": "https://ai.google.dev/gemma/prohibited_use_policy",
+    "scope": "Official-source snapshot; moving upstream URL. Match terms/provenance to exact distributed model revision before release."
+  }
+]

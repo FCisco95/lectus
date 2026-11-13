@@ -14,6 +14,7 @@ html.pill-window #root {
 }
 
 .pill-root {
+  position: relative;
   width: 100vw;
   height: 100vh;
   display: flex;
@@ -23,6 +24,30 @@ html.pill-window #root {
   -webkit-user-select: none;
   /* Dragging is handled manually (Pill.tsx) so clicks can also toggle. */
   cursor: grab;
+}
+
+/* The local API has its own badge. It never reuses the microphone waveform. */
+.pill-api-indicator {
+  position: absolute;
+  top: 5px;
+  right: 4px;
+  padding: 3px 4px;
+  border: 1px solid #9ebeff;
+  border-radius: 4px;
+  background: #14243e;
+  color: #e4edff;
+  font: 700 9px/1 var(--font-ui, system-ui, sans-serif);
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+.pill-api-indicator.is-busy { animation: api-activity 1.2s ease-in-out infinite; }
+.pill-api-indicator.has-error { border-color: #ffca86; background: #392609; color: #ffe3bd; }
+@keyframes api-activity {
+  0%, 100% { background: #14243e; border-color: #9ebeff; }
+  50% { background: #27549b; border-color: #e4edff; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pill-api-indicator.is-busy { animation: none; border-style: double; border-width: 3px; padding: 1px 2px; }
 }
 
 .pill-root:active {

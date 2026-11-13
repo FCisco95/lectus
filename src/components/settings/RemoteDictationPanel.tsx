@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { HelpTip } from '../HelpTip';
 
 type Mode = 'local' | 'send' | 'receive';
 interface RemoteSettings {
@@ -64,6 +65,11 @@ export function RemoteDictationPanel() {
   };
 
   return (
+    <>
+    <HelpTip title="remote dictation"
+      why="Use a microphone on one computer while inserting the finished text on another."
+      setup="On the same local network, save Receive on the destination, copy its code into Send on the microphone computer, save and test the connection."
+      privacy="The paired route sends finished text, not microphone audio; any cloud recognition, cleanup or translation you separately enable still uses its configured provider." />
     <div className="card">
       <div className="row">
         <div className="row-label">
@@ -123,6 +129,7 @@ export function RemoteDictationPanel() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
