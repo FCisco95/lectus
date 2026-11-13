@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "baseline": {
+    "installerFile": "Lectus_0.7.1_x64-setup.exe",
+    "installerSHA256": "9A8CA4CBCF17CDD6F95C024704DA6C8F5DD0803B894F0014F0E1ED7DDB5FCA5C",
+    "executableSHA256": null,
+    "uninstallerSHA256": null,
+    "installedFiles": [],
+    "status": "Previous installer only. Embedded executable has not been verified."
+  },
+  "candidate": {
+    "installerFile": null,
+    "installerSHA256": null,
+    "executableSHA256": "94E3BBAC07AEF58EE7A72FA516C2D6EBF40A3BCBD9AE54F8961E42DBCF210B6A",
+    "uninstallerSHA256": null,
+    "installedFiles": [],
+    "status": "Development executable only. No matching installer; publication remains blocked."
+  }
+}

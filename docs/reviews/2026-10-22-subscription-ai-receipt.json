@@ -1,0 +1,449 @@
+{
+  "date": "2026-10-22T19:22:40.306Z",
+  "status": "prepared_verified_reviewed_not_installed_not_live_accepted",
+  "native": {
+    "passed": 274,
+    "failed": 0,
+    "ignored": 11,
+    "excluded_os_mutation_tests": 2
+  },
+  "frontend": {
+    "build": "passed",
+    "modules": 77,
+    "functional_fixture_scenarios": 32,
+    "screenshots": 36,
+    "ipc": "mocked"
+  },
+  "claude_probe": {
+    "version": "2.1.308",
+    "authenticated": false,
+    "auth_mode": "none",
+    "isolated_config": true,
+    "scope": "actual binary, policy absence, auth status, flags syntax; no inference"
+  },
+  "review": "Original findings and residual reconnect race addressed; scoped independent review no remaining blocker",
+  "candidate": {
+    "path": "src-tauri/target/release/chirp.exe",
+    "bytes": 78926848,
+    "sha256": "F41A66BEC7284339C6B9FF68DC40127B1C782135C688332B15CC7BEB47EDE60D"
+  },
+  "installed": {
+    "sha256": "CD41E53A3A337B7770C99D9EA2E779546B679C39AD5EBA5C441E0DCCA117C406",
+    "changed": false
+  },
+  "source_files_unchanged_during_final_verification": 101,
+  "source_digest": "d03b3af84bba846998f098791ed39b0c967eecf4f472b678529497ec920c4857",
+  "sources": [
+    {
+      "path": "package-lock.json",
+      "sha256": "d11edf6a432ebd3815bf99299fbe4289e6b6f45f9fe0803948dc68ed4b38572a"
+    },
+    {
+      "path": "package.json",
+      "sha256": "282f7363217b66ec06690457a770069330c2437610a8406a8d4ab795442e2967"
+    },
+    {
+      "path": "scripts/ui-smoke.mjs",
+      "sha256": "a4604833ff91c52069ac0c3ee699e8e30a5a24313c507a3aefb2ecd5a92ca07c"
+    },
+    {
+      "path": "src-tauri/Cargo.lock",
+      "sha256": "9d142f420223fcdea20dbd22073daefa5517b33f94a8d419a53bee6b13cb7605"
+    },
+    {
+      "path": "src-tauri/Cargo.toml",
+      "sha256": "0dfe1d6c6b371afd1d4e5d613c440bb90f50f40caeeff0b4e3b88c2ee275d23c"
+    },
+    {
+      "path": "src-tauri/src/ai/local_llm.rs",
+      "sha256": "a70d122a32b60a24e1308e788b24bcff9a1b1b1a534329b444c84a852aa387a7"
+    },
+    {
+      "path": "src-tauri/src/ai/mod.rs",
+      "sha256": "4fa4ca83587745eb80810b760409b383a6ae27d99ec4bb60e6ef2c10e1eb5200"
+    },
+    {
+      "path": "src-tauri/src/api/audio.rs",
+      "sha256": "79eb1ca01eaa6256b00494a07b3f39ddd56f0f0317be899354fe631c879b9adb"
+    },
+    {
+      "path": "src-tauri/src/api/mod.rs",
+      "sha256": "20e26ec846d3b61b6073bc469ae79c9abd7e4ec53b0e768754e7e29522889158"
+    },
+    {
+      "path": "src-tauri/src/api/server.rs",
+      "sha256": "473050621720fcd061f3876977f8ae49481764b70bd24e43d6bf927d58de46b5"
+    },
+    {
+      "path": "src-tauri/src/api/tests.rs",
+      "sha256": "14c09b87a3009716fb31f43968706d701299c463f0c54cf65dcf9ddc8473e21f"
+    },
+    {
+      "path": "src-tauri/src/api/token.rs",
+      "sha256": "1ec5890b32737019a95d7254f32c7c5ca44cfdf7ff8e779149c8c632b3d60d93"
+    },
+    {
+      "path": "src-tauri/src/api_adapter.rs",
+      "sha256": "20839d0536c45144129b11c1283a1c5caede5cb85931eb4368d1558c72fc9904"
+    },
+    {
+      "path": "src-tauri/src/api_inference_test.rs",
+      "sha256": "3756d3697a1dac5595b368c1cb63681a3c92a455299e39043c9f75b46454eef9"
+    },
+    {
+      "path": "src-tauri/src/audio/mod.rs",
+      "sha256": "e7885619763e533573fcb77b97c53d5a24bedeb7d694d8e542913ae81da22f8d"
+    },
+    {
+      "path": "src-tauri/src/audio/vad.rs",
+      "sha256": "f7ebd84267b0efa83fa956b3a4550cb028ec87cb48a84b3d8901ac12aa604b6d"
+    },
+    {
+      "path": "src-tauri/src/autostart.rs",
+      "sha256": "f99c794b7ce35a3744a3a4771e6d867abcc5fb478c172749e0345b608db56c8a"
+    },
+    {
+      "path": "src-tauri/src/config.rs",
+      "sha256": "77c99496a02b24dbf902cf35b82dd07362fab88b5794ac887489f8e1fdb4db09"
+    },
+    {
+      "path": "src-tauri/src/context.rs",
+      "sha256": "596e9f7dfbdf1c22f3a7ae182543da5294de7a702925db19d46ecc7b8e465ad7"
+    },
+    {
+      "path": "src-tauri/src/history.rs",
+      "sha256": "6dc1fb9d5b751a4a135ad006c480a027143ca8fc3212679e3122e661c0b44067"
+    },
+    {
+      "path": "src-tauri/src/hook/macos.rs",
+      "sha256": "c6cbb378290fbf3176fc2ba797f372a411381cfb99edaed50251dfe5e17dbe62"
+    },
+    {
+      "path": "src-tauri/src/hook/mod.rs",
+      "sha256": "140d19cff922044a35a231cd34ad46b9411d8c4004fe317605b3ca86594a76c4"
+    },
+    {
+      "path": "src-tauri/src/hook/windows.rs",
+      "sha256": "27d7589a621c4ba9b6848a57086cd9fe31573789eee9ce16340a05f5c46676bc"
+    },
+    {
+      "path": "src-tauri/src/hotkey.rs",
+      "sha256": "bff9d2cc58ee9ca57a72b7e22a2efe2ee8f9ce65ed6f7ceea99fab442e0a682b"
+    },
+    {
+      "path": "src-tauri/src/identity.rs",
+      "sha256": "0e274a9019746a9299b6224c1fd831ee6e6b9a338f690364e4974f1b583c3608"
+    },
+    {
+      "path": "src-tauri/src/injection/clipboard.rs",
+      "sha256": "beee7b8aad06cf26062efb8a695fbcc1e3a6f31282987b0dc099672771e03474"
+    },
+    {
+      "path": "src-tauri/src/injection/mod.rs",
+      "sha256": "c6249bd25f8de3355a5b25f03232df63f306a455eb6bce2e7b18d901a9544bd6"
+    },
+    {
+      "path": "src-tauri/src/injection/sendinput.rs",
+      "sha256": "542131f4172db6d359ac37b8b7a3deb0c26e9fe1238829cbbe508a8e14a08b71"
+    },
+    {
+      "path": "src-tauri/src/legal.rs",
+      "sha256": "6bfd5f3835922a925b17b46564257c2621498190aec94a50f7ffb6dcff115224"
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "sha256": "f9fab7bf89c6b5f9b19a8ba0b5fd3ffdcc765162f7a2c37d70995ee2c0e822ab"
+    },
+    {
+      "path": "src-tauri/src/license/chain.rs",
+      "sha256": "15d40f031354d0552a3b91e3cbacc31db868787f444da365ba5b81ed076f60c7"
+    },
+    {
+      "path": "src-tauri/src/license/commands.rs",
+      "sha256": "bc1338e5549d4b84c25ecf1b979a486249cd4191799e19e7563f16a4d296bfc7"
+    },
+    {
+      "path": "src-tauri/src/license/connect.rs",
+      "sha256": "236e03c8bab5ed4ac71a856cf50726dbe8fa20fc4d7246d3d10ed798c0b25717"
+    },
+    {
+      "path": "src-tauri/src/license/mod.rs",
+      "sha256": "f4c9010ba44a9c2817bf9ae974d7de33f3d6a603679924e5900f8d6913b69d90"
+    },
+    {
+      "path": "src-tauri/src/license/verify.rs",
+      "sha256": "7b7014ffdc7f3c7c26f7884dd4825858930d946487556b62e1af184a830f8f44"
+    },
+    {
+      "path": "src-tauri/src/main.rs",
+      "sha256": "b774022b2d3257bc3cacce5bb7a04aecd3627b13cc7633622ff343f304528b65"
+    },
+    {
+      "path": "src-tauri/src/model_download.rs",
+      "sha256": "32c50d860327b1f933f174c5f8e5c7b0693336ea797ef5567f9bdbf5ca13fbca"
+    },
+    {
+      "path": "src-tauri/src/model_license.rs",
+      "sha256": "83828468d629d94c0457ea163482678185b408db64aa7d9b22e6bacb6cb8bd7a"
+    },
+    {
+      "path": "src-tauri/src/model_quality_test.rs",
+      "sha256": "3b399fc4eb1053172624e377e204832531817ae01e1c24a4ea173783d41a415d"
+    },
+    {
+      "path": "src-tauri/src/playback.rs",
+      "sha256": "99b9525f95ed457a00ceb830570277d77108a7b0856da2781deaf463cd4706a9"
+    },
+    {
+      "path": "src-tauri/src/remote_dictation/mod.rs",
+      "sha256": "e1be90e4c54265d15eda0a9792d84fc2d9834357acde98c9e6a309b20a3d12fc"
+    },
+    {
+      "path": "src-tauri/src/remote_dictation/transport.rs",
+      "sha256": "62fd69fd56f84f747b9d460b186a4b90822b45058a55b7f80c43c7002a3e15c5"
+    },
+    {
+      "path": "src-tauri/src/resources.rs",
+      "sha256": "d684874e7d6c96c9ca7c95c08f300cfa6711c64197ffaf136d0e11ab3ef08559"
+    },
+    {
+      "path": "src-tauri/src/state.rs",
+      "sha256": "01a8e03514aa64313e99e0ea6f0aaa1a8868e0372009516dbcd1ac5957264b14"
+    },
+    {
+      "path": "src-tauri/src/subscriptions/chatgpt.rs",
+      "sha256": "cba9b88f99b9633023cc814282deff153635b225036220f51f5aa290e0f458be"
+    },
+    {
+      "path": "src-tauri/src/subscriptions/claude.rs",
+      "sha256": "dcb49bb27607ede91af4f51020618e9a2094c3c202f4cc5ec97ed07a7285f5e7"
+    },
+    {
+      "path": "src-tauri/src/subscriptions/claude_policy.rs",
+      "sha256": "76e69a7b8b01e7f4aa0b868525dedf376c8c727d0a929e506ef0a4385135ad61"
+    },
+    {
+      "path": "src-tauri/src/subscriptions/mod.rs",
+      "sha256": "e859083e995cd173c1d6c45cfe2185784e94c96627a2ae1b7a09a2400f6de6be"
+    },
+    {
+      "path": "src-tauri/src/subscriptions/protocol.rs",
+      "sha256": "7a8daf081e5fba7e918bd5f692cbfef130db188c1e8cefb90abce56d5f2a5eb5"
+    },
+    {
+      "path": "src-tauri/src/subscriptions/store.rs",
+      "sha256": "32b5b09c0e4ba6cab5d2020ec6d42fb3359962535f2fd7392411e34eb679fb9b"
+    },
+    {
+      "path": "src-tauri/src/transcription/cloud.rs",
+      "sha256": "76060f28a2f1edc0a3f1624d1a89eb545093781ea56d53ed3ccdb39c5945fb74"
+    },
+    {
+      "path": "src-tauri/src/transcription/dictionary.rs",
+      "sha256": "a43ea38c26000ded1c65ad224fdc6e50d7d42766c0c5b11232fe1ddb1c441a7e"
+    },
+    {
+      "path": "src-tauri/src/transcription/local.rs",
+      "sha256": "ab975cc878a9daf9b6a49ef06f3d3482a9cff5aa9af80f23457ac16d910f66d2"
+    },
+    {
+      "path": "src-tauri/src/transcription/mod.rs",
+      "sha256": "c4bab8fc0c75c8c30eb02b62c331679e390dc1f5baaa4f010aecdaed7468c9a4"
+    },
+    {
+      "path": "src-tauri/src/transcription/model.rs",
+      "sha256": "09f4fea68618164819ffb0b69a0911f3bf25323c32e0b092a87064342a39c186"
+    },
+    {
+      "path": "src-tauri/src/translation.rs",
+      "sha256": "8e2e0e843f2cf2aadc5dc2a661ea5255dcc232ea40ab6b96d3d088049db402fd"
+    },
+    {
+      "path": "src-tauri/src/updates.rs",
+      "sha256": "d8cbb3422001233d7f814cb804e332a6b9d68b3cf576b4a012ecf544e2b2a6e6"
+    },
+    {
+      "path": "src-tauri/src/worker.rs",
+      "sha256": "c4259af20c17d8fe405bf4d3fb3254c0b087b2aaf6c06bacbe98aea13d96790c"
+    },
+    {
+      "path": "src-tauri/tauri.conf.json",
+      "sha256": "f25fd2d307f19463d7f01cc3104d6d7e912332e78ff0881a91145aadd9e46ee9"
+    },
+    {
+      "path": "src/App.tsx",
+      "sha256": "10accc191a5606e4a1dd5f0c6ddde3e467923dd2a2399be8468fae235631b30e"
+    },
+    {
+      "path": "src/assets/logo.png",
+      "sha256": "d88c0935dfcde0be8b10840ef4cfc9034a0267acf0d6e99218de0851f40af199"
+    },
+    {
+      "path": "src/assets/react.svg",
+      "sha256": "35ef61ed53b323ae94a16a8ec659b3d0af3880698791133f23b084085ab1c2e5"
+    },
+    {
+      "path": "src/components/BrandMark.tsx",
+      "sha256": "b779e8c0c1ee1c448a8700e42b1d0faf22bac2da4e114ea57996f260695a5aa7"
+    },
+    {
+      "path": "src/components/HelpTip.tsx",
+      "sha256": "92f8f27a125a7e9e9a6ade9e14f3bdec450741ef4f5eb16224d9687f4b717121"
+    },
+    {
+      "path": "src/components/Icon.tsx",
+      "sha256": "c812209c2ced0e7e9010700a2477789babf7ad71a374ffe9735fac579ae9225c"
+    },
+    {
+      "path": "src/components/LegalDocuments.tsx",
+      "sha256": "84d137e6a65417f3d6043b1b28d8a4578ebb003d4204fb970089f8025843e831"
+    },
+    {
+      "path": "src/components/Onboarding.tsx",
+      "sha256": "c3fa9afb3d36328782af0bd71dbe1b5f7577fa00ddde7d526103bb72460e25ab"
+    },
+    {
+      "path": "src/components/Pill.tsx",
+      "sha256": "fce2366a4dccfd7c6be697ea4512d0516bdee685f0763297712b2467ce5c2f5d"
+    },
+    {
+      "path": "src/components/ResizeHandles.tsx",
+      "sha256": "236493635dbd281064f2eca7330b3579fcbbc8d01b938d8d51a29bbc9b6a9284"
+    },
+    {
+      "path": "src/components/SettingsModal.tsx",
+      "sha256": "d9306917193991f4d2425471d39f1df6470b83251c735c6a8229aeb05a74a180"
+    },
+    {
+      "path": "src/components/Shell.tsx",
+      "sha256": "a832db82cb9c370bf1a2ad4575dfccdc208280e3c6ef60c4328c450ca749b01e"
+    },
+    {
+      "path": "src/components/Sidebar.tsx",
+      "sha256": "726c2b366e9be7bc0895ce09925cbfac461c904ab47cc2435380ea70a12c11e8"
+    },
+    {
+      "path": "src/components/Titlebar.tsx",
+      "sha256": "fa28108a80f55d0e605f78bae227b838a9d82d962e8f819bc3930b9def847187"
+    },
+    {
+      "path": "src/components/WhatsNewModal.tsx",
+      "sha256": "4495384c0d690a8af3a8c393b51629256dcd65c24696009dc19868a2b4133688"
+    },
+    {
+      "path": "src/components/settings/AIConnections.tsx",
+      "sha256": "797bc2143faf552de690ef5c044e1a139b18cdc01cf9a03a63b0813cecc3606a"
+    },
+    {
+      "path": "src/components/settings/AIPanel.tsx",
+      "sha256": "0053372868ec8340b24ead875d4343106e38c8266479d0a370315351a26d8c35"
+    },
+    {
+      "path": "src/components/settings/ApiPanel.tsx",
+      "sha256": "a13055956bc3a305c61fbafd0d80cde14e1e70716f6ef9ca80b29f1e1c0f16e9"
+    },
+    {
+      "path": "src/components/settings/CloudSettings.tsx",
+      "sha256": "6439483fc5a11671751f338141f7748a2eadb838cd35663340bdcca3a0b3bee1"
+    },
+    {
+      "path": "src/components/settings/DictationPanel.tsx",
+      "sha256": "4207b13f44026ea5d8575a927d349238ceab72c60c6c102b491df819d14ec79d"
+    },
+    {
+      "path": "src/components/settings/DictationsPanel.tsx",
+      "sha256": "9cd754fe3b8c0532d4643668ec70d5bd3aa10a6f23251425aa4fdea99c8e4331"
+    },
+    {
+      "path": "src/components/settings/DictionaryPanel.tsx",
+      "sha256": "73d1d9994ae6c57f16aa39da8dca93b72a0b5e5d19b64de9c12c2d3781bf1f08"
+    },
+    {
+      "path": "src/components/settings/GeneralPanel.tsx",
+      "sha256": "98f30ea8c0bccfe7859efa2e8805d41084943a5ab347b010f60306ba2b603603"
+    },
+    {
+      "path": "src/components/settings/HelpPanel.tsx",
+      "sha256": "795c3c2377bc706b7273ea036b8fc5a317c1c4947b53aa82883774ac0c3a1112"
+    },
+    {
+      "path": "src/components/settings/HistoryList.tsx",
+      "sha256": "b04fbc94dcac1014a785723786a2e5710d7f5aa49696cfc98e976045948c559b"
+    },
+    {
+      "path": "src/components/settings/HomePanel.tsx",
+      "sha256": "a72b56d35874a398db39842cfbf963fa9fc78a76db09ed76366f6927308dc807"
+    },
+    {
+      "path": "src/components/settings/HotkeyCapture.tsx",
+      "sha256": "44626642bd789c0d7c2986d43175f2c8ec481c2bf1c1b6bf9697ce3ce9c082bb"
+    },
+    {
+      "path": "src/components/settings/MembershipPanel.tsx",
+      "sha256": "59154c2fa46bdbfa83d75c7ed7a69c3c8c94ba962c53344ce1015ceef8d51b8a"
+    },
+    {
+      "path": "src/components/settings/ModelDownloadProgress.tsx",
+      "sha256": "54b212367f3f085d47ccebcf50f3ac31e53ae523ccbd7042d62c2c1d3f1747cb"
+    },
+    {
+      "path": "src/components/settings/ModelLicensePanel.tsx",
+      "sha256": "9d68ffcc0647936b6f9008d428e44bbc17bf2cf6c58ff5516dfe1e0dfb72bc1a"
+    },
+    {
+      "path": "src/components/settings/ModelResourceGuide.tsx",
+      "sha256": "1d57f0014b5340df74339a6f3e34471ab8e296d619b10d16c558bc4c597a3487"
+    },
+    {
+      "path": "src/components/settings/ModelsPanel.tsx",
+      "sha256": "0a93be16dbd728cdc7e24c59265e5c5792f10e79c30102969f048a153e7df0c9"
+    },
+    {
+      "path": "src/components/settings/RemoteDictationPanel.tsx",
+      "sha256": "122756a6a320e8e0983e686a5d4694272bb46e3effefde591e356fddf2278dcb"
+    },
+    {
+      "path": "src/components/settings/types.ts",
+      "sha256": "b8a9ed61718b78d77c2995790b67679a5ca63e89805265b391324f4c1673990d"
+    },
+    {
+      "path": "src/components/settings/useConfig.ts",
+      "sha256": "1537161d87482d1bc314ce10dd0cd03dfa655f905e1d418c4759ac660647585d"
+    },
+    {
+      "path": "src/components/update-banner.tsx",
+      "sha256": "6669077cd17ae17d4fb7bc1541edfcc783ce4134ff00059948ce10b70f153b2a"
+    },
+    {
+      "path": "src/main.tsx",
+      "sha256": "8f55009f27569355469b6c65ddd242e2b38aa30b7a070ee2e438f4909a47a233"
+    },
+    {
+      "path": "src/styles/onboarding.css",
+      "sha256": "37fe19011574187c9e61a3a4299621fb68c0cc09ed4f9bfa9336071e5e25993e"
+    },
+    {
+      "path": "src/styles/pill.css",
+      "sha256": "62cbcb5c1735bd2bcdfd7ba31b2beaf632fc114ba640a2742ef60709e19e6757"
+    },
+    {
+      "path": "src/styles/settings.css",
+      "sha256": "253f5c724ce031c646250b63e750dc2f352f7f21e27496c510743d2dfc05a6cc"
+    },
+    {
+      "path": "src/styles/tokens.css",
+      "sha256": "9762605802e083ef424ea3c0f1af297b6f6fc8b395fd6cd1f391b3176261846a"
+    },
+    {
+      "path": "src/vite-env.d.ts",
+      "sha256": "424faf9241dd699dda995b367ed36665732da1e6ec1f33b2fd40394488ecac92"
+    }
+  ],
+  "limits": [
+    "Human login and authenticated inference pending for both providers",
+    "Claude personal Pro/Max only, unmanaged environment; Team/Enterprise and detected managed policy blocked",
+    "Windows verified; macOS not compiled or executed",
+    "No install, publish, commit, new account or real credential import",
+    "Existing native hardware/NSIS/legal acceptance tasks remain open"
+  ]
+}

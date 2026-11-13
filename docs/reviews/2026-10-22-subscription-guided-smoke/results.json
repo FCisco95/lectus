@@ -1,0 +1,64 @@
+{
+  "sourceBefore": {
+    "sha256": "f0e09fbf689a17a3444d969c9491f84e19ed9a3b44303b7b8a1472864ba3ad7b",
+    "file_count": 44,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "sourceAfter": {
+    "sha256": "f0e09fbf689a17a3444d969c9491f84e19ed9a3b44303b7b8a1472864ba3ad7b",
+    "file_count": 44,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "timestamp": "2026-10-22T18:57:59.551Z",
+  "scope": "Chromium browser fixture; all IPC mocked; no native integration or actual provider calls",
+  "results": [
+    {
+      "name": "Help stays inside Lectus and routes to relevant settings",
+      "passed": true
+    },
+    {
+      "name": "Contextual help starts collapsed and supports keyboard disclosure across panels",
+      "passed": true
+    },
+    {
+      "name": "Third-party license button invokes only its fixed command and surfaces errors",
+      "passed": true
+    },
+    {
+      "name": "Chinese output targets stay separate from spoken language and cloud speech",
+      "passed": true
+    },
+    {
+      "name": "Local translation download surfaces failure and can retry",
+      "passed": true
+    },
+    {
+      "name": "Provider permission resets on URL edit; Claude permission is separate",
+      "passed": true
+    },
+    {
+      "name": "Backend normalization clears a same-debounce provider acknowledgement",
+      "passed": true
+    },
+    {
+      "name": "Existing users can read drafts; published unaccepted Terms gate only legal review",
+      "passed": true
+    },
+    {
+      "name": "Draft legal documents block setup without presenting acceptance",
+      "passed": true
+    },
+    {
+      "name": "Explicit Terms and microphone actions; failed finish keeps setup open",
+      "passed": true
+    },
+    {
+      "name": "Translated history exposes original copy and failed-translation recovery",
+      "passed": true
+    },
+    {
+      "name": "16 guided setup/help/translation light-dark viewport screenshots without horizontal overflow",
+      "passed": true
+    }
+  ]
+}

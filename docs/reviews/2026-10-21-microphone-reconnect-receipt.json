@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "evidence_kind": "physical_reconnect_observation_redacted_receipt",
+  "outcome": "not_accepted_no_physical_absence_observed",
+  "source_receipt_sha256": "7FEC0BED939C308F13EA8C19DA0C47D6D5F48A68C9E5CA5B84C2E1C6B6B90E1B",
+  "started_timestamp_ms": 1792614711513,
+  "finished_timestamp_ms": 1792614804425,
+  "started_utc": "2026-10-21T20:31:51.513Z",
+  "finished_utc": "2026-10-21T20:33:24.425Z",
+  "watch_seconds": 90,
+  "baseline_preroll_frames": 8000,
+  "baseline": {
+    "audio_ms": 2270,
+    "frames_16khz_mono": 36320,
+    "non_finite": 0,
+    "peak": 0.011356360279023647,
+    "rms": 0.0021947692657295287
+  },
+  "during_watch": {
+    "audio_ms": 90020,
+    "frames_16khz_mono": 1440320,
+    "non_finite": 0,
+    "peak": 0.0165483970195055,
+    "rms": 0.0017676083699697549
+  },
+  "absence_observed": false,
+  "return_observed": false,
+  "configuration_unchanged": true,
+  "diagnostic_binary_sha256": "EF512BE1EA64AEEA3A0ACB624B8ADF9D9CB767388FFD87A31F88CBFFFFF080FE",
+  "diagnostic_main_source_sha256": "1F68B091BCA70E3508AAE0C04D456C2CD058677D69EFB55C2B3773695904173D",
+  "diagnostic_watch_source_sha256": "3FA743EE2FD7ED9581D34D8FD023CD75BDD4948ECAB47B4DE4C1DC20CC19C12B",
+  "production_audio_source_sha256": "E7885619763E533573FCB77B97C53D5A24BEDEB7D694D8E542913AE81DA22F8D",
+  "production_playback_source_sha256": "99B9525F95ED457A00CEB830570277D77108A7B0856DA2781DEAF463CD4706A9",
+  "volume_before": {
+    "available": true,
+    "volume": 0.23000003397464752,
+    "muted": false
+  },
+  "volume_after": {
+    "available": true,
+    "volume": 0.23000003397464752,
+    "muted": false
+  },
+  "same_output_endpoint_observed": true,
+  "volume_changed_observed": false,
+  "audio_saved": false,
+  "synthetic_input": false,
+  "os_device_change_by_helper": false,
+  "configuration_written": false,
+  "installed_app_started_stopped_or_replaced": false,
+  "coverage": "Standalone production capture remained live throughout the window; no physical absence or return was observed. No original-vs-fresh stream comparison was performed, no recovery was demonstrated, and no production defect was reproduced."
+}

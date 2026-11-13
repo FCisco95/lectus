@@ -1,0 +1,15 @@
+[package]
+name = "lectus-capture-diagnostic"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# Standalone: uses production capture; never launches Lectus or saves audio.
+[dependencies]
+anyhow = "1"
+cpal = "0.15"
+log = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_System_Com"] }

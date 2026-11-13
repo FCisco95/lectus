@@ -1,0 +1,56 @@
+{
+  "sourceBefore": {
+    "sha256": "f0e09fbf689a17a3444d969c9491f84e19ed9a3b44303b7b8a1472864ba3ad7b",
+    "file_count": 44,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "sourceAfter": {
+    "sha256": "f0e09fbf689a17a3444d969c9491f84e19ed9a3b44303b7b8a1472864ba3ad7b",
+    "file_count": 44,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "timestamp": "2026-10-22T18:48:38.260Z",
+  "scope": "Chromium browser fixture; all IPC mocked; no native integration or actual provider calls",
+  "results": [
+    {
+      "name": "Login and cancellation never enable processing or API billing",
+      "passed": true
+    },
+    {
+      "name": "Authenticated account requires real test and model selection, not private transcript consent",
+      "passed": true
+    },
+    {
+      "name": "Cleanup and translation independently use subscriptions and preserve speech mode",
+      "passed": true
+    },
+    {
+      "name": "Failed subscription test is actionable and never echoes provider details",
+      "passed": true
+    },
+    {
+      "name": "Disconnect discards a late test result",
+      "passed": true
+    },
+    {
+      "name": "Changing model discards success from previous model",
+      "passed": true
+    },
+    {
+      "name": "Preferences cannot invalidate an in-flight disconnect and Check refreshes status",
+      "passed": true
+    },
+    {
+      "name": "Catalog failure permits retry without losing saved selection",
+      "passed": true
+    },
+    {
+      "name": "Cleanup fallback notice is visible and dismissible",
+      "passed": true
+    },
+    {
+      "name": "4 subscription light/dark viewport captures and overflow checks",
+      "passed": true
+    }
+  ]
+}

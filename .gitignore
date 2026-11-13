@@ -36,3 +36,7 @@ models/*.part
 
 # Owner voice fixtures (personal recordings)
 src-tauri/tests/audio_samples/owner/
+
+# agent scratch and build output
+.context/
+scripts/diagnostics/**/target/

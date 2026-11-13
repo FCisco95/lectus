@@ -1,0 +1,65 @@
+{
+  "sourceBefore": {
+    "sha256": "f0e09fbf689a17a3444d969c9491f84e19ed9a3b44303b7b8a1472864ba3ad7b",
+    "file_count": 44,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "sourceAfter": {
+    "sha256": "f0e09fbf689a17a3444d969c9491f84e19ed9a3b44303b7b8a1472864ba3ad7b",
+    "file_count": 44,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "timestamp": "2026-10-22T18:51:46.622Z",
+  "scope": "Chromium browser fixture; all IPC mocked; no native integration or actual provider calls",
+  "results": [
+    {
+      "name": "Help stays inside Lectus and routes to relevant settings",
+      "passed": true
+    },
+    {
+      "name": "Contextual help starts collapsed and supports keyboard disclosure across panels",
+      "passed": true
+    },
+    {
+      "name": "Third-party license button invokes only its fixed command and surfaces errors",
+      "passed": true
+    },
+    {
+      "name": "Chinese output targets stay separate from spoken language and cloud speech",
+      "passed": true
+    },
+    {
+      "name": "Local translation download surfaces failure and can retry",
+      "passed": true
+    },
+    {
+      "name": "Provider permission resets on URL edit; Claude permission is separate",
+      "passed": false,
+      "error": "locator.check: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('radio', { name: /Claude Code CLI/ })\u001b[22m\n\n    at C:\\Users\\joao_\\code\\lectus\\scripts\\ui-smoke.mjs:856:66\n    at async checked (C:\\Users\\joao_\\code\\lectus\\scripts\\ui-smoke.mjs:229:5)\n    at async file:///C:/Users/joao_/code/lectus/scripts/ui-smoke.mjs:849:5"
+    },
+    {
+      "name": "Backend normalization clears a same-debounce provider acknowledgement",
+      "passed": true
+    },
+    {
+      "name": "Existing users can read drafts; published unaccepted Terms gate only legal review",
+      "passed": true
+    },
+    {
+      "name": "Draft legal documents block setup without presenting acceptance",
+      "passed": true
+    },
+    {
+      "name": "Explicit Terms and microphone actions; failed finish keeps setup open",
+      "passed": true
+    },
+    {
+      "name": "Translated history exposes original copy and failed-translation recovery",
+      "passed": true
+    },
+    {
+      "name": "16 guided setup/help/translation light-dark viewport screenshots without horizontal overflow",
+      "passed": true
+    }
+  ]
+}

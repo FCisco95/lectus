@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "timestamp_utc": "2026-10-21T19:31:54.397Z",
+  "branch": "feat/remote-dictation",
+  "status": "local uncommitted/unpublished/uninstalled development evidence",
+  "native": {
+    "passed": 244,
+    "failed": 0,
+    "ignored": 10,
+    "os_mutation_exclusions": [
+      "test_set_clipboard_text",
+      "windows_mute_roundtrip_restores"
+    ],
+    "release_build_passed": true,
+    "frontend_build_modules": 76
+  },
+  "ui": {
+    "2026-10-21-download-ui-smoke": {
+      "timestamp": "2026-10-21T19:22:28.924Z",
+      "source_sha256": "95e6d3727a331e60dc105bdcdd31843091c7fd01cc525fd1540c6c7079f18599",
+      "all_passed": true,
+      "result_entries": 7,
+      "scope": "Chromium browser fixture; all IPC mocked; no native integration or actual provider calls"
+    },
+    "2026-10-21-ui-smoke": {
+      "timestamp": "2026-10-21T19:23:05.608Z",
+      "source_sha256": "95e6d3727a331e60dc105bdcdd31843091c7fd01cc525fd1540c6c7079f18599",
+      "all_passed": true,
+      "result_entries": 13,
+      "scope": "Chromium browser fixture; all IPC mocked; no native integration or actual provider calls"
+    },
+    "2026-10-21-guided-smoke": {
+      "timestamp": "2026-10-21T19:05:56.566Z",
+      "source_sha256": "aa9630f061ffd52ba8da90c468b4beb8a016c2136cf6309a124fe98eee35c107",
+      "all_passed": true,
+      "result_entries": 12,
+      "scope": "Chromium browser fixture; all IPC mocked; no native integration or actual provider calls"
+    },
+    "2026-10-21-model-license-smoke": {
+      "timestamp": "2026-10-21T19:06:18.944Z",
+      "source_sha256": "aa9630f061ffd52ba8da90c468b4beb8a016c2136cf6309a124fe98eee35c107",
+      "all_passed": true,
+      "result_entries": 10,
+      "scope": "Chromium browser fixture; all IPC mocked; no native integration or actual provider calls"
+    }
+  },
+  "installer_fixtures": {
+    "windows_powershell_5": 13,
+    "powershell_7": 13,
+    "scope": "disposable file payloads and helper child processes; not NSIS or real app installation"
+  },
+  "artifacts": {
+    "src-tauri/target/release/chirp.exe": {
+      "sha256": "94e3bbac07aef58ee7a72fa516c2d6ebf40a3bcbd9ae54f8961e42dbcf210b6a",
+      "bytes": 77940736
+    },
+    "src-tauri/target/release/bundle/nsis/Lectus_0.7.1_x64-setup.exe": {
+      "sha256": "9a8ca4cbcf17cdd6f95c024704da6c8f5dd0803b894f0014f0e1ed7ddb5fca5c",
+      "bytes": 86262239
+    }
+  },
+  "install_preview": {
+    "file_count": 1308,
+    "manifest_sha256": "45FAD4C19E6AE2E2BE35FA557C127A72C83B542E343159DDD13C8CD1CE447284",
+    "applied": false,
+    "installed_sha256": "CD41E53A3A337B7770C99D9EA2E779546B679C39AD5EBA5C441E0DCCA117C406",
+    "observed_running_pids": [
+      25604
+    ]
+  },
+  "source_sha256": {
+    "src-tauri/src/lib.rs": "60518734d24355ab094bb0c0f866c36cb9815357569089638df53dd13890970d",
+    "src-tauri/src/resources.rs": "d684874e7d6c96c9ca7c95c08f300cfa6711c64197ffaf136d0e11ab3ef08559",
+    "src-tauri/src/playback.rs": "99b9525f95ed457a00ceb830570277d77108a7b0856da2781deaf463cd4706a9",
+    "src-tauri/src/audio/mod.rs": "e7885619763e533573fcb77b97c53d5a24bedeb7d694d8e542913ae81da22f8d",
+    "src-tauri/src/transcription/model.rs": "09f4fea68618164819ffb0b69a0911f3bf25323c32e0b092a87064342a39c186",
+    "src-tauri/src/model_download.rs": "32c50d860327b1f933f174c5f8e5c7b0693336ea797ef5567f9bdbf5ca13fbca",
+    "src-tauri/src/transcription/cloud.rs": "76060f28a2f1edc0a3f1624d1a89eb545093781ea56d53ed3ccdb39c5945fb74",
+    "src-tauri/src/ai/local_llm.rs": "a70d122a32b60a24e1308e788b24bcff9a1b1b1a534329b444c84a852aa387a7",
+    "src-tauri/src/model_quality_test.rs": "3b399fc4eb1053172624e377e204832531817ae01e1c24a4ea173783d41a415d",
+    "src/components/settings/ModelDownloadProgress.tsx": "54b212367f3f085d47ccebcf50f3ac31e53ae523ccbd7042d62c2c1d3f1747cb",
+    "src/components/settings/ModelResourceGuide.tsx": "1d57f0014b5340df74339a6f3e34471ab8e296d619b10d16c558bc4c597a3487",
+    "src/components/settings/ModelsPanel.tsx": "0a93be16dbd728cdc7e24c59265e5c5792f10e79c30102969f048a153e7df0c9",
+    "src/components/settings/DictationPanel.tsx": "09afd2f76515767645f2508b6a412dc383c1da234aba44bdd4f76c859e664f58",
+    "src/components/settings/AIPanel.tsx": "33389449540a75ad9c16cc47ae30f71d07a60894e942a3d8c45d149d5caddcb0",
+    "src/components/settings/CloudSettings.tsx": "6439483fc5a11671751f338141f7748a2eadb838cd35663340bdcca3a0b3bee1",
+    "scripts/install-local.ps1": "59a1eb398399807fb383aeed6251f10082e489dc17af57a2bd3ad3e33b3720c9",
+    "scripts/install-local.tests.ps1": "453fcadf86728537dfcab0b2a3b152c3272dfa00d46f284f84b2d4b216eb861d",
+    "scripts/ui-smoke.mjs": "097a2d18b86820dff731e78afc5529666905e635eb143f0bb183d1ae09046ca2",
+    "scripts/fetch-quality-corpus.py": "113e00a24f995d8d7c083b5504627d0e2eb8ec501fdea6ab8b550d6ae038992a",
+    "scripts/benchmark-model-quality.cmd": "b8c621eb4ae40e2946803bf00afc12e62e67fdcb8edeab1b5265acc0a07ff793",
+    "scripts/benchmark-translation-quality.cmd": "13c85c8de69f24dbbaac635bfb7ca2d2f0b5a01c3ebb62b45a46a526045090af",
+    "legal/manifest.json": "44cf7d4841ef3f0d6265aaf80129a12002c5ffccf73e4006a79eff4a0cb5b653",
+    "src-tauri/tauri.conf.json": "f25fd2d307f19463d7f01cc3104d6d7e912332e78ff0881a91145aadd9e46ee9",
+    "src-tauri/tauri.windows.conf.json": "426e3cbd59a3704d79fd0406b66c72e386b69d57000d2e8dda2a1cb9cddb5901",
+    "src-tauri/Cargo.lock": "aee4ac5e71719c9f3bdcaff97ed439503dea8191c843cf5b705747fecdafd28f",
+    "src-tauri/Cargo.toml": "5a9d9bdaca594fec70f626185a79f83549e386c5fad1bb94ebcede2308f394e8"
+  },
+  "release_readiness": {
+    "ready": false,
+    "legal_manifest_sha256": "44cf7d4841ef3f0d6265aaf80129a12002c5ffccf73e4006a79eff4a0cb5b653",
+    "reason": "Unresolved publisher/disclosure, draft legal documents, publication and third-party/model review approval"
+  },
+  "limitations_report": "docs/reviews/2026-10-21-reliability-and-models.md",
+  "real_model_reports": [
+    "docs/benchmarks/2026-10-21-human-corpus.md",
+    "docs/benchmarks/2026-10-21-translation-comparison.md"
+  ],
+  "handoff_sha256": "0a50bad0c114e0cb2d584c4a07e37b6f3e3b2adede01f7245deee982fdf2dea7",
+  "handoff_snapshot": "docs/handoffs/2026-10-21-reliability-downloads-models.md",
+  "handoff_hash_scope": "Historical handoff bytes at development-round completion; canonical handoff may be refreshed by later acceptance."
+}

@@ -1,0 +1,9 @@
+[package]
+name = "lectus-insertion-diagnostic"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1"
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }

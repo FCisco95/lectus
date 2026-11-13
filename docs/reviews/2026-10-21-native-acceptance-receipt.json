@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "timestamp_utc": "2026-10-21T20:39:23.560Z",
+  "scope": "native acceptance continuation; application sources and development binary unchanged",
+  "inherited_development_receipt": "docs/reviews/2026-10-21-reliability-receipt.json",
+  "inherited_source_hashes_revalidated": 26,
+  "prior_native_suite_reused_not_rerun": true,
+  "insertion": {
+    "outcome": "passed",
+    "production_code": "src-tauri/src/injection/sendinput.rs",
+    "target": "owned WinForms TextBox",
+    "clipboard": false,
+    "pt_accents": true,
+    "english": true,
+    "chinese": true,
+    "scope": "direct production SendInput, separate from full Tauri application"
+  },
+  "human_dictation_receipt": "docs/reviews/2026-10-21-live-dictation-receipt.json",
+  "human_dictation_outcome": "passed",
+  "microphone_reconnect_receipt": "docs/reviews/2026-10-21-microphone-reconnect-receipt.json",
+  "microphone_reconnect_outcome": "not_accepted_no_physical_absence_observed",
+  "installer_acceptance": {
+    "preflight_powershell_5": true,
+    "preflight_powershell_7": true,
+    "review_guard_checks_ps5_ps7": true,
+    "nsis_executed": false,
+    "windows_guest_available": false,
+    "manifest_eligible": false
+  },
+  "cloud": {
+    "key_configured": false,
+    "inference_tested": false,
+    "accounts_created": false
+  },
+  "candidate_sha256": "94e3bbac07aef58ee7a72fa516c2d6ebf40a3bcbd9ae54f8961e42dbcf210b6a",
+  "installed_expected_sha256": "cd41e53a3a337b7770c99d9ea2e779546b679c39ad5eba5c441e0dcca117c406",
+  "sources_sha256": {
+    "scripts/diagnostics/insertion/run.ps1": "9ef60332ef709fcc05f8003fb603684db9124bd2f23a2005f6f27e4091bc78f1",
+    "scripts/diagnostics/insertion/src/main.rs": "a924fbbc576a4be6582c433f498bbd7f5009b1c6711ea8a6fb2e38dbb1675b4e",
+    "src-tauri/src/injection/sendinput.rs": "542131f4172db6d359ac37b8b7a3deb0c26e9fe1238829cbbe508a8e14a08b71",
+    "scripts/diagnostics/live-dictation/run.ps1": "e464e3236b9adc6e2d9e7a1abf5826be70f1a500b2456a3b70646412993a747f",
+    "scripts/diagnostics/capture/src/main.rs": "1f68b091bca70e3508aae0c04d456c2cd058677d69efb55c2b3773695904173d",
+    "scripts/diagnostics/capture/src/watch.rs": "3fa743ee2fd7ed9581d34d8fd023cd75bdd4948ecab47b4de4c1dc20cc19c12b",
+    "scripts/diagnostics/installer-acceptance/run.ps1": "1ea14b28b194d0251ebb5120f7fe514b382b4df651810b448fac1258e478eb26",
+    "scripts/diagnostics/installer-acceptance/guards.ps1": "5338b3decadf6906ab7f3199f214b41f73759588a2512f4bd1963bfbc2f5dc44",
+    "scripts/diagnostics/installer-acceptance/guard-checks.ps1": "d5d8d01b75330882ad5a8980098eeb72a7e4c976ba307f63df6a91a5501d43f1",
+    "scripts/diagnostics/installer-acceptance/artifacts.json": "4a7f2879120ac3a0d14279a04ae7939cd76125e2963dd49a53789bd143e479d5"
+  },
+  "handoff_snapshot": "docs/handoffs/2026-10-21-native-acceptance-continuation.md",
+  "handoff_sha256": "66d64a1e0a687dd0ea1a90d82f9d8e9d8831a17150c1f37c7b305d9e329fab6c",
+  "remaining": "physical disconnect/reconnect, suspend/resume, real transcription failure, cloud credentials/entitlement, eligible Windows guest installer lifecycle and new-candidate acceptance"
+}

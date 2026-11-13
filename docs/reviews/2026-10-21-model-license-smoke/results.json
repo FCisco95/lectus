@@ -1,0 +1,56 @@
+{
+  "sourceBefore": {
+    "sha256": "aa9630f061ffd52ba8da90c468b4beb8a016c2136cf6309a124fe98eee35c107",
+    "file_count": 43,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "sourceAfter": {
+    "sha256": "aa9630f061ffd52ba8da90c468b4beb8a016c2136cf6309a124fe98eee35c107",
+    "file_count": 43,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "timestamp": "2026-10-21T19:06:18.944Z",
+  "scope": "Chromium browser fixture; all IPC mocked; no native integration or actual provider calls",
+  "results": [
+    {
+      "name": "Gemma selection does not imply acceptance or download; explicit action binds fingerprint",
+      "passed": true
+    },
+    {
+      "name": "Gemma full terms and policy are keyboard-readable without external requests",
+      "passed": true
+    },
+    {
+      "name": "Existing Gemma model file still requires separate agreement",
+      "passed": true
+    },
+    {
+      "name": "Failed model-document load stays gated and explicit retry restores documents",
+      "passed": true
+    },
+    {
+      "name": "Stale model fingerprint is rejected; reload requires a fresh unchecked choice",
+      "passed": true
+    },
+    {
+      "name": "Failed acceptance and download retries preserve separate model state",
+      "passed": true
+    },
+    {
+      "name": "Revocation failure preserves acceptance; retry blocks Gemma without switching cloud",
+      "passed": true
+    },
+    {
+      "name": "Model agreement events update downloaded-file gate and reset an outstanding choice",
+      "passed": true
+    },
+    {
+      "name": "Newer revocation event wins over delayed acceptance response",
+      "passed": true
+    },
+    {
+      "name": "8 Gemma agreement-state screenshots across light-dark and both viewport sizes without horizontal overflow",
+      "passed": true
+    }
+  ]
+}

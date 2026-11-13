@@ -1,0 +1,44 @@
+{
+  "sourceBefore": {
+    "sha256": "95e6d3727a331e60dc105bdcdd31843091c7fd01cc525fd1540c6c7079f18599",
+    "file_count": 43,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "sourceAfter": {
+    "sha256": "95e6d3727a331e60dc105bdcdd31843091c7fd01cc525fd1540c6c7079f18599",
+    "file_count": 43,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "timestamp": "2026-10-21T19:22:28.924Z",
+  "scope": "Chromium browser fixture; all IPC mocked; no native integration or actual provider calls",
+  "results": [
+    {
+      "name": "Voluntary pause does not surface as a failed download",
+      "passed": true
+    },
+    {
+      "name": "Download pauses without losing progress, survives panel reopen and resumes",
+      "passed": true
+    },
+    {
+      "name": "Pause failure remains actionable and does not claim saved progress",
+      "passed": true
+    },
+    {
+      "name": "Paused download keeps its actionable disk error across panel reopening",
+      "passed": true
+    },
+    {
+      "name": "Translation can pause and resume without marking a partial model ready",
+      "passed": true
+    },
+    {
+      "name": "Cleanup pause preserves the separate model agreement gate",
+      "passed": true
+    },
+    {
+      "name": "4 download recovery light/dark viewport captures and overflow checks",
+      "passed": true
+    }
+  ]
+}

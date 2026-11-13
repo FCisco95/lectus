@@ -1,0 +1,10 @@
+[package]
+name = "lectus-playback-diagnostic"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# A standalone diagnostic: never starts Lectus, captures audio or writes volume.
+[dependencies]
+log = "0.4"
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Media_Audio", "Win32_Media_Audio_Endpoints", "Win32_System_Com"] }

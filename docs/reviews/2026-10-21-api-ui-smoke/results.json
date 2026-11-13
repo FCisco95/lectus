@@ -1,0 +1,48 @@
+{
+  "sourceBefore": {
+    "sha256": "06153d6a16bb2f820b5b9d15a18c4ed4ee6dc09be0e3962383e81ed2bfbd1f07",
+    "file_count": 40,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "sourceAfter": {
+    "sha256": "06153d6a16bb2f820b5b9d15a18c4ed4ee6dc09be0e3962383e81ed2bfbd1f07",
+    "file_count": 40,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "timestamp": "2026-10-21T17:24:34.256Z",
+  "scope": "Chromium browser fixture; all IPC mocked; no native integration or actual provider calls",
+  "results": [
+    {
+      "name": "API defaults off, edits stay draft, explicit save applies exact settings",
+      "passed": true
+    },
+    {
+      "name": "API rejects invalid drafts before IPC and preserves failed enable draft",
+      "passed": true
+    },
+    {
+      "name": "API saved enable can report listener failure without claiming readiness",
+      "passed": true
+    },
+    {
+      "name": "API token reveal, hidden copy and confirmed rotation stay explicit",
+      "passed": true
+    },
+    {
+      "name": "API activity updates busy, failures and last five calls without overwriting draft",
+      "passed": true
+    },
+    {
+      "name": "Disabled API reports its in-flight request until completion",
+      "passed": true
+    },
+    {
+      "name": "Pill retains the disabled-busy API indicator until completion",
+      "passed": true
+    },
+    {
+      "name": "8 API light/dark viewport screenshots, hidden tokens and horizontal overflow checks",
+      "passed": true
+    }
+  ]
+}

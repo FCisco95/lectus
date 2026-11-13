@@ -1,0 +1,3 @@
+# Evidence provenance correction
+
+On 2026-10-22 the existing fixed-output UI harness was rerun while validating subscription AI and overwrote results/screenshots in this directory. These files now attest the October22 fixture run identified by results.json, NOT the October21 candidate. The original narrative report remains historical; its original raw screenshots/results could not be recovered. A copy of the October22 first run lives in ../2026-10-22-subscription-guided-first-run/. Future runs use UI_SMOKE_OUTPUT to separate receipts. No native acceptance receipt or application data was changed.

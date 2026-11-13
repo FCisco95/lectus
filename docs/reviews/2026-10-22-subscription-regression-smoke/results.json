@@ -1,0 +1,68 @@
+{
+  "sourceBefore": {
+    "sha256": "f0e09fbf689a17a3444d969c9491f84e19ed9a3b44303b7b8a1472864ba3ad7b",
+    "file_count": 44,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "sourceAfter": {
+    "sha256": "f0e09fbf689a17a3444d969c9491f84e19ed9a3b44303b7b8a1472864ba3ad7b",
+    "file_count": 44,
+    "scope": "src/**, index.html, package-lock.json; sorted relative paths and exact bytes; no native/backend-source claim"
+  },
+  "timestamp": "2026-10-22T19:06:49.313Z",
+  "scope": "Chromium browser fixture; all IPC mocked; no native integration or actual provider calls",
+  "results": [
+    {
+      "name": "Keyboard switches, theme, typing focus and modal focus return",
+      "passed": true
+    },
+    {
+      "name": "Autosave serializes overlapping revisions",
+      "passed": true
+    },
+    {
+      "name": "Edit during focus flush survives a stale backend response",
+      "passed": true
+    },
+    {
+      "name": "Failed save plus focus retains draft and retries successfully",
+      "passed": true
+    },
+    {
+      "name": "History deletion cancel, focus return, confirmed clear",
+      "passed": true
+    },
+    {
+      "name": "Models retained progress, errors and retry affordance",
+      "passed": true
+    },
+    {
+      "name": "Cloud metadata check, missing IDs and provider failure",
+      "passed": true
+    },
+    {
+      "name": "Cloud errors redact an echoed key",
+      "passed": true
+    },
+    {
+      "name": "Cloud results for an edited credential and URL are discarded",
+      "passed": true
+    },
+    {
+      "name": "Late app detection cannot overwrite a manually edited profile",
+      "passed": true
+    },
+    {
+      "name": "Cloud check ignores a stale result after cloud feature changes",
+      "passed": true
+    },
+    {
+      "name": "Named dictation and dictionary controls support keyboard edits",
+      "passed": true
+    },
+    {
+      "name": "16 light/dark viewport screenshots; page and content horizontal overflow checks",
+      "passed": true
+    }
+  ]
+}
