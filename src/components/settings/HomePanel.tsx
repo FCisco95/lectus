@@ -4,6 +4,7 @@ import { listen } from '@tauri-apps/api/event';
 import type { Config, LicenseStatus } from './types';
 import { allowsDictation, formatHotkey, trialLine } from './types';
 import { HistoryList } from './HistoryList';
+import { TRY_DICTATION_FLAG } from '../wizard/useWizardState';
 
 interface HistoryStats {
   dictations_7d: number;
@@ -39,6 +40,8 @@ function membershipNotice(status: LicenseStatus | null, floorUsd: number): strin
 /** Greeting, week KPIs, then the dictation list so a prompt can be copied
  *  without leaving Home. The list scrolls; the KPIs stay put. */
 export function HomePanel({ config, onOpenTab }: HomePanelProps) {
+  const [showTry, setShowTry] = useState(() => localStorage.getItem(TRY_DICTATION_FLAG) === '1');
+  const dismissTry = () => { localStorage.removeItem(TRY_DICTATION_FLAG); setShowTry(false); };
   const [stats, setStats] = useState<HistoryStats | null>(null);
   const [engineReady, setEngineReady] = useState<boolean | null>(null);
   const [engineError, setEngineError] = useState(false);
@@ -75,7 +78,7 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
     loadDestination();
     const unRemote = listen('remote-delivery-status', loadDestination);
     const unLicense = listen<LicenseStatus>('license-changed', (e) => { setLicense(e.payload); setLicenseError(false); });
-    const unAdded = listen('history-added', () => loadStats());
+    const unAdded = listen('history-added', () => { loadStats(); dismissTry(); });
     const unReady = listen('model-active', () => { setEngineReady(true); setEngineError(false); });
     const unLoad = listen('model-loading', () => { setEngineReady(false); setEngineError(false); });
     const unFailed = listen('model-load-failed', () => { setEngineReady(false); setEngineError(true); });
@@ -115,6 +118,7 @@ export function HomePanel({ config, onOpenTab }: HomePanelProps) {
   return (
     <div className="home">
       <div className="home-top">
+        {showTry && <div className="banner" role="status"><span>Try it now: click into any text field, {config.trigger_mode === 'toggle' ? 'tap' : 'hold'} {formatHotkey(config.trigger_mode === 'toggle' ? config.toggle_hotkey : config.hold_hotkey)} and speak.</span><button type="button" className="btn" onClick={dismissTry}>Dismiss</button></div>}
         {notice && (
           <div className="banner">
             <span>{notice}</span>

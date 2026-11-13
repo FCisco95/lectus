@@ -20,9 +20,10 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const subscriptionMode = process.env.UI_SMOKE_SUBSCRIPTIONS === '1';
 const apiMode = process.env.UI_SMOKE_API === '1';
 const guidedMode = process.env.UI_SMOKE_GUIDED === '1';
+const wizardMode = process.env.UI_SMOKE_WIZARD === '1';
 const modelLicenseMode = process.env.UI_SMOKE_MODEL_LICENSE === '1';
 const downloadMode = process.env.UI_SMOKE_DOWNLOADS === '1';
-const output = path.join(root, process.env.UI_SMOKE_OUTPUT || (subscriptionMode ? 'docs/reviews/2026-10-22-subscription-ui-smoke' : downloadMode ? 'docs/reviews/2026-10-21-download-ui-smoke' : modelLicenseMode ? 'docs/reviews/2026-10-21-model-license-smoke' : guidedMode ? 'docs/reviews/2026-10-21-guided-smoke' : apiMode ? 'docs/reviews/2026-10-21-api-ui-smoke' : 'docs/reviews/2026-10-21-ui-smoke'));
+const output = path.join(root, process.env.UI_SMOKE_OUTPUT || (wizardMode ? 'docs/reviews/2026-11-13-wizard-smoke' : subscriptionMode ? 'docs/reviews/2026-10-22-subscription-ui-smoke' : downloadMode ? 'docs/reviews/2026-10-21-download-ui-smoke' : modelLicenseMode ? 'docs/reviews/2026-10-21-model-license-smoke' : guidedMode ? 'docs/reviews/2026-10-21-guided-smoke' : apiMode ? 'docs/reviews/2026-10-21-api-ui-smoke' : 'docs/reviews/2026-10-21-ui-smoke'));
 async function fingerprintFrontend() {
   const files = [];
   async function walk(dir) {
@@ -202,9 +203,22 @@ function installFixture(windowLabel = 'main') {
         case 'get_foreground_app': return new Promise(resolve => { state.resolveForeground = resolve; });
         case 'get_cloud_models': if (state.cloudDelay) await new Promise(resolve => setTimeout(resolve, state.cloudDelay)); if (state.cloudError) throw new Error(state.cloudError); return ['whisper-large-v3', 'whisper-large-v3-turbo', 'openai/gpt-oss-120b'];
         case 'download_model':
+          if (state.wizard) {
+            state.wizardDownloads.push(args.modelName);
+            if (state.wizardDownloadError) throw new Error(state.wizardDownloadError);
+            const model = state.models.find(m => m.name === args.modelName);
+            model.downloaded = true;
+            model.download = { downloading: false, progress: 1, error: null };
+            state.emit('model-download-state', { name: model.name, status: clone(model.download) });
+            return;
+          }
           state.models[1].download = { downloading: true, progress: 0.42, error: null }; state.emit('model-download-state', null);
           if (state.deferModelDownload) return new Promise((_, reject) => { state.rejectPendingDownload = reject; });
           return;
+        case 'select_model':
+          state.config.model_name = args.modelName;
+          for (const model of state.models) model.active = model.name === args.modelName;
+          state.emit('model-active', args.modelName); return;
         default: state.unknown.push(command); throw new Error(`Unmocked command: ${command}`);
       }
     },
@@ -245,6 +259,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) });
+  if (wizardMode) await (await import('./wizard-smoke.mjs')).runWizardSmoke({ checked, pageFixture, output, results });
   if (subscriptionMode) {
     const aiSettings = async page => { await settings(page); await page.getByRole('button', { name: 'AI cleanup', exact: true }).click(); };
     const connectFixture = async (page, provider = 'chatgpt') => {
@@ -453,7 +468,7 @@ try {
     }
     results.push({ name: '4 download recovery light/dark viewport captures and overflow checks', passed: true });
   }
-  if (!apiMode && !guidedMode && !modelLicenseMode && !downloadMode && !subscriptionMode) {
+  if (!wizardMode && !apiMode && !guidedMode && !modelLicenseMode && !downloadMode && !subscriptionMode) {
   await checked('Keyboard switches, theme, typing focus and modal focus return', async page => {
     await settings(page);
     const name = page.getByRole('textbox', { name: 'Your name', exact: true });
@@ -763,7 +778,7 @@ try {
   if (guidedMode) {
     const openSetup = async (page, ready = false) => {
       await page.evaluate(ready => { fixture.config.onboarding_completed = false; fixture.legal.ready = ready; fixture.legal.accepted = false; fixture.legal.terms_version = ready ? 'fixture-1' : 'fixture-draft'; fixture.legal.privacy_version = ready ? 'fixture-1' : 'fixture-draft'; fixture.emit('tauri://focus', null); }, ready);
-      await page.getByRole('button', { name: 'Get started', exact: true }).click();
+      await page.getByRole('button', { name: 'Continue', exact: true }).click();
       await page.getByRole('heading', { name: 'Privacy & terms', exact: true }).waitFor();
     };
     const acceptTerms = async (page, waitForConfirmation = true) => {
@@ -772,14 +787,8 @@ try {
       if (waitForConfirmation) await page.getByText('Current Terms accepted on this device.', { exact: true }).waitFor();
     };
     const reachReview = async page => {
-      await page.getByRole('button', { name: 'Continue', exact: true }).click();
-      await page.getByRole('heading', { name: 'Link your membership wallet', exact: true }).waitFor();
-      await page.getByRole('button', { name: 'Continue', exact: true }).click();
-      await page.getByRole('heading', { name: 'Check your microphone', exact: true }).waitFor();
-      await page.getByText('Device available', { exact: true }).waitFor();
-      await page.getByRole('button', { name: 'Continue', exact: true }).click();
-      await page.getByRole('button', { name: 'Review setup', exact: true }).click();
-      await page.getByRole('heading', { name: 'Review your setup', exact: true }).waitFor();
+      for (let step = 0; step < 4; step++) await page.getByRole('button', { name: /^(Continue|Skip)$/ }).click();
+      await page.getByRole('heading', { name: '7 days free, starting now', exact: true }).waitFor();
     };
     await checked('Help stays inside Lectus and routes to relevant settings', async page => {
       await page.getByRole('button', { name: 'Help', exact: true }).click();
@@ -903,29 +912,22 @@ try {
       assert.equal(await page.getByRole('button', { name: 'Accept Terms', exact: true }).count(), 0);
       assert.equal(await page.evaluate(() => fixture.calls.filter(c => ['accept_legal_terms', 'request_microphone_access', 'complete_onboarding'].includes(c)).length), 0);
     });
-    await checked('Explicit Terms and microphone actions; failed finish keeps setup open', async page => {
+    await checked('Explicit Terms and failed finish keep setup safe', async page => {
       await openSetup(page, true);
       assert(await page.getByRole('button', { name: 'Accept Terms', exact: true }).isDisabled());
       assert(await page.getByRole('button', { name: 'Continue', exact: true }).isDisabled());
       await acceptTerms(page);
       assert.equal(await page.evaluate(() => fixture.config.cloud_processing_acknowledged), false);
       assert.equal(await page.evaluate(() => fixture.config.claude_processing_acknowledged), false);
-      await page.getByRole('button', { name: 'Continue', exact: true }).click();
-      await page.getByRole('button', { name: 'Continue', exact: true }).click();
-      await page.getByRole('heading', { name: 'Check your microphone', exact: true }).waitFor();
-      await page.getByText('Device available', { exact: true }).waitFor();
+      await reachReview(page);
       assert.equal(await page.evaluate(() => fixture.calls.filter(c => c === 'request_microphone_access').length), 0);
-      await page.getByRole('button', { name: 'Request microphone access', exact: true }).click();
-      await page.waitForFunction(() => fixture.calls.filter(c => c === 'request_microphone_access').length === 1);
-      await page.getByRole('button', { name: 'Continue', exact: true }).click();
-      await page.getByRole('button', { name: 'Review setup', exact: true }).click();
       await page.evaluate(() => { fixture.finishError = 'Fixture settings disk unavailable'; });
-      await page.getByRole('button', { name: 'Finish setup & open Lectus', exact: true }).click();
+      await page.getByRole('button', { name: 'Finish setup', exact: true }).click();
       await page.getByRole('alert').filter({ hasText: 'Setup was not completed' }).waitFor();
-      assert(await page.getByRole('heading', { name: 'Review your setup', exact: true }).isVisible());
+      assert(await page.getByRole('heading', { name: '7 days free, starting now', exact: true }).isVisible());
       assert.equal(await page.evaluate(() => fixture.config.onboarding_completed), false);
       await page.evaluate(() => { fixture.finishError = ''; });
-      await page.getByRole('button', { name: 'Finish setup & open Lectus', exact: true }).click();
+      await page.getByRole('button', { name: 'Finish setup', exact: true }).click();
       await page.getByRole('heading', { name: 'Welcome back, Alex', exact: true }).waitFor();
     });
     await checked('Translated history exposes original copy and failed-translation recovery', async page => {
@@ -942,7 +944,7 @@ try {
       const capture = async surface => {
         await page.screenshot({ animations: 'disabled', path: path.join(output, `${surface}-${theme}-${width}.png`) });
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${surface} page overflow`);
-        assert(await page.evaluate(() => [...document.querySelectorAll('.modal-body, .surface-body, .onboarding-root')].every(el => el.scrollWidth <= el.clientWidth + 1)), `${surface} content overflow`);
+        assert(await page.evaluate(() => [...document.querySelectorAll('.modal-body, .surface-body, .wizard-root')].every(el => el.scrollWidth <= el.clientWidth + 1)), `${surface} content overflow`);
       };
       await page.getByRole('button', { name: 'Help', exact: true }).click(); await capture('help');
       await page.getByRole('button', { name: 'Language & translation', exact: true }).click();
