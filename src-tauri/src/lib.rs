@@ -20,6 +20,7 @@ mod model_license;
 mod playback;
 mod remote_dictation;
 mod resources;
+mod setup_wizard;
 mod state;
 mod subscriptions;
 mod transcription;
@@ -1246,6 +1247,7 @@ pub fn run() {
             cloud: Arc::new(Mutex::new(None)),
         })
         .manage(worker::TranscribeWorker::new())
+        .manage(setup_wizard::WizardCapture::new())
         .manage(Activation {
             recording_active: Arc::new(AtomicBool::new(false)),
             hook: Mutex::new(None),
@@ -1276,6 +1278,9 @@ pub fn run() {
             save_config,
             complete_onboarding,
             engine_ready,
+            setup_wizard::wizard_mic_start,
+            setup_wizard::wizard_mic_stop,
+            setup_wizard::wizard_transcribe,
             show_home,
             save_pill_position,
             check_claude_cli,
