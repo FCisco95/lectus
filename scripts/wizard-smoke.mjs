@@ -93,3 +93,77 @@ export async function runWizardSmoke({ checked, pageFixture, output, results }) 
   }
   results.push({ name: '24 wizard light/dark screenshots at 960x680 and 720x540 without horizontal overflow', passed: true });
 }
+
+export async function runMicSmoke({ checked, output }) {
+  await checked('Wizard microphone level follows events and shows its transcript', async page => {
+    await toMic(page);
+    await page.getByLabel('Input device', { exact: true }).selectOption('Fixture microphone');
+    await page.waitForFunction(() => fixture.config.input_device === 'Fixture microphone');
+    await page.getByRole('button', { name: 'Test my microphone', exact: true }).click();
+    await page.waitForFunction(() => fixture.wizardRecording === true);
+    await page.evaluate(() => fixture.emit('wizard-audio-level', .65));
+    await page.waitForFunction(() => document.querySelector('[aria-label="Microphone level"]')?.getAttribute('aria-valuenow') === '65');
+    await page.screenshot({ path: path.join(output, 'mic-recording.png'), animations: 'disabled' });
+    await page.getByRole('button', { name: 'Show what I said', exact: true }).click();
+    await page.getByText('Testing Lectus.', { exact: true }).waitFor();
+    assert.deepEqual(await page.evaluate(() => fixture.wizardRawRequests), [false]);
+    assert.equal(await page.evaluate(() => fixture.wizardRecording), false);
+  });
+  await checked('Wizard microphone failure offers Set up later', async page => {
+    await toMic(page);
+    await page.evaluate(() => { fixture.wizardMicError = 'Fixture microphone disconnected'; });
+    await page.getByRole('button', { name: 'Test my microphone', exact: true }).click();
+    await page.getByRole('alert').filter({ hasText: 'Fixture microphone disconnected' }).waitFor();
+    await page.getByRole('button', { name: 'Set up later', exact: true }).click();
+    await page.getByRole('heading', { name: 'Your words', exact: true }).waitFor();
+  });
+  for (const [elapsed, fast] of [[100, true], [1000, false]]) {
+    await checked(`Wizard ${fast ? 'fast' : 'slow'} recognition ${fast ? 'offers' : 'does not offer'} the accurate model`, async page => {
+      await toMic(page);
+      await page.evaluate(elapsed => { fixture.wizardTranscript = { text: 'Testing Lectus.', language: 'pt', audio_ms: 3000, elapsed_ms: elapsed }; }, elapsed);
+      await page.getByRole('button', { name: 'Test my microphone', exact: true }).click();
+      await page.getByRole('button', { name: 'Show what I said', exact: true }).click();
+      await page.getByText('Testing Lectus.', { exact: true }).waitFor();
+      const offer = page.getByText('This computer is fast. Use the most accurate model (574 MB)?', { exact: true });
+      assert.equal(await offer.count(), fast ? 1 : 0);
+      if (fast) {
+        await page.getByRole('button', { name: 'Use the most accurate model', exact: true }).click();
+        await page.waitForFunction(() => fixture.wizardDownloads.includes('ggml-large-v3-turbo-q5_0.bin') && fixture.config.model_name === 'ggml-large-v3-turbo-q5_0.bin');
+      }
+    });
+  }
+  await checked('Wizard download failure explains the missing model and permits Continue', async page => {
+    await openWizard(page);
+    await page.evaluate(() => { fixture.wizardDownloadError = 'Fixture offline'; });
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('alert').filter({ hasText: 'Fixture offline' }).waitFor();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByText('The speech model is not downloaded yet. You can test later in Home.', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.getByRole('heading', { name: 'Your words', exact: true }).waitFor();
+  });
+  await checked('Leaving the wizard microphone step stops capture', async page => {
+    await toMic(page);
+    await page.getByRole('button', { name: 'Test my microphone', exact: true }).click();
+    await page.waitForFunction(() => fixture.wizardRecording === true);
+    const before = await page.evaluate(() => fixture.calls.filter(c => c === 'wizard_mic_stop').length);
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await page.waitForFunction(before => fixture.calls.filter(c => c === 'wizard_mic_stop').length > before && !fixture.wizardRecording, before);
+  });
+  for (const toggle of [false, true]) {
+    await checked(`Wizard shortcut ${toggle ? 'toggle' : 'hold'} test appends text without completing setup`, async page => {
+      await page.evaluate(toggle => { fixture.config.trigger_mode = toggle ? 'toggle' : 'hold'; if (toggle) fixture.config.toggle_hotkey = 'RControl'; }, toggle);
+      await toMic(page);
+      await page.getByRole('button', { name: 'Continue', exact: true }).click();
+      await page.getByRole('button', { name: /^(Continue|Skip)$/ }).click();
+      await page.getByLabel('Try it', { exact: true }).focus();
+      const key = 'ControlRight';
+      await page.keyboard.down(key);
+      await page.waitForFunction(() => fixture.wizardRecording === true);
+      await page.keyboard.up(key);
+      if (toggle) { assert.equal(await page.evaluate(() => fixture.wizardRecording), true); await page.keyboard.press(key); }
+      await page.waitForFunction(() => document.querySelector('[aria-label="Try it"]')?.value === 'Testing Lectus.');
+      assert.equal(await page.evaluate(() => fixture.calls.includes('complete_onboarding')), false);
+    });
+  }
+}

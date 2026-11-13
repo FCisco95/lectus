@@ -7,9 +7,13 @@ import { WelcomeStep } from './steps/WelcomeStep';
 import { TermsStep } from './steps/TermsStep';
 import { AccessibilityStep } from './steps/AccessibilityStep';
 import { TrialStep } from './steps/TrialStep';
+import { MicStep } from './steps/MicStep';
+import { ShortcutStep } from './steps/ShortcutStep';
 import { DictationDemo } from './demos/DictationDemo';
 import { PrivacyFlowDemo } from './demos/PrivacyFlowDemo';
 import { TrialDemo } from './demos/TrialDemo';
+import { MicDemo } from './demos/MicDemo';
+import { ShortcutDemo } from './demos/ShortcutDemo';
 import '../../styles/settings.css';
 import '../../styles/wizard.css';
 const steps = IS_MAC ? ['welcome', 'terms', 'mic', 'accessibility', 'words', 'shortcut', 'trial'] : ['welcome', 'terms', 'mic', 'words', 'shortcut', 'trial'];
@@ -29,8 +33,9 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
     <div className="wizard-panes"><section className="wizard-task" data-wizard-step={step} aria-label={labels[step]}>
       {step === 'welcome' && <WelcomeStep {...props} />}{step === 'terms' && <TermsStep {...props} />}
       {step === 'accessibility' && <AccessibilityStep {...props} />}{step === 'trial' && <TrialStep {...props} />}
-      {['mic', 'words', 'shortcut'].includes(step) && <><h2 tabIndex={-1}>{step === 'mic' ? 'Check your microphone' : step === 'words' ? 'Your words' : 'Choose your dictation shortcut'}</h2><p>You can change these settings any time.</p><Navigation back={back} next={next} /></>}
+      {step === 'mic' && <MicStep {...props} />}{step === 'shortcut' && <ShortcutStep {...props} />}
+      {step === 'words' && <><h2 tabIndex={-1}>Your words</h2><p>You can change these settings any time.</p><Navigation back={back} next={next} /></>}
       {state.error && <p className="inline-error" role="alert">{state.error}</p>}
-    </section><aside className="wizard-preview" aria-label="How Lectus works">{step === 'terms' ? <PrivacyFlowDemo /> : step === 'trial' ? <TrialDemo /> : <DictationDemo />}</aside></div>
+    </section><aside className="wizard-preview" aria-label="How Lectus works">{step === 'terms' ? <PrivacyFlowDemo /> : step === 'trial' ? <TrialDemo /> : step === 'mic' ? <MicDemo /> : step === 'shortcut' ? <ShortcutDemo shortcut={state.config?.[state.config.trigger_mode === 'toggle' ? 'toggle_hotkey' : 'hold_hotkey'] || ''} toggle={state.config?.trigger_mode === 'toggle'} /> : <DictationDemo />}</aside></div>
   </div>;
 }

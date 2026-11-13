@@ -163,6 +163,13 @@ function installFixture(windowLabel = 'main') {
           state.legal.accepted = true; return clone(state.legal);
         case 'license_floor': return { floor_usd: 20, tokens: [] };
         case 'microphone_status': return 'granted';
+        case 'wizard_mic_start':
+          if (state.wizardMicError) throw new Error(state.wizardMicError);
+          state.wizardRecording = true; return;
+        case 'wizard_mic_stop': state.wizardRecording = false; state.emit('wizard-audio-level', 0); return;
+        case 'wizard_transcribe':
+          state.wizardRawRequests ??= []; state.wizardRawRequests.push(args.raw);
+          return clone(state.wizardTranscript || { text: 'Testing Lectus.', language: 'en', audio_ms: 3000, elapsed_ms: 100 });
         case 'request_microphone_access': return;
         case 'complete_onboarding':
           if (state.finishError) throw new Error(state.finishError);
@@ -259,7 +266,11 @@ try {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) });
-  if (wizardMode) await (await import('./wizard-smoke.mjs')).runWizardSmoke({ checked, pageFixture, output, results });
+  if (wizardMode) {
+    const wizard = await import('./wizard-smoke.mjs');
+    await wizard.runWizardSmoke({ checked, pageFixture, output, results });
+    await wizard.runMicSmoke({ checked, output });
+  }
   if (subscriptionMode) {
     const aiSettings = async page => { await settings(page); await page.getByRole('button', { name: 'AI cleanup', exact: true }).click(); };
     const connectFixture = async (page, provider = 'chatgpt') => {
