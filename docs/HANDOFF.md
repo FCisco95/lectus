@@ -58,15 +58,16 @@ Previous handoff (access/Android Orca run): `docs/handoffs/archive/HANDOFF-2026-
 - A real-name installer stays blocked by `legal/manifest.json`. Final acceptance means the
   owner runs it over his install, and that needs his OK at the time.
 
-## Owner decisions open
+## Owner decisions
 
-- Code signing. Recommended: a Certum individual OV certificate in the cloud (SimplySign),
-  about EUR 139-209 a year. Azure Artifact Signing does not accept EU individuals. Expect
-  SmartScreen to show the owner's legal name and to keep warning until downloads build
-  reputation; renewals may reset it. Signing locally is recommended over CI, where Certum
-  needs a long-lived TOTP secret.
-- After the certificate: set `bundle.publisher`, which also fixes Apps & Features showing
-  "organic". Keep reading the old `Software\organic\Lectus` key.
+- 2026-11-18: no paid code-signing certificate for now (cost not justified before sales).
+  Ship unsigned. The download page must show how to get past SmartScreen ("More info", then
+  "Run anyway"). Updates through the in-app updater should not hit SmartScreen.
+- Revisit if sales cover it. The cheapest option found is a Certum individual OV cloud
+  certificate at about EUR 139-209 a year; Azure Artifact Signing excludes EU individuals.
+  The hook (`tauri.signing.conf.json`) is ready.
+- With a certificate: set `bundle.publisher`, which also fixes Apps & Features showing
+  "organic", and keep reading the old `Software\organic\Lectus` key.
 - The website "Open Lectus in 3 steps" page waits for a public site. The Microsoft Store /
   MSIX route is the only way to remove SmartScreen warnings entirely.
 
@@ -89,5 +90,5 @@ are pending. Pointers: `docs/handoffs/2026-11-13-orca-architect-prompt.md`,
 ## Next-session prompt
 
 ```text
-Continue Lectus on feat/remote-dictation from docs/HANDOFF.md. The one-click installer, signing hook and in-app discovery are committed and tested on side-by-side test builds. Next: owner decision on the code-signing certificate, then a real-name candidate once legal approves, and owner-run acceptance (auto-launch, /R, DPI). Keep publication and installed-app gates closed.
+Continue Lectus on feat/remote-dictation from docs/HANDOFF.md. The one-click installer, signing hook and in-app discovery are committed and tested on side-by-side test builds. Owner declined a paid signing certificate for now (ship unsigned). Next: a real-name candidate once legal approves, and owner-run acceptance (auto-launch, /R, DPI). Keep publication and installed-app gates closed.
 ```
