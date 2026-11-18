@@ -7,7 +7,7 @@
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
-    "beforeBundleCommand": "node scripts/check-legal.mjs --release",
+    "beforeBundleCommand": "node scripts/check-legal.mjs --release && node scripts/check-nsis-template.mjs",
     "frontendDist": "../dist"
   },
   "app": {
@@ -64,13 +64,14 @@
     "longDescription": "Dictate into desktop apps, choose local or explicitly enabled cloud processing, translate output, and connect another app through an optional local API.",
     "windows": {
       "nsis": {
+        "template": "windows/installer.nsi",
         "installerIcon": "icons/icon.ico",
         "headerImage": "icons/installer-header.bmp",
         "sidebarImage": "icons/installer-sidebar.bmp",
         "uninstallerHeaderImage": "icons/installer-header.bmp",
         "installMode": "currentUser",
         "languages": ["English", "Portuguese", "SimpChinese", "TradChinese"],
-        "displayLanguageSelector": true
+        "displayLanguageSelector": false
       }
     },
     "macOS": {

@@ -7,7 +7,12 @@ param(
     [string]$ManifestPath = '',
     [string]$ExpectedManifestSHA256 = '',
     [string]$GuestRoot = 'C:\LectusAcceptance',
-    [int]$TimeoutSeconds = 180
+    [int]$TimeoutSeconds = 180,
+    # Silent = `/S`. OneClick = the double-click path (`/NOLAUNCH`, branded window,
+    # no app launch). `/S` skips the one-click reinstall logic, so Upgrade and
+    # Repair should also run once with OneClick.
+    [ValidateSet('Silent','OneClick')]
+    [string]$InstallMode = 'Silent'
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -109,7 +114,14 @@ function Invoke-Installer([string]$Role, [bool]$Interrupt = $false) {
     $previous = Hash-File (Join-Path $installDir 'chirp.exe')
     if ($Interrupt -and $previous -eq $manifest.$Role.executableSHA256) { throw 'Interruption needs distinct baseline/candidate executable hashes.' }
     # No /R: do not launch the app, accept terms, enable autostart or use any account.
-    $process = Start-Process -FilePath $installer -ArgumentList '/S' -PassThru -WindowStyle Hidden
+    # OneClick passes /NOLAUNCH for the same reason; its window stays visible.
+    $report.installMode = $InstallMode
+    $shellBefore = Get-ShellState
+    if ($InstallMode -eq 'OneClick') {
+        $process = Start-Process -FilePath $installer -ArgumentList '/NOLAUNCH' -PassThru
+    } else {
+        $process = Start-Process -FilePath $installer -ArgumentList '/S' -PassThru -WindowStyle Hidden
+    }
     $report.installerExecuted = $true
     if ($Interrupt) {
         $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
@@ -134,6 +146,22 @@ function Invoke-Installer([string]$Role, [bool]$Interrupt = $false) {
     }
     if (-not (Test-Path -LiteralPath $uninstallKey)) { throw 'Per-user uninstall registration missing.' }
     Assert-ExpectedSHA256File -Path (Join-Path $installDir 'uninstall.exe') -ExpectedSHA256 $manifest.$Role.uninstallerSHA256
+    if ($InstallMode -eq 'OneClick') {
+        # One-click overwrites in place: it must not run the old uninstaller,
+        # which would drop the launch-at-login entry and the shortcuts.
+        $shellAfter = Get-ShellState
+        if ($shellBefore.runLectus -and $shellAfter.runLectus -ne $shellBefore.runLectus) { throw 'One-click install changed or removed the Lectus Run entry.' }
+        if ($shellBefore.startMenuShortcut -and -not $shellAfter.startMenuShortcut) { throw 'One-click install removed the Start menu shortcut.' }
+        $report.shellState = @{ before = $shellBefore; after = $shellAfter }
+    }
+}
+function Get-ShellState {
+    $run = Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue
+    $value = if ($run -and $run.PSObject.Properties['Lectus']) { [string]$run.Lectus } else { $null }
+    @{
+        runLectus = $value
+        startMenuShortcut = Test-Path -LiteralPath (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Lectus.lnk')
+    }
 }
 function Assert-BaselineInstalled {
     Assert-ExpectedSHA256File -Path (Join-Path $installDir 'chirp.exe') -ExpectedSHA256 $manifest.baseline.executableSHA256

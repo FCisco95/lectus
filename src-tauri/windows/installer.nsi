@@ -70,9 +70,47 @@ Var NoShortcutMode
 Var WixMode
 Var OldMainBinaryName
 
+; Lectus one-click installer (fork of the stock Tauri 2.11.2 template, see
+; scripts/check-nsis-template.mjs). A plain double-click shows one small
+; branded window, installs in place and opens the app. Modes:
+;   (no flags)  one-click: branded window, asks before closing a running Lectus
+;   /P          passive (the updater adds /UPDATE /R): same branded window
+;   /S          silent: no window at all
+;   /NOLAUNCH   one-click without opening the app afterwards
+;   /LECTUSTHEME=dark|light  force the window theme (screenshots and tests)
+Var OneClickMode
+Var NoLaunchMode
+Var FreshInstall
+Var InstalledVersion
+Var LectusDark
+Var LectusDpi
+Var LectusTrack
+Var LectusBorder
+Var LectusFaceTitle
+Var LectusFaceBody
+Var LectusPage
+Var LectusTitle
+Var LectusSubtitle
+Var LectusProgress
+
+!define /ifndef PBM_SETBARCOLOR 0x0409
+!define /ifndef PBM_SETBKCOLOR 0x2001
+!define /ifndef STM_SETIMAGE 0x0172
+; Window size in device-independent pixels, scaled by the monitor DPI.
+!define LECTUS_WIN_W 440
+!define LECTUS_WIN_H 264
+; #2F6FED as a COLORREF (0x00BBGGRR), the app's --accent.
+!define LECTUS_ACCENT 0x00ED6F2F
+
 Name "${PRODUCTNAME}"
-BrandingText "${COPYRIGHT}"
+; Lectus: with no copyright configured NSIS would print "Nullsoft Install System".
+!if "${COPYRIGHT}" == ""
+  BrandingText " "
+!else
+  BrandingText "${COPYRIGHT}"
+!endif
 OutFile "${OUTFILE}"
+ShowInstDetails nevershow
 
 ; We don't actually use this value as default install path,
 ; it's just for nsis to append the product name folder in the directory selector
@@ -158,6 +196,9 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 !define MUI_LANGDLL_REGISTRY_KEY "${MANUPRODUCTKEY}"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 
+; Restyle the main window into the compact branded window (not called when silent).
+!define MUI_CUSTOMFUNCTION_GUIINIT LectusGuiInit
+
 ; Installer pages, must be ordered as they appear
 ; 1. Welcome Page
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfPassive
@@ -211,7 +252,12 @@ Function PageReinstall
   ; Check if there is an existing installation, if not, abort the reinstall page
   ReadRegStr $R0 SHCTX "${UNINSTKEY}" ""
   ReadRegStr $R1 SHCTX "${UNINSTKEY}" "UninstallString"
-  ${IfThen} "$R0$R1" == "" ${|} Abort ${|}
+  ${If} "$R0$R1" == ""
+    ; Nothing installed yet: remember it so one-click only adds the desktop
+    ; shortcut on a first install.
+    StrCpy $FreshInstall 1
+    Abort
+  ${EndIf}
 
   ; Compare this installar version with the existing installation
   ; and modify the messages presented to the user accordingly
@@ -223,6 +269,7 @@ Function PageReinstall
     ReadRegStr $R0 SHCTX "${UNINSTKEY}" "DisplayVersion"
   ${EndIf}
   ${IfThen} $R0 == "" ${|} StrCpy $R4 "$(unknown)" ${|}
+  StrCpy $InstalledVersion $R0
 
   nsis_tauri_utils::SemverCompare "${VERSION}" $R0
   Pop $R0
@@ -314,6 +361,17 @@ Function PageLeaveReinstall
     Goto reinst_done
   ${EndIf}
 
+  ; One-click never runs the old uninstaller first: it overwrites in place like
+  ; the updater, so shortcuts, pins and the launch-at-login entry survive.
+  ; A downgrade is the only case that asks.
+  ${If} $OneClickMode = 1
+    ${If} $R0 = -1
+      MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 "$(lectusDowngrade)" IDYES reinst_done
+      Quit
+    ${EndIf}
+    Goto reinst_done
+  ${EndIf}
+
   ; $R0 holds whether same(0)/upgrading(1)/downgrading(-1) version
   ; $R1 holds the radio buttons state:
   ;   1 => first choice was selected
@@ -392,7 +450,9 @@ Var AppStartMenuFolder
 !endif
 !insertmacro MUI_PAGE_STARTMENU Application $AppStartMenuFolder
 
-; 7. Installation page
+; 7. Installation page (laid out as the branded window, failure state on leave)
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW LectusInstFilesShow
+!define MUI_PAGE_CUSTOMFUNCTION_LEAVE LectusInstFilesLeave
 !insertmacro MUI_PAGE_INSTFILES
 
 ; 8. Finish page
@@ -468,6 +528,64 @@ FunctionEnd
   !include "{{this}}"
 {{/each}}
 
+; Lectus one-click strings. The language follows the Windows display language.
+!ifdef LANG_ENGLISH
+  LangString lectusPreparing ${LANG_ENGLISH} "Getting ${PRODUCTNAME} ready"
+  LangString lectusUpdating ${LANG_ENGLISH} "Updating ${PRODUCTNAME}"
+  LangString lectusSubtitle ${LANG_ENGLISH} "This takes less than a minute."
+  LangString lectusReady ${LANG_ENGLISH} "${PRODUCTNAME} is ready"
+  LangString lectusOpening ${LANG_ENGLISH} "Opening it now."
+  LangString lectusFailedTitle ${LANG_ENGLISH} "${PRODUCTNAME} couldn't be installed"
+  LangString lectusFailedBody ${LANG_ENGLISH} "Run the installer again. If it keeps happening, restart Windows and try once more."
+  LangString lectusCloseApp ${LANG_ENGLISH} "${PRODUCTNAME} is open. Close it and continue installing?"
+  LangString lectusDowngrade ${LANG_ENGLISH} "A newer version of ${PRODUCTNAME} ($InstalledVersion) is already installed. Replace it with version ${VERSION}?"
+  LangString lectusWebView2 ${LANG_ENGLISH} "Installing Microsoft WebView2..."
+  LangString lectusFontTitle ${LANG_ENGLISH} "Segoe UI Variable Display"
+  LangString lectusFontBody ${LANG_ENGLISH} "Segoe UI Variable Text"
+!endif
+!ifdef LANG_PORTUGUESE
+  LangString lectusPreparing ${LANG_PORTUGUESE} "A preparar o ${PRODUCTNAME}"
+  LangString lectusUpdating ${LANG_PORTUGUESE} "A atualizar o ${PRODUCTNAME}"
+  LangString lectusSubtitle ${LANG_PORTUGUESE} "Isto demora menos de um minuto."
+  LangString lectusReady ${LANG_PORTUGUESE} "O ${PRODUCTNAME} está pronto"
+  LangString lectusOpening ${LANG_PORTUGUESE} "A abrir agora."
+  LangString lectusFailedTitle ${LANG_PORTUGUESE} "Não foi possível instalar o ${PRODUCTNAME}"
+  LangString lectusFailedBody ${LANG_PORTUGUESE} "Execute o instalador novamente. Se continuar a acontecer, reinicie o Windows e tente outra vez."
+  LangString lectusCloseApp ${LANG_PORTUGUESE} "O ${PRODUCTNAME} está aberto. Fechar e continuar a instalação?"
+  LangString lectusDowngrade ${LANG_PORTUGUESE} "Já está instalada uma versão mais recente do ${PRODUCTNAME} ($InstalledVersion). Substituir pela versão ${VERSION}?"
+  LangString lectusWebView2 ${LANG_PORTUGUESE} "A instalar o Microsoft WebView2..."
+  LangString lectusFontTitle ${LANG_PORTUGUESE} "Segoe UI Variable Display"
+  LangString lectusFontBody ${LANG_PORTUGUESE} "Segoe UI Variable Text"
+!endif
+!ifdef LANG_SIMPCHINESE
+  LangString lectusPreparing ${LANG_SIMPCHINESE} "正在准备 ${PRODUCTNAME}"
+  LangString lectusUpdating ${LANG_SIMPCHINESE} "正在更新 ${PRODUCTNAME}"
+  LangString lectusSubtitle ${LANG_SIMPCHINESE} "这只需要不到一分钟。"
+  LangString lectusReady ${LANG_SIMPCHINESE} "${PRODUCTNAME} 已准备就绪"
+  LangString lectusOpening ${LANG_SIMPCHINESE} "正在打开。"
+  LangString lectusFailedTitle ${LANG_SIMPCHINESE} "无法安装 ${PRODUCTNAME}"
+  LangString lectusFailedBody ${LANG_SIMPCHINESE} "请重新运行安装程序。如果问题仍然出现，请重启 Windows 后再试一次。"
+  LangString lectusCloseApp ${LANG_SIMPCHINESE} "${PRODUCTNAME} 正在运行。要关闭它并继续安装吗？"
+  LangString lectusDowngrade ${LANG_SIMPCHINESE} "已安装较新版本的 ${PRODUCTNAME}（$InstalledVersion）。要替换为 ${VERSION} 版本吗？"
+  LangString lectusWebView2 ${LANG_SIMPCHINESE} "正在安装 Microsoft WebView2..."
+  LangString lectusFontTitle ${LANG_SIMPCHINESE} "Microsoft YaHei UI"
+  LangString lectusFontBody ${LANG_SIMPCHINESE} "Microsoft YaHei UI"
+!endif
+!ifdef LANG_TRADCHINESE
+  LangString lectusPreparing ${LANG_TRADCHINESE} "正在準備 ${PRODUCTNAME}"
+  LangString lectusUpdating ${LANG_TRADCHINESE} "正在更新 ${PRODUCTNAME}"
+  LangString lectusSubtitle ${LANG_TRADCHINESE} "這只需要不到一分鐘。"
+  LangString lectusReady ${LANG_TRADCHINESE} "${PRODUCTNAME} 已準備就緒"
+  LangString lectusOpening ${LANG_TRADCHINESE} "正在開啟。"
+  LangString lectusFailedTitle ${LANG_TRADCHINESE} "無法安裝 ${PRODUCTNAME}"
+  LangString lectusFailedBody ${LANG_TRADCHINESE} "請重新執行安裝程式。如果問題仍然發生，請重新啟動 Windows 後再試一次。"
+  LangString lectusCloseApp ${LANG_TRADCHINESE} "${PRODUCTNAME} 正在執行。要關閉它並繼續安裝嗎？"
+  LangString lectusDowngrade ${LANG_TRADCHINESE} "已安裝較新版本的 ${PRODUCTNAME}（$InstalledVersion）。要以 ${VERSION} 版取代嗎？"
+  LangString lectusWebView2 ${LANG_TRADCHINESE} "正在安裝 Microsoft WebView2..."
+  LangString lectusFontTitle ${LANG_TRADCHINESE} "Microsoft JhengHei UI"
+  LangString lectusFontBody ${LANG_TRADCHINESE} "Microsoft JhengHei UI"
+!endif
+
 Function .onInit
   ${GetOptions} $CMDLINE "/P" $PassiveMode
   ${IfNot} ${Errors}
@@ -484,9 +602,38 @@ Function .onInit
     StrCpy $UpdateMode 1
   ${EndIf}
 
+  ${GetOptions} $CMDLINE "/NOLAUNCH" $NoLaunchMode
+  ${IfNot} ${Errors}
+    StrCpy $NoLaunchMode 1
+  ${EndIf}
+
+  ; A plain double-click (neither /P nor /S) is one-click mode. It reuses every
+  ; passive path (pages skipped, auto close) with the changes marked "One-click".
+  ${If} $PassiveMode <> 1
+  ${AndIfNot} ${Silent}
+    StrCpy $OneClickMode 1
+    StrCpy $PassiveMode 1
+  ${EndIf}
+
   !if "${DISPLAYLANGUAGESELECTOR}" == "true"
     !insertmacro MUI_LANGDLL_DISPLAY
   !endif
+
+  ; One-click: ask before closing a running Lectus, before anything changes, so a
+  ; double-click never ends a dictation silently. The updater (/P) keeps the stock
+  ; behaviour of closing it without asking.
+  ${If} $OneClickMode = 1
+    !if "${INSTALLMODE}" == "currentUser"
+      nsis_tauri_utils::FindProcessCurrentUser "${MAINBINARYNAME}.exe"
+    !else
+      nsis_tauri_utils::FindProcess "${MAINBINARYNAME}.exe"
+    !endif
+    Pop $R0
+    ${If} $R0 = 0
+      MessageBox MB_OKCANCEL|MB_ICONINFORMATION "$(lectusCloseApp)" IDOK +2
+      Quit
+    ${EndIf}
+  ${EndIf}
 
   !insertmacro SetContext
 
@@ -556,7 +703,11 @@ Section WebView2
       !if "${INSTALLWEBVIEW2MODE}" == "downloadBootstrapper"
         Delete "$TEMP\MicrosoftEdgeWebview2Setup.exe"
         DetailPrint "$(webview2Downloading)"
-        NSISdl::download "https://go.microsoft.com/fwlink/p/?LinkId=2124703" "$TEMP\MicrosoftEdgeWebview2Setup.exe"
+        ; Quiet download: the stock one draws its own controls over the branded window.
+        ${IfNot} ${Silent}
+          SendMessage $LectusSubtitle ${WM_SETTEXT} 0 "STR:$(lectusWebView2)"
+        ${EndIf}
+        NSISdl::download_quiet "https://go.microsoft.com/fwlink/p/?LinkId=2124703" "$TEMP\MicrosoftEdgeWebview2Setup.exe"
         Pop $0
         ${If} $0 == "success"
           DetailPrint "$(webview2DownloadSuccess)"
@@ -638,6 +789,10 @@ Section Install
 
   !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
 
+  ; Lectus: the app loads every DLL in backends\, so drop the previous version's
+  ; set before copying the current one (in-place upgrades would keep stale DLLs).
+  Delete "$INSTDIR\backends\*.dll"
+
   ; Copy main executable
   File "${MAINBINARYSRCPATH}"
 
@@ -718,8 +873,13 @@ Section Install
   !insertmacro MUI_STARTMENU_WRITE_END
 
   ; Create desktop shortcut for silent and passive installers
-  ; because finish page will be skipped
-  ${If} $PassiveMode = 1
+  ; because finish page will be skipped.
+  ; One-click: only on a first install, so a removed shortcut stays removed.
+  ${If} $OneClickMode = 1
+    ${If} $FreshInstall = 1
+      Call CreateOrUpdateDesktopShortcut
+    ${EndIf}
+  ${ElseIf} $PassiveMode = 1
   ${OrIf} ${Silent}
     Call CreateOrUpdateDesktopShortcut
   ${EndIf}
@@ -734,7 +894,37 @@ Section Install
   ${EndIf}
 SectionEnd
 
+; Lectus: final hidden section. It runs on the install thread, so the window can
+; repaint the "ready" state while it waits.
+Section "-LectusReady"
+  ${IfNot} ${Silent}
+    ; Subtitle: "Opening it now." when the app is about to start, else empty.
+    StrCpy $0 ""
+    ${If} $OneClickMode = 1
+      ${IfThen} $NoLaunchMode <> 1 ${|} StrCpy $0 "$(lectusOpening)" ${|}
+    ${Else}
+      ClearErrors
+      ${GetOptions} $CMDLINE "/R" $1
+      ${IfNotThen} ${Errors} ${|} StrCpy $0 "$(lectusOpening)" ${|}
+    ${EndIf}
+    SendMessage $LectusProgress ${PBM_SETPOS} 30000 0
+    SendMessage $LectusTitle ${WM_SETTEXT} 0 "STR:$(lectusReady)"
+    SendMessage $LectusSubtitle ${WM_SETTEXT} 0 "STR:$0"
+    Sleep 700
+  ${EndIf}
+SectionEnd
+
 Function .onInstSuccess
+  ; One-click opens the app once, in front (it lands in the setup wizard on a
+  ; first install). /NOLAUNCH skips it.
+  ${If} $OneClickMode = 1
+    ${If} $NoLaunchMode <> 1
+      System::Call 'user32::AllowSetForegroundWindow(i -1)'
+      nsis_tauri_utils::RunAsUser "$INSTDIR\${MAINBINARYNAME}.exe" ""
+    ${EndIf}
+    Return
+  ${EndIf}
+
   ; Check for `/R` flag only in silent and passive installers because
   ; GUI installer has a toggle for the user to (re)start the app
   ${If} $PassiveMode = 1
@@ -968,4 +1158,265 @@ Function CreateOrUpdateDesktopShortcut
 
   CreateShortcut "$DESKTOP\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
   !insertmacro SetLnkAppUserModelId "$DESKTOP\${PRODUCTNAME}.lnk"
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+; Lectus branded window
+; One small borderless window: logo, title, subtitle and a thin progress bar.
+; Colours follow src/styles/tokens.css (accent #2F6FED).
+; ---------------------------------------------------------------------------
+
+; OUT = V device-independent pixels at the window DPI.
+!macro LectusScale OUT V
+  IntOp ${OUT} ${V} * $LectusDpi
+  IntOp ${OUT} ${OUT} / 96
+!macroend
+
+; SetCtlColors only takes literal colours, so branch on the theme here.
+!macro LectusSetColors HWND MUTED
+  ${If} $LectusDark = 1
+    !if "${MUTED}" == "1"
+      SetCtlColors ${HWND} "9AA0AB" "1B1C22"
+    !else
+      SetCtlColors ${HWND} "F2F3F5" "1B1C22"
+    !endif
+  ${Else}
+    !if "${MUTED}" == "1"
+      SetCtlColors ${HWND} "5F6470" "FFFFFF"
+    !else
+      SetCtlColors ${HWND} "17181C" "FFFFFF"
+    !endif
+  ${EndIf}
+!macroend
+
+; Hide every direct child of the main window except the current page dialog.
+Function LectusHideChrome
+  FindWindow $1 "#32770" "" $HWNDPARENT
+  StrCpy $0 0
+  lectus_hide_next:
+    System::Call 'user32::FindWindowExW(p $HWNDPARENT, p r0, p 0, p 0) p .r0'
+    IntCmp $0 0 lectus_hide_done
+    IntCmp $0 $1 lectus_hide_next
+    ShowWindow $0 ${SW_HIDE}
+    Goto lectus_hide_next
+  lectus_hide_done:
+FunctionEnd
+
+Function LectusGuiInit
+  ; Theme follows the Windows app mode unless /LECTUSTHEME= overrides it.
+  StrCpy $LectusDark 0
+  ClearErrors
+  ReadRegDWORD $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" "AppsUseLightTheme"
+  ${IfNot} ${Errors}
+    ${If} $0 = 0
+      StrCpy $LectusDark 1
+    ${EndIf}
+  ${EndIf}
+  ClearErrors
+  ${GetOptions} $CMDLINE "/LECTUSTHEME=" $0
+  ${IfNot} ${Errors}
+    ${If} $0 == "dark"
+      StrCpy $LectusDark 1
+    ${ElseIf} $0 == "light"
+      StrCpy $LectusDark 0
+    ${EndIf}
+  ${EndIf}
+  ; COLORREF values (0x00BBGGRR): progress track and the Windows 11 border.
+  ${If} $LectusDark = 1
+    StrCpy $LectusTrack 0x00362E2C
+    StrCpy $LectusBorder 0x003F3634
+  ${Else}
+    StrCpy $LectusTrack 0x00EEE8E6
+    StrCpy $LectusBorder 0x00E3DCD9
+  ${EndIf}
+
+  ; Segoe UI Variable ships with Windows 11; Windows 10 falls back to Segoe UI.
+  StrCpy $LectusFaceTitle "$(lectusFontTitle)"
+  StrCpy $LectusFaceBody "$(lectusFontBody)"
+  ${IfNot} ${FileExists} "$FONTS\SegUIVar.ttf"
+    ${If} $LectusFaceTitle == "Segoe UI Variable Display"
+      StrCpy $LectusFaceTitle "Segoe UI"
+      StrCpy $LectusFaceBody "Segoe UI"
+    ${EndIf}
+  ${EndIf}
+
+  ; DPI of the monitor the window is on (PerMonitorV2 manifest); 96 before
+  ; Windows 10 1607, where GetDpiForWindow does not exist.
+  System::Call 'user32::GetDpiForWindow(p $HWNDPARENT) i .r0'
+  ${If} $0 == "error"
+  ${OrIf} $0 == ""
+  ${OrIf} $0 = 0
+    StrCpy $0 96
+  ${EndIf}
+  StrCpy $LectusDpi $0
+
+  ; No caption, sizing frame, system menu or 3D edges; keep a taskbar button.
+  System::Call 'user32::GetWindowLongW(p $HWNDPARENT, i -16) i .r0'
+  IntOp $1 0x00CF0080 ~
+  IntOp $0 $0 & $1
+  System::Call 'user32::SetWindowLongW(p $HWNDPARENT, i -16, i r0)'
+  System::Call 'user32::GetWindowLongW(p $HWNDPARENT, i -20) i .r0'
+  IntOp $1 0x00020301 ~
+  IntOp $0 $0 & $1
+  IntOp $0 $0 | 0x00040000
+  System::Call 'user32::SetWindowLongW(p $HWNDPARENT, i -20, i r0)'
+
+  ; Size it and centre it in the work area of its monitor.
+  !insertmacro LectusScale $2 ${LECTUS_WIN_W}
+  !insertmacro LectusScale $3 ${LECTUS_WIN_H}
+  System::Call 'user32::MonitorFromWindow(p $HWNDPARENT, i 2) p .r4'
+  System::Call '*(i 40, i 0, i 0, i 0, i 0, i 0, i 0, i 0, i 0, i 0) p .r5'
+  System::Call 'user32::GetMonitorInfoW(p r4, p r5)'
+  System::Call '*$5(i, i, i, i, i, i .r6, i .r7, i .r8, i .r9, i)'
+  System::Free $5
+  IntOp $8 $8 - $6
+  IntOp $8 $8 - $2
+  IntOp $8 $8 / 2
+  IntOp $8 $8 + $6
+  IntOp $9 $9 - $7
+  IntOp $9 $9 - $3
+  IntOp $9 $9 / 2
+  IntOp $9 $9 + $7
+  System::Call 'user32::SetWindowPos(p $HWNDPARENT, p 0, i r8, i r9, i r2, i r3, i 0x0024)'
+
+  ; Windows 11: rounded corners and a 1px border (ignored on Windows 10).
+  System::Call 'dwmapi::DwmSetWindowAttribute(p $HWNDPARENT, i 33, *i 2, i 4)'
+  System::Call 'dwmapi::DwmSetWindowAttribute(p $HWNDPARENT, i 34, *i $LectusBorder, i 4)'
+
+  !insertmacro LectusSetColors $HWNDPARENT 0
+  Call LectusHideChrome
+FunctionEnd
+
+Function LectusInstFilesShow
+  FindWindow $LectusPage "#32770" "" $HWNDPARENT
+  ; Pages re-show the stock buttons, so hide the chrome again here.
+  Call LectusHideChrome
+
+  ; The page dialog keeps its template size: stretch it over the whole window.
+  System::Call '*(i 0, i 0, i 0, i 0) p .r0'
+  System::Call 'user32::GetClientRect(p $HWNDPARENT, p r0)'
+  System::Call '*$0(i, i, i .r1, i .r2)'
+  System::Free $0
+  StrCpy $5 $1
+  System::Call 'user32::SetWindowPos(p $LectusPage, p 0, i 0, i 0, i r1, i r2, i 0x0014)'
+  !insertmacro LectusSetColors $LectusPage 0
+
+  ; Stock page controls: status line, details list and details button.
+  GetDlgItem $0 $LectusPage 1006
+  ShowWindow $0 ${SW_HIDE}
+  GetDlgItem $0 $LectusPage 1016
+  ShowWindow $0 ${SW_HIDE}
+  GetDlgItem $0 $LectusPage 1027
+  ShowWindow $0 ${SW_HIDE}
+
+  ; Logo: the installer's own icon resource (103) at 64 DIP. icon.ico carries
+  ; a 256px frame, so it stays sharp at 200%.
+  !insertmacro LectusScale $3 64
+  System::Call 'kernel32::GetModuleHandleW(p 0) p .r6'
+  System::Call 'comctl32::LoadIconWithScaleDown(p r6, p 103, i r3, i r3, *p .r7) i .r8'
+  ${If} $8 != 0
+    System::Call 'user32::LoadImageW(p r6, p 103, i 1, i r3, i r3, i 0) p .r7'
+  ${EndIf}
+  IntOp $0 $5 - $3
+  IntOp $0 $0 / 2
+  !insertmacro LectusScale $4 40
+  System::Call 'user32::CreateWindowExW(i 0, w "STATIC", w "", i 0x50000003, i r0, i r4, i r3, i r3, p $LectusPage, p 0, p 0, p 0) p .r9'
+  SendMessage $9 ${STM_SETIMAGE} 1 $7
+  !insertmacro LectusSetColors $9 0
+
+  ; Fonts: title 18pt semibold, subtitle 10pt (negative height = character height).
+  IntOp $0 $LectusDpi * 18
+  IntOp $0 $0 / 72
+  IntOp $0 0 - $0
+  System::Call 'gdi32::CreateFontW(i r0, i 0, i 0, i 0, i 600, i 0, i 0, i 0, i 1, i 0, i 0, i 5, i 0, w "$LectusFaceTitle") p .r6'
+  IntOp $0 $LectusDpi * 10
+  IntOp $0 $0 / 72
+  IntOp $0 0 - $0
+  System::Call 'gdi32::CreateFontW(i r0, i 0, i 0, i 0, i 400, i 0, i 0, i 0, i 1, i 0, i 0, i 5, i 0, w "$LectusFaceBody") p .r7'
+
+  ; Text column: full width minus 24 DIP on each side, centred.
+  !insertmacro LectusScale $0 24
+  IntOp $1 $5 - $0
+  IntOp $1 $1 - $0
+
+  ${If} $UpdateMode = 1
+    StrCpy $8 "$(lectusUpdating)"
+  ${Else}
+    StrCpy $8 "$(lectusPreparing)"
+  ${EndIf}
+  !insertmacro LectusScale $3 118
+  !insertmacro LectusScale $4 34
+  System::Call 'user32::CreateWindowExW(i 0, w "STATIC", w r8, i 0x50000081, i r0, i r3, i r1, i r4, p $LectusPage, p 0, p 0, p 0) p .r9'
+  StrCpy $LectusTitle $9
+  SendMessage $LectusTitle ${WM_SETFONT} $6 1
+  !insertmacro LectusSetColors $LectusTitle 0
+
+  StrCpy $8 "$(lectusSubtitle)"
+  !insertmacro LectusScale $3 154
+  !insertmacro LectusScale $4 44
+  System::Call 'user32::CreateWindowExW(i 0, w "STATIC", w r8, i 0x50000081, i r0, i r3, i r1, i r4, p $LectusPage, p 0, p 0, p 0) p .r9'
+  StrCpy $LectusSubtitle $9
+  SendMessage $LectusSubtitle ${WM_SETFONT} $7 1
+  !insertmacro LectusSetColors $LectusSubtitle 1
+
+  ; Progress: a flat 4 DIP bar in the accent colour (unthemed, no border).
+  GetDlgItem $LectusProgress $LectusPage 1004
+  System::Call 'uxtheme::SetWindowTheme(p $LectusProgress, w "", w "")'
+  System::Call 'user32::GetWindowLongW(p $LectusProgress, i -16) i .r0'
+  IntOp $1 0x00800000 ~
+  IntOp $0 $0 & $1
+  IntOp $0 $0 | 1
+  System::Call 'user32::SetWindowLongW(p $LectusProgress, i -16, i r0)'
+  System::Call 'user32::GetWindowLongW(p $LectusProgress, i -20) i .r0'
+  IntOp $1 0x00020200 ~
+  IntOp $0 $0 & $1
+  System::Call 'user32::SetWindowLongW(p $LectusProgress, i -20, i r0)'
+  SendMessage $LectusProgress ${PBM_SETBARCOLOR} 0 ${LECTUS_ACCENT}
+  SendMessage $LectusProgress ${PBM_SETBKCOLOR} 0 $LectusTrack
+  !insertmacro LectusScale $0 200
+  IntOp $1 $5 - $0
+  IntOp $1 $1 / 2
+  !insertmacro LectusScale $3 206
+  !insertmacro LectusScale $4 4
+  System::Call 'user32::SetWindowPos(p $LectusProgress, p 0, i r1, i r3, i r0, i r4, i 0x0034)'
+FunctionEnd
+
+; Runs as soon as the sections end. On failure the window would otherwise stay
+; up with no way out, so show what happened and a Close button.
+Function LectusInstFilesLeave
+  IfAbort 0 lectus_leave_done
+    ; A smaller title so longer translations fit on one line.
+    IntOp $0 $LectusDpi * 15
+    IntOp $0 $0 / 72
+    IntOp $0 0 - $0
+    System::Call 'gdi32::CreateFontW(i r0, i 0, i 0, i 0, i 600, i 0, i 0, i 0, i 1, i 0, i 0, i 5, i 0, w "$LectusFaceTitle") p .r1'
+    SendMessage $LectusTitle ${WM_SETFONT} $1 1
+    SendMessage $LectusTitle ${WM_SETTEXT} 0 "STR:$(lectusFailedTitle)"
+    SendMessage $LectusSubtitle ${WM_SETTEXT} 0 "STR:$(lectusFailedBody)"
+    ShowWindow $LectusProgress ${SW_HIDE}
+
+    ; Shorten the page dialog to make room for the stock Cancel button, centred
+    ; at the bottom.
+    System::Call '*(i 0, i 0, i 0, i 0) p .r0'
+    System::Call 'user32::GetClientRect(p $HWNDPARENT, p r0)'
+    System::Call '*$0(i, i, i .r1, i .r2)'
+    System::Free $0
+    !insertmacro LectusScale $3 56
+    IntOp $4 $2 - $3
+    System::Call 'user32::SetWindowPos(p $LectusPage, p 0, i 0, i 0, i r1, i r4, i 0x0016)'
+
+    ; NSIS sets this button's (localized) "Cancel" text after this callback, so
+    ; the failure text above does not name the button.
+    GetDlgItem $0 $HWNDPARENT 2
+    EnableWindow $0 1
+    !insertmacro LectusScale $5 104
+    !insertmacro LectusScale $6 30
+    IntOp $7 $1 - $5
+    IntOp $7 $7 / 2
+    !insertmacro LectusScale $8 44
+    IntOp $8 $2 - $8
+    System::Call 'user32::SetWindowPos(p r0, p 0, i r7, i r8, i r5, i r6, i 0x0014)'
+    ShowWindow $0 ${SW_SHOW}
+    SendMessage $HWNDPARENT ${WM_NEXTDLGCTL} $0 1
+  lectus_leave_done:
 FunctionEnd
