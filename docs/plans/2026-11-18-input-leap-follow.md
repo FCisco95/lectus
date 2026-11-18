@@ -66,6 +66,15 @@ config so the setup can be put back.
    (`dns-sd -G v4 <pc-name>.local`, then `ping`). If it does, point the client at the name
    instead of the IP. That alone ends the IP edits for today's setup. If it does not, note why
    (Windows firewall mDNS rule, network profile) before changing anything.
+   **Done 2026-11-18.** The Mac client now uses `DESKTOP-639B5LM.local` and connects (IPv4,
+   .56 to .51). Nothing changed on the PC: Wi-Fi profile is Public, but the built-in
+   `mDNS (UDP-In)` rule allows Public. Windows answers per interface: on Wi-Fi with
+   192.168.68.51 and a link-local IPv6 `fe80::`, on the WSL adapter with 172.27.112.1. The IL
+   server listens on IPv4 only; the Mac still picked IPv4. The drop during the switch was the
+   PC server being closed (`got shutdown signal` 23:54:55; the `.bat` loop ends with its
+   window), not the name.
+   Owner direction, same day: he would rather build the Input Leap part inside Lectus (option 2
+   above).
 2. Baseline with the current Debug build: 10 minutes of normal work on the Mac through the
    link, `ping` running, count the visible stutters and the disconnects in the server log.
 3. Same 10 minutes on a release build of Input Leap (v3.0.2 is the last one with installers).
