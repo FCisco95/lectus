@@ -95,8 +95,9 @@ Windows/macOS. Open: owner runs Step 0 of the plan (15 minutes, no code) to lear
 Lectus sees the dictation key while Input Leap relays to the Mac. Building the prototype needs
 the owner's approval (destination routing). Owner tried Send/Receive and found it "not
 straightforward". His wider goal: one app sharing keyboard, mouse and microphone, more efficient
-than Input Leap. Engine choice (fork, own Rust engine, Deskflow) waits on a lag diagnosis and on
-whether the microphone is needed for dictation only or as an audio device on the Mac.
+than Input Leap. Microphone decided: dictation only on both computers, so text is sent, never
+audio. Engine choice (fork, own Rust engine, Deskflow) waits on a lag diagnosis: next session,
+compare the Debug Input Leap build with a release build and with Deskflow (needs installs).
 
 ## Still open from the access/Android run (run_db09bc5a3181)
 

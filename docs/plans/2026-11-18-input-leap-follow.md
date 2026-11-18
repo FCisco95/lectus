@@ -41,10 +41,14 @@ read at commit `34a34fb` (last upstream commit, 2025-11-27). IL = Input Leap.
   release build instead of the Debug one; the same session with Deskflow. If the network is the
   cause, an own engine helps only if it moves pointer traffic to UDP. If the Debug build is the
   cause, no rewrite is needed to fix the lag.
-- **Microphone.** For dictation, sending the finished text is already the efficient path: no
-  audio leaves the PC. Sharing the microphone as an audio device on the Mac (calls, recordings)
-  is a different feature: audio streaming plus a virtual input device on macOS, with its own
-  install and signing cost. Open question to the owner: which of the two is wanted.
+- **Microphone: decided, dictation only.** The owner wants one microphone near his head and
+  speech-to-text on both computers. So no audio streaming and no virtual audio device: the PC
+  transcribes and sends the finished text. The product is "keyboard, mouse and dictation follow
+  the computer you are working on", with the active computer chosen automatically.
+- **First network sample** (2026-11-18, 60 pings PC to Mac, both idle): no loss, median 4 ms,
+  p95 16 ms, max 108 ms, 2 of 60 over 20 ms. The typical delay is fine; the occasional spike
+  is large enough to feel as a pointer stutter over TCP. One sample, not a finding. Repeat during
+  a real working session and with the Mac on cable or closer to the router.
 
 ## Starting point
 
