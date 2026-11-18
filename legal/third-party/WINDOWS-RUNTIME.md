@@ -13,6 +13,8 @@ The Windows installer ships these Microsoft Visual C++ runtime files, because ch
 | vcruntime140_1.dll | Microsoft.VC143.CRT | same |
 | vcomp140.dll | Microsoft.VC143.OpenMP | same |
 
+The installer keeps these copies only when Windows lacks the runtime or has an older one. When System32 already has all four files at the same or a newer version, it removes the app-local copies, so the app and every DLL loaded into it use Microsoft's serviced system runtime.
+
 Microsoft and its suppliers keep all rights in these files. The Lectus Terms pass on the end-user limits the Distributable Code terms ask for (use only with Lectus; no modification or reverse engineering where the law allows that limit).
 
 Review before publication: confirm the redistribution right for the exact Visual Studio edition that builds the release (Build Tools on the local machine, the GitHub runner's Visual Studio in CI).

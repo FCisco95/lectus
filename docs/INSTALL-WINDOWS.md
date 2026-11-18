@@ -24,6 +24,9 @@ Lectus installs for your Windows account only, in `%LOCALAPPDATA%\Lectus`.
   turned back on without resetting Windows.
 - **"Lectus is open. Close it and continue installing?":** choose OK to close the running
   copy and install, or Cancel to stop without changing anything.
+- **"MSVCP140.dll was not found" (or VCRUNTIME140.dll) when Lectus starts:** the Microsoft
+  Visual C++ runtime was removed after Lectus was installed. Open the setup file again; it puts
+  a private copy next to Lectus when Windows does not have one.
 - **A newer version is already installed:** setup asks before it replaces it with an older one.
   The default answer keeps the newer version.
 

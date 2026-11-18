@@ -15,6 +15,9 @@ Previous handoff (access/Android Orca run): `docs/handoffs/archive/HANDOFF-2026-
     and VCOMP140 (OpenMP) at load time. A clean Windows lacks them and the installer did not
     ship them, so the app would not start there. `src-tauri/build.rs` now copies them from the
     VS `VC\Redist\MSVC` folder into `target/<profile>/`; `tauri.windows.conf.json` ships them.
+    The installer deletes those copies when System32 has all four at the same or a newer
+    version (this PC: system 14.51, bundled 14.44), since an app-local runtime would be forced
+    on every DLL in the process.
   - **Vulkan.** chirp.exe also imports `vulkan-1.dll` at load time (whisper GPU backend). It
     comes with the graphics driver (Khronos discourages bundling it). In interactive modes the
     installer now stops with a translated message when `System32\vulkan-1.dll` is missing.
@@ -39,7 +42,8 @@ Previous handoff (access/Android Orca run): `docs/handoffs/archive/HANDOFF-2026-
   - legacy ("organic") 0.7.1 then 0.7.2 ("Bakehouse Labs"): every check-kept item passed, old key
     removed, Publisher updated, runtime DLLs installed;
   - legacy install in a custom folder: upgraded in place through the old key;
-  - uninstall removes the runtime DLLs.
+  - uninstall removes the runtime DLLs;
+  - runtime choice: 0 app-local copies on this PC, 4 with a variant that sees no system runtime.
   - The real install snapshot stayed unchanged, `Software\organic\Lectus` included.
 - Real-name title widths (GDI, real fonts, 96 DPI): widest is 323/392 px (PT failure title).
 - `node --test scripts/*.test.mjs` 24/24; `test-release.cmd` 312 passed, 0 failed, 13 ignored.

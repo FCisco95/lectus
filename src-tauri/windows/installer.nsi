@@ -834,6 +834,8 @@ Section Install
     File /a "/oname={{this}}" "{{no-escape @key}}"
   {{/each}}
 
+  Call LectusPreferSystemRuntime
+
   ; Create file associations
   {{#each file_associations as |association| ~}}
     {{#each association.ext as |ext| ~}}
@@ -1106,6 +1108,58 @@ Section Uninstall
     SetAutoClose true
   ${EndIf}
 SectionEnd
+
+; Lectus: the MSVC runtime ships next to the exe for PCs without the VC++ Redistributable
+; (src-tauri/build.rs). An app-local copy wins over System32 for every DLL in the process
+; (graphics drivers, input methods, shell extensions), and an older runtime can break
+; components built with a newer toolset. So when Windows already has all four files at the
+; same or a newer version, remove the app-local copies and use the serviced system ones.
+!macro LectusRuntimeCovered FILE
+  ${If} $R9 = 1
+    ClearErrors
+    GetDLLVersion "$SYSDIR\${FILE}" $R0 $R1
+    ${If} ${Errors}
+      StrCpy $R9 0
+    ${Else}
+      ClearErrors
+      GetDLLVersion "$INSTDIR\${FILE}" $R2 $R3
+      ${If} ${Errors}
+        StrCpy $R9 0
+      ${ElseIf} $R0 U< $R2
+        StrCpy $R9 0
+      ${ElseIf} $R0 = $R2
+      ${AndIf} $R1 U< $R3
+        StrCpy $R9 0
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+!macroend
+
+Function LectusPreferSystemRuntime
+  Push $R0
+  Push $R1
+  Push $R2
+  Push $R3
+  Push $R9
+  StrCpy $R9 1
+  ${DisableX64FSRedirection}
+  !insertmacro LectusRuntimeCovered "msvcp140.dll"
+  !insertmacro LectusRuntimeCovered "vcruntime140.dll"
+  !insertmacro LectusRuntimeCovered "vcruntime140_1.dll"
+  !insertmacro LectusRuntimeCovered "vcomp140.dll"
+  ${EnableX64FSRedirection}
+  ${If} $R9 = 1
+    Delete "$INSTDIR\msvcp140.dll"
+    Delete "$INSTDIR\vcruntime140.dll"
+    Delete "$INSTDIR\vcruntime140_1.dll"
+    Delete "$INSTDIR\vcomp140.dll"
+  ${EndIf}
+  Pop $R9
+  Pop $R3
+  Pop $R2
+  Pop $R1
+  Pop $R0
+FunctionEnd
 
 Function RestorePreviousInstallLocation
   ReadRegStr $4 SHCTX "${MANUPRODUCTKEY}" ""
