@@ -1,6 +1,6 @@
 # Lectus - handoff
 
-Updated: 2026-11-18, second session. Branch: feat/remote-dictation. No tag, release or app replacement.
+Updated: 2026-11-18, third session (planning only). Branch: feat/remote-dictation. No tag, release or app replacement.
 Previous handoff (access/Android Orca run): `docs/handoffs/archive/HANDOFF-2026-11-13-access-android-run.md`.
 
 ## State
@@ -84,6 +84,16 @@ Previous handoff (access/Android Orca run): `docs/handoffs/archive/HANDOFF-2026-
    build changed. Read `result.json`, the screenshots and `app-stderr.log`.
 2. Owner: address/NIF choice and accountant check, then legal approval, then a real-name candidate.
 3. Owner-run acceptance over the real install: auto-launch, wizard, `/R`, DPI.
+
+## Input Leap follow mode (planned 2026-11-18, no code)
+
+Plan: `docs/plans/2026-11-18-input-leap-follow.md`. Dictation should follow the computer Input
+Leap controls. Recommendation: PC-only "Follow" destination that reads the Input Leap server
+log (`switch from "A" to "B"`); the Mac stays on 0.7.1 Receive; destination locked at key-down.
+Input Leap upstream was archived 2026-07-26 and has no supported active-screen interface on
+Windows/macOS. Open: owner runs Step 0 of the plan (15 minutes, no code) to learn whether PC
+Lectus sees the dictation key while Input Leap relays to the Mac. Building the prototype needs
+the owner's approval (destination routing). Real PC-to-Mac insertion is still unverified.
 
 ## Still open from the access/Android run (run_db09bc5a3181)
 
