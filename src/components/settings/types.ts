@@ -60,6 +60,10 @@ export interface Config {
   mute_while_dictating: boolean;
   /** Greeting name. Empty = derive from the OS account (`os_display_name`). */
   display_name: string;
+  /** Spotlight ids already shown (src/components/discovery/spotlights.ts). */
+  seen_spotlights: string[];
+  /** The sidebar "Get started" checklist was hidden. */
+  getting_started_hidden: boolean;
 }
 
 // Mirrors `Status` in src-tauri/src/license/mod.rs (serde tag = "kind").

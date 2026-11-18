@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getVersion } from '@tauri-apps/api/app';
 import '../styles/settings.css';
+import '../styles/discovery.css';
 import { useConfig } from './settings/useConfig';
 import { Sidebar } from './Sidebar';
 import type { SurfaceId } from './Sidebar';
@@ -16,6 +17,9 @@ import { HelpPanel } from './settings/HelpPanel';
 import { UpdateBanner } from './update-banner';
 import { WhatsNewModal } from './WhatsNewModal';
 import type { WhatsNew } from './WhatsNewModal';
+import { useDiscovery } from './discovery/useDiscovery';
+import { SpotlightPopover } from './discovery/SpotlightPopover';
+import { GettingStartedCard } from './discovery/GettingStartedCard';
 
 /** The app shell: sidebar of surfaces on the window background, content in one
  *  card. Everything configurable opens in a modal on top (SettingsModal). */
@@ -30,7 +34,9 @@ export function Shell() {
   const columnsRef = useRef<HTMLDivElement>(null);
   const closeSettings = useCallback(() => setSettingsTab(null), []);
   const closeWhatsNew = useCallback(() => setWhatsNew(null), []);
-  const blocking = settingsTab !== null || whatsNew !== null;
+  const discovery = useDiscovery({ config, update, overlayOpen: settingsTab !== null || whatsNew !== null });
+  const spotlight = discovery.spotlight;
+  const blocking = settingsTab !== null || whatsNew !== null || spotlight !== null;
 
   // Set inert as a DOM property when the overlay opens/closes — not as a
   // JSX boolean on every config keystroke. Re-applying inert mid-type moves
@@ -74,6 +80,13 @@ export function Shell() {
     else setSurface(target);
   };
 
+  const acceptSpotlight = () => {
+    if (!spotlight) return;
+    discovery.finish(spotlight.id);
+    if ('settingsTab' in spotlight.target) setSettingsTab(spotlight.target.settingsTab);
+    else setSurface(spotlight.target.surface);
+  };
+
   return (
     <div className="settings-app">
       <div className="shell-columns" ref={columnsRef}>
@@ -82,6 +95,16 @@ export function Shell() {
           onSelect={setSurface}
           onOpenSettings={() => setSettingsTab('general')}
           version={version}
+          getStarted={
+            <GettingStartedCard
+              config={config}
+              dictationsTotal={discovery.dictationsTotal}
+              settingsOpen={settingsTab !== null}
+              onSelect={setSurface}
+              onOpenSettings={setSettingsTab}
+              onHide={() => update({ getting_started_hidden: true })}
+            />
+          }
         />
 
         <main className="surface">
@@ -109,6 +132,15 @@ export function Shell() {
 
       {whatsNew && !settingsTab && (
         <WhatsNewModal info={whatsNew} onClose={closeWhatsNew} />
+      )}
+
+      {spotlight && !settingsTab && !whatsNew && (
+        <SpotlightPopover
+          key={spotlight.id}
+          spotlight={spotlight}
+          onDismiss={() => discovery.finish(spotlight.id)}
+          onAccept={acceptSpotlight}
+        />
       )}
 
       {settingsTab && (

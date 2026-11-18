@@ -5,6 +5,7 @@
  * UI_SMOKE_API=1 runs Local API fixtures and writes separate API evidence.
  * UI_SMOKE_GUIDED=1 runs guided setup/help/translation/privacy fixtures.
  * UI_SMOKE_MODEL_LICENSE=1 runs synthetic Gemma agreement fixtures.
+ * UI_SMOKE_DISCOVERY=1 runs spotlight and Get started fixtures (discovery-smoke.mjs).
  * Starts and stops its own loopback-only Vite process; never invokes Rust.
  */
 import { createRequire } from 'node:module';
@@ -23,7 +24,8 @@ const guidedMode = process.env.UI_SMOKE_GUIDED === '1';
 const wizardMode = process.env.UI_SMOKE_WIZARD === '1';
 const modelLicenseMode = process.env.UI_SMOKE_MODEL_LICENSE === '1';
 const downloadMode = process.env.UI_SMOKE_DOWNLOADS === '1';
-const output = path.join(root, process.env.UI_SMOKE_OUTPUT || (wizardMode ? 'docs/reviews/2026-11-13-wizard-smoke' : subscriptionMode ? 'docs/reviews/2026-10-22-subscription-ui-smoke' : downloadMode ? 'docs/reviews/2026-10-21-download-ui-smoke' : modelLicenseMode ? 'docs/reviews/2026-10-21-model-license-smoke' : guidedMode ? 'docs/reviews/2026-10-21-guided-smoke' : apiMode ? 'docs/reviews/2026-10-21-api-ui-smoke' : 'docs/reviews/2026-10-21-ui-smoke'));
+const discoveryMode = process.env.UI_SMOKE_DISCOVERY === '1';
+const output = path.join(root, process.env.UI_SMOKE_OUTPUT || (discoveryMode ? 'docs/reviews/2026-11-18-discovery-smoke' : wizardMode ? 'docs/reviews/2026-11-13-wizard-smoke' : subscriptionMode ? 'docs/reviews/2026-10-22-subscription-ui-smoke' : downloadMode ? 'docs/reviews/2026-10-21-download-ui-smoke' : modelLicenseMode ? 'docs/reviews/2026-10-21-model-license-smoke' : guidedMode ? 'docs/reviews/2026-10-21-guided-smoke' : apiMode ? 'docs/reviews/2026-10-21-api-ui-smoke' : 'docs/reviews/2026-10-21-ui-smoke'));
 async function fingerprintFrontend() {
   const files = [];
   async function walk(dir) {
@@ -54,7 +56,7 @@ function installFixture(windowLabel = 'main') {
   const clone = value => JSON.parse(JSON.stringify(value));
   const state = window.fixture = {
     calls: [], unknown: [], saveDelay: 0, failSaves: false, saving: 0, maxSaving: 0, saves: [], saveRequests: [], cloudError: '',
-    config: { model_path: '', use_cloud: false, cloud_base_url: 'https://api.groq.com/openai/v1', cloud_api_key: '', cloud_transcription_model: 'whisper-large-v3-turbo', cloud_cleanup_model: 'openai/gpt-oss-120b', output_language: 'same', translation_engine: 'local', translation_model: 'Qwen3-4B-Q4_K_M.gguf', cloud_translation_model: 'openai/gpt-oss-120b', cloud_processing_acknowledged: false, claude_processing_acknowledged: false, chatgpt_processing_acknowledged: false, chatgpt_model: '', claude_model: '', hold_hotkey: 'RControl', toggle_hotkey: 'F13', pill_x: 0, pill_y: 0, language: 'auto', model_name: 'ggml-base.bin', trigger_mode: 'hold', dictionary_words: [], replacement_rules: [], ai_cleanup_enabled: true, ai_cleanup_engine: 'groq', ai_cleanup_tone: 'neutral', input_device: '', injection_mode: 'auto', vad_enabled: true, app_profiles: [], onboarding_completed: true, theme: 'light', mute_while_dictating: true, display_name: 'Alex' },
+    config: { model_path: '', use_cloud: false, cloud_base_url: 'https://api.groq.com/openai/v1', cloud_api_key: '', cloud_transcription_model: 'whisper-large-v3-turbo', cloud_cleanup_model: 'openai/gpt-oss-120b', output_language: 'same', translation_engine: 'local', translation_model: 'Qwen3-4B-Q4_K_M.gguf', cloud_translation_model: 'openai/gpt-oss-120b', cloud_processing_acknowledged: false, claude_processing_acknowledged: false, chatgpt_processing_acknowledged: false, chatgpt_model: '', claude_model: '', hold_hotkey: 'RControl', toggle_hotkey: 'F13', pill_x: 0, pill_y: 0, language: 'auto', model_name: 'ggml-base.bin', trigger_mode: 'hold', dictionary_words: [], replacement_rules: [], ai_cleanup_enabled: true, ai_cleanup_engine: 'groq', ai_cleanup_tone: 'neutral', input_device: '', injection_mode: 'auto', vad_enabled: true, app_profiles: [], onboarding_completed: true, theme: 'light', mute_while_dictating: true, display_name: 'Alex', seen_spotlights: ['vocabulary', 'dictations', 'models', 'ai-cleanup'], getting_started_hidden: false },
     history: [{ text: 'Review the launch notes tomorrow morning.', timestamp: 1792573200000, language: 'en' }, { text: 'Confirmar a reunião de equipa para sexta-feira.', timestamp: 1792580400000, language: 'pt' }],
     apiStatus: { enabled: false, running: false, busy: false, port: 3210, allowed_origins: [], error: null, calls: [] },
     connections: [
@@ -62,6 +64,7 @@ function installFixture(windowLabel = 'main') {
       { provider: 'claude', state: 'disconnected', account_label: null, message: 'Sign in through official Claude Code.' },
     ], subscriptionActions: [], subscriptionTests: [], subscriptionError: '', subscriptionModelError: '',
     apiSaves: [], apiError: '', apiToken: 'fixture-token-not-a-secret', clipboardWrites: [],
+    autostart: false, whatsNew: null,
     legal: { ready: false, accepted: false, terms_version: 'fixture-draft', privacy_version: 'fixture-draft', terms_hash: 'fixture-terms-hash', privacy_hash: 'fixture-privacy-hash', terms: '# Fixture Terms — synthetic publisher only', privacy: '# Fixture Privacy — synthetic facts only' },
     cleanupModel: { name: 'gemma-3-1b-it-Q4_K_M.gguf', downloaded: false, size_mb: 769, download: { downloading: false, progress: 0, error: null } },
     cleanupLicense: { model_id: 'gemma-3-1b', title: 'Synthetic Gemma fixture documents', version: 'fixture-v1', fingerprint: 'fixture-model-fingerprint-v1', accepted: false, terms: Array.from({ length: 30 }, (_, i) => 'Synthetic model term ' + (i + 1) + ': fixture text for offline reading and scrolling; no real agreement is accepted.').join('\n\n'), policy: 'Synthetic incorporated policy. Fixture-only restrictions. End of synthetic policy.' },
@@ -191,9 +194,12 @@ function installFixture(windowLabel = 'main') {
         case 'license_status': return { kind: 'active', pubkey: 'FixtureWallet', balance: 100, usd: 50 };
         case 'os_display_name': return 'Alex';
         case 'plugin:app|version': return '0.7.1';
-        case 'plugin:window|is_maximized': case 'plugin:autostart|is_enabled': return false;
-        case 'plugin:autostart|enable': case 'plugin:autostart|disable': return;
-        case 'take_whats_new_notes': case 'last_update_error': case 'check_for_updates': return null;
+        case 'plugin:window|is_maximized': return false;
+        case 'plugin:autostart|is_enabled': return state.autostart;
+        case 'plugin:autostart|enable': state.autostart = true; return;
+        case 'plugin:autostart|disable': state.autostart = false; return;
+        case 'take_whats_new_notes': { const notes = state.whatsNew; state.whatsNew = null; return clone(notes); }
+        case 'last_update_error': case 'check_for_updates': return null;
         case 'list_input_devices': return ['Fixture microphone'];
         case 'get_models_status': return clone(state.models);
         case 'get_cleanup_model_status': return clone(state.cleanupModel);
@@ -295,6 +301,10 @@ try {
     await wizard.runWizardSmoke({ checked, pageFixture, output, results });
     await wizard.runMicSmoke({ checked, output });
     await wizard.runWordsSmoke({ checked, output });
+  }
+  if (discoveryMode) {
+    const discovery = await import('./discovery-smoke.mjs');
+    await discovery.runDiscoverySmoke({ checked, pageFixture, output, results });
   }
   if (subscriptionMode) {
     const aiSettings = async page => { await settings(page); await page.getByRole('button', { name: 'AI cleanup', exact: true }).click(); };
@@ -504,7 +514,7 @@ try {
     }
     results.push({ name: '4 download recovery light/dark viewport captures and overflow checks', passed: true });
   }
-  if (!wizardMode && !apiMode && !guidedMode && !modelLicenseMode && !downloadMode && !subscriptionMode) {
+  if (!wizardMode && !apiMode && !guidedMode && !modelLicenseMode && !downloadMode && !subscriptionMode && !discoveryMode) {
   await checked('Keyboard switches, theme, typing focus and modal focus return', async page => {
     await settings(page);
     const name = page.getByRole('textbox', { name: 'Your name', exact: true });

@@ -92,6 +92,13 @@ pub struct Config {
     /// account (`identity::os_display_name`). Older configs without the key
     /// load as empty via the container-level `serde(default)`.
     pub display_name: String,
+    /// Ids of in-app spotlights already shown (opened or dismissed). The
+    /// registry lives in src/components/discovery/spotlights.ts; an entry
+    /// with a new id shows once to anyone whose list lacks it. Purely
+    /// cosmetic: never part of `text_processing_changed`.
+    pub seen_spotlights: Vec<String>,
+    /// The sidebar "Get started" checklist was hidden by the user.
+    pub getting_started_hidden: bool,
 }
 
 /// Overrides applied when dictating into a matching app. `None` = keep the
@@ -284,6 +291,8 @@ impl Default for Config {
             theme: "system".into(),
             mute_while_dictating: true,
             display_name: String::new(),
+            seen_spotlights: Vec::new(),
+            getting_started_hidden: false,
         }
     }
 }
@@ -402,6 +411,8 @@ mod tests {
         cosmetic.input_device = "Other microphone".into();
         cosmetic.model_name = "other-speech.bin".into();
         cosmetic.onboarding_completed = true;
+        cosmetic.seen_spotlights.push("vocabulary".into());
+        cosmetic.getting_started_hidden = true;
         assert!(!current.text_processing_changed(&cosmetic));
         assert!(!current.text_processing_changed(&current));
     }
@@ -583,6 +594,44 @@ mod tests {
         cfg.display_name = "João".into();
         cfg.save_to(&path).unwrap();
         assert_eq!(Config::load_from(&path).unwrap().display_name, "João");
+    }
+
+    #[test]
+    fn discovery_fields_default_for_old_configs() {
+        let defaults = Config::default();
+        assert!(defaults.seen_spotlights.is_empty());
+        assert!(!defaults.getting_started_hidden);
+        // A config written before the discovery fields existed.
+        let old: Config = serde_json::from_str(
+            r#"{"theme":"dark","onboarding_completed":true,"dictionary_words":["Mycel"]}"#,
+        )
+        .unwrap();
+        assert!(old.seen_spotlights.is_empty());
+        assert!(!old.getting_started_hidden);
+        assert!(old.onboarding_completed);
+        assert_eq!(old.dictionary_words, vec!["Mycel".to_string()]);
+    }
+
+    #[test]
+    fn discovery_fields_roundtrip_and_pass_through_ui_updates() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        let cfg = Config {
+            seen_spotlights: vec!["vocabulary".into(), "models".into()],
+            getting_started_hidden: true,
+            ..Config::default()
+        };
+        cfg.save_to(&path).unwrap();
+        let loaded = Config::load_from(&path).unwrap();
+        assert_eq!(loaded.seen_spotlights, vec!["vocabulary".to_string(), "models".to_string()]);
+        assert!(loaded.getting_started_hidden);
+        assert_eq!(loaded, cfg);
+
+        // The Settings/Shell webview owns both fields: a UI save applies them.
+        let mut live = Config::default();
+        live.apply_ui_update(cfg.clone());
+        assert_eq!(live.seen_spotlights, cfg.seen_spotlights);
+        assert!(live.getting_started_hidden);
     }
 
     #[test]

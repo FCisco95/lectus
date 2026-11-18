@@ -1,0 +1,304 @@
+/* In-app discovery: the spotlight popover (discovery/SpotlightPopover.tsx),
+   its artwork (discovery/illustrations.tsx) and the sidebar "Get started"
+   card (discovery/GettingStartedCard.tsx). Loaded after settings.css. */
+
+:root {
+  /* Logo petals plus the ink ring. Artwork only: controls stay on --accent. */
+  --disc-green: #22c55e;
+  --disc-orange: #f59e0b;
+  --disc-blue: #3b82f6;
+  --disc-coral: #f2564b;
+  --disc-ink: #15161b;
+  --disc-paper: #ffffff;
+
+  --disc-dim: rgba(20, 22, 30, 0.22);
+  --disc-pop-bg: #fbfbfd;
+  --disc-art-base: #f3f5f9;
+  --disc-wash: 20%;
+  --disc-chip: #ffffff;
+  --disc-chip-line: rgba(20, 22, 30, 0.08);
+  --disc-text: rgba(20, 22, 30, 0.13);
+  --disc-text-strong: rgba(20, 22, 30, 0.58);
+}
+
+html[data-theme="dark"] {
+  --disc-ink: #0c0d10;
+  --disc-paper: #f4f5f8;
+  --disc-dim: rgba(0, 0, 0, 0.45);
+  --disc-pop-bg: #1c1e25;
+  --disc-art-base: #22242c;
+  --disc-wash: 10%;
+  --disc-chip: #323541;
+  --disc-chip-line: rgba(255, 255, 255, 0.11);
+  --disc-text: rgba(255, 255, 255, 0.16);
+  --disc-text-strong: rgba(255, 255, 255, 0.72);
+}
+
+/* ---- Spotlight ---- */
+.spotlight-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+/* Transparent click catcher: a click anywhere off the popover dismisses. */
+.spotlight-backdrop {
+  position: absolute;
+  inset: 0;
+}
+
+/* The lit sidebar item. Its outer shadow is the window dim. */
+.spotlight-halo {
+  position: fixed;
+  border-radius: calc(var(--radius-md) + 3px);
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent),
+    0 0 0 200vmax var(--disc-dim);
+  cursor: pointer;
+  animation: modal-fade var(--duration-base) var(--ease-out);
+}
+.spotlight-halo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: spotlight-ping 1.6s var(--ease-out) 0.35s 2 both;
+}
+@keyframes spotlight-ping {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  to { box-shadow: 0 0 0 9px transparent; }
+}
+
+.spotlight {
+  position: fixed;
+  width: 302px;
+  max-width: calc(100vw - 24px);
+  padding: 10px;
+  background: var(--disc-pop-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2), 0 2px 6px rgba(0, 0, 0, 0.06);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  animation: spotlight-rise var(--duration-base) var(--ease-out);
+}
+@keyframes spotlight-rise {
+  from { opacity: 0; transform: translateX(-6px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Points left at the item; two bordered sides meet at the tip. */
+.spotlight-arrow {
+  position: absolute;
+  left: -7px;
+  top: calc(var(--spotlight-arrow, 50%) - 6px);
+  width: 12px;
+  height: 12px;
+  background: var(--disc-pop-bg);
+  border-left: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
+  border-bottom-left-radius: 3px;
+  transform: rotate(45deg);
+}
+
+.spotlight-art {
+  height: 120px;
+  border-radius: calc(var(--radius-lg) - 6px);
+  overflow: hidden;
+  background:
+    radial-gradient(150px 95px at 8% 0%, color-mix(in srgb, var(--disc-green) var(--disc-wash), transparent), transparent 70%),
+    radial-gradient(130px 85px at 96% 4%, color-mix(in srgb, var(--disc-orange) calc(var(--disc-wash) * 0.8), transparent), transparent 70%),
+    radial-gradient(170px 100px at 92% 104%, color-mix(in srgb, var(--disc-blue) var(--disc-wash), transparent), transparent 70%),
+    radial-gradient(130px 80px at 2% 104%, color-mix(in srgb, var(--disc-coral) calc(var(--disc-wash) * 0.7), transparent), transparent 70%),
+    var(--disc-art-base);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.spotlight-content { padding: 14px 6px 2px; }
+.spotlight-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+  line-height: 1.3;
+}
+.spotlight-body {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+.spotlight-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+/* .modal-close, shrunk to a glass dot over the artwork's empty corner. */
+.spotlight-close {
+  top: 16px;
+  right: 16px;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  font-size: 17px;
+  background: color-mix(in srgb, var(--disc-pop-bg) 78%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.spotlight-close:hover { background: var(--disc-pop-bg); }
+
+/* ---- Artwork ---- */
+.da-svg { display: block; width: 100%; height: 100%; }
+.da-chip { fill: var(--disc-chip); stroke: var(--disc-chip-line); stroke-width: 1; }
+.da-chip-focus { filter: drop-shadow(0 3px 6px rgba(20, 22, 30, 0.12)); }
+html[data-theme="dark"] .da-chip-focus { filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45)); }
+.da-selected { stroke: var(--accent); stroke-width: 1.5; }
+.da-text { fill: var(--disc-text); }
+.da-text-strong { fill: var(--disc-text-strong); }
+.da-wave { fill: none; stroke: var(--disc-text-strong); stroke-width: 2.6; stroke-linecap: round; opacity: 0.55; }
+.da-link { fill: none; stroke: var(--disc-text-strong); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 2 4; opacity: 0.6; }
+.da-check { fill: none; stroke: var(--disc-green); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.da-badge { fill: var(--accent); }
+.da-badge-check { fill: none; stroke: var(--accent-text); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.da-petal { fill: none; }
+.da-ink { fill: var(--disc-ink); }
+.da-paper { fill: var(--disc-paper); }
+html[data-theme="dark"] .da-ink { stroke: rgba(255, 255, 255, 0.22); stroke-width: 0.75; }
+.da-on-colour { fill: rgba(255, 255, 255, 0.85); }
+.da-bubble-front { stroke: var(--disc-art-base); stroke-width: 2; }
+.da-fill-green { fill: var(--disc-green); }
+.da-fill-orange { fill: var(--disc-orange); }
+.da-fill-blue { fill: var(--disc-blue); }
+.da-fill-coral { fill: var(--disc-coral); }
+.da-stroke-green { stroke: var(--disc-green); }
+.da-stroke-orange { stroke: var(--disc-orange); }
+.da-stroke-blue { stroke: var(--disc-blue); }
+.da-stroke-coral { stroke: var(--disc-coral); }
+
+/* ---- Get started ---- */
+.getting-started {
+  margin-top: auto;
+  padding: 11px 12px 8px;
+  background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-1);
+}
+/* The card takes the free space above the footer; the footer follows it. */
+.getting-started + .sidebar-foot { margin-top: var(--space-3); }
+
+.gs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.gs-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 650;
+  letter-spacing: -0.1px;
+}
+.gs-hide {
+  margin-right: -6px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+.gs-hide:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.gs-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 6px;
+}
+.gs-bar {
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-active);
+  overflow: hidden;
+}
+.gs-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 320ms var(--ease-out);
+}
+.gs-count {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.gs-list {
+  list-style: none;
+  margin: 0 -6px;
+  padding: 0;
+}
+.gs-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12.5px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+.gs-item:hover { background: var(--bg-hover); }
+.gs-item.done { color: var(--text-tertiary); }
+.gs-check {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  color: var(--bg-window);
+}
+.gs-item:hover .gs-check { border-color: var(--text-tertiary); }
+.gs-item.done .gs-check { border-color: var(--success); background: var(--success); }
+.gs-label { min-width: 0; text-wrap: balance; }
+
+.gs-hide:focus-visible,
+.gs-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* The sidebar is too narrow for the card below 820px (settings.css), and a
+   short window needs the room for Settings and Help, which never scroll. */
+@media (max-width: 820px), (max-height: 599px) {
+  .getting-started { display: none; }
+  .getting-started + .sidebar-foot { margin-top: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight,
+  .spotlight-halo,
+  .spotlight-halo::after { animation: none; }
+  .gs-bar > span { transition: none; }
+}

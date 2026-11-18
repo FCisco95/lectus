@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 
@@ -17,9 +18,13 @@ interface SidebarProps {
   onSelect: (id: SurfaceId) => void;
   onOpenSettings: () => void;
   version: string;
+  /** The "Get started" card, shown above the footer while it has steps left. */
+  getStarted?: ReactNode;
 }
 
-export function Sidebar({ active, onSelect, onOpenSettings, version }: SidebarProps) {
+// `data-surface` and `data-settings-trigger` are the anchors spotlights point
+// at (src/components/discovery/spotlights.ts).
+export function Sidebar({ active, onSelect, onOpenSettings, version, getStarted }: SidebarProps) {
   return (
     <nav className="sidebar">
       <div className="sidebar-group">
@@ -30,12 +35,15 @@ export function Sidebar({ active, onSelect, onOpenSettings, version }: SidebarPr
             className={`sidebar-item${active === s.id ? ' active' : ''}`}
             aria-current={active === s.id ? 'page' : undefined}
             onClick={() => onSelect(s.id)}
+            data-surface={s.id}
           >
             <span className="sidebar-icon"><Icon name={s.icon} /></span>
             {s.label}
           </button>
         ))}
       </div>
+
+      {getStarted}
 
       <div className="sidebar-foot">
         <button
@@ -52,6 +60,7 @@ export function Sidebar({ active, onSelect, onOpenSettings, version }: SidebarPr
           className={`sidebar-item${active === 'help' ? ' active' : ''}`}
           aria-current={active === 'help' ? 'page' : undefined}
           onClick={() => onSelect('help')}
+          data-surface="help"
         >
           <span className="sidebar-icon"><Icon name="help" /></span>
           Help
