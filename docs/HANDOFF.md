@@ -76,7 +76,8 @@ Previous handoff (access/Android Orca run): `docs/handoffs/archive/HANDOFF-2026-
 
 ## Next
 
-1. Clean-PC acceptance in Windows Sandbox. Owner enabled the feature 2026-11-18; it works after
+1. **Parked 2026-11-18 while the owner plans something new; do this first when Lectus resumes.**
+   Clean-PC acceptance in Windows Sandbox. Owner enabled the feature 2026-11-18; it works after
    his next restart. Harness: `scripts/diagnostics/sandbox-acceptance/` (README has the two
    commands). A full test installer is already built at
    `%TEMP%\lectus-test-installers\LectusInstallerTest_0.7.1.exe`; rebuild it if the release
