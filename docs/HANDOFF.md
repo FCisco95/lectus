@@ -1,83 +1,93 @@
 # Lectus - handoff
 
-Updated: 2026-11-13. Branch: feat/remote-dictation. No push/tag/installation.
+Updated: 2026-11-18. Branch: feat/remote-dictation. No tag, release or app replacement.
+Previous handoff (access/Android Orca run): `docs/handoffs/archive/HANDOFF-2026-11-13-access-android-run.md`.
 
-## Active work
+## Done 2026-11-18 (owner request: professional installer + section notices + signing)
 
-Run `run_db09bc5a3181`. Initial four discovery reports are complete and read.
-The owner requested more aggressive parallel execution. Seven follow-up assignments
-are submitted: review, policy, auth, receipts, grant races, Android UI and tooling.
-Five launches are confirmed; auth and policy returned `outcome_unknown` after
-input acceptance. Do not resend or infer failure; follow their Orca receipts.
-Earlier hook menus cleared: both retained sessions were observed Ready before
-reuse. The coordinator did not trust hooks or send worker-terminal input.
-Next: consume reports, verify results, inspect the Android screenshots, and dispatch
-newly ready independent work. Complete design/review/owner approval precedes product code.
+- One-click installer: `src-tauri/windows/installer.nsi`, forked from the stock Tauri 2.11.2
+  template (2d01631 is the unmodified copy, c1ac028 the changes). A double-click shows one
+  borderless window ("Getting Lectus ready": logo, thin accent bar, light/dark, Windows
+  language), installs in place and opens the app. The updater's `/P /UPDATE /R` path uses
+  the same window. `/S` is silent and `/NOLAUNCH` skips the launch.
+- One-click fixes over stock passive mode:
+  - asks before closing a running Lectus;
+  - never runs the old uninstaller, so shortcuts and the Run key survive;
+  - asks before a downgrade;
+  - adds the desktop shortcut only on a first install;
+  - deletes stale `backends\*.dll`;
+  - quiet WebView2 download;
+  - failure state with a button.
+- Config: language selector off (Terms are accepted in the app wizard), NSIS only on Windows,
+  `@tauri-apps/cli` pinned 2.11.2. `scripts/check-nsis-template.mjs` (in
+  beforeBundleCommand) fails if the stock template changes.
+- Acceptance kit: `-InstallMode OneClick`, because `/S` skips the one-click logic.
+- Signing hook (ba470dc): `src-tauri/tauri.signing.conf.json` plus `scripts/sign-windows.ps1`,
+  merged only into release builds; it needs `LECTUS_SIGN_CERT_SHA1`. Tested with a temporary
+  self-signed cert, which was removed. Tauri signs the exe, DLLs, backends, setup and
+  uninstaller, and signs resource DLLs in place in the target dir.
+- In-app discovery:
+  - one spotlight per session, after the first dictation, for Vocabulary, Dictations,
+    Models and AI cleanup;
+  - sidebar "Get started" card: dictate once, add a word, start with Windows;
+  - config `seen_spotlights` and `getting_started_hidden`;
+  - files: `src/components/discovery/`, `src/styles/discovery.css`;
+  - tests: `UI_SMOKE_DISCOVERY=1` and `scripts/discovery-smoke.mjs`.
 
-## Authoritative pointers
+## Verification
 
-- `docs/handoffs/2026-11-13-orca-architect-prompt.md`: authorization and boundaries.
-- `docs/handoffs/2026-11-13-access-android-coordination.md`: DAG, identities and evidence.
-- `docs/designs/2026-11-13-access-and-android.md`: engineering draft, NOT approval packet.
-- `.context/lectus-access-android-20261113/`: ignored reports/labs/receipts; not portable.
-  Initial source base `3b17365`; subsequent coordinator commits only change docs.
+- Installer runs used side-by-side "Lectus Installer Test" builds: never published, and the
+  legal gate ran without `--release`. Scenarios passed: fresh, same version, upgrade,
+  downgrade (No), `/P /UPDATE`, `/S`, running-app prompt, locked-file failure, and both
+  uninstalls. The real install hash, its Run key and its uninstall key were unchanged.
+- Full payload: about 13 s in the window. The bar reaches 90% in about 5 s, then waits about
+  7 s on the large model.
+- App: `npm run build`. Discovery smoke 9/9, default 13/13, wizard 26/26.
+  `test-release.cmd`: 312 passed, 0 failed, 13 ignored.
+- Testing gotcha: from Git Bash set `MSYS_NO_PATHCONV=1`. Otherwise `/NOLAUNCH` turns into
+  `C:/Program Files/Git/NOLAUNCH`, NSIS reads `/P` and runs passive.
 
-## Settled product requirements
+## Not verified / known limits
 
-- Local AI target about EUR 5/month; no publisher-funded inference. Existing BYO
-  providers stay with user billing and explicit processing consent.
-- Paid/gift access uses passwordless email without requiring crypto. Gifts grant
-  1/3/12 months to friends/others; selling gift cards was not decided.
-- Community/holder access remains an alternative. Two personal devices can include
-  desktop+Android; paid/gift access works offline for the activated period.
-- Android first; iOS excluded. Wispr Flow is a browser-login/recovery UX reference,
-  not evidence of its implementation or permission to clone it.
-- No registered company; individual publishing provisional; public identity unset.
-  Owner describes Organic/Mycel fairlaunches traded on DEXs, not a legal classification
-  or proof of any MiCA/free-offer exemption.
+- `/R` and the auto-launch at the end: launching the test copy could rewrite the real Run key
+  (`autostart.rs` hard-codes `%LOCALAPPDATA%\Lectus\chirp.exe`).
+- 150% and 200% DPI. The real-name title widths ("Getting Lectus ready" and its translations).
+- Discovery in native WebView2 (real autostart plugin, hidden window).
+- The failure button reads NSIS's localized "Cancel": NSIS resets the text and it can't be
+  posted later.
+- A real-name installer stays blocked by `legal/manifest.json`. Final acceptance means the
+  owner runs it over his install, and that needs his OK at the time.
 
-## Proposals and pending decisions
+## Owner decisions open
 
-Proposed defaults: equal features across access routes; one-use gifts start on
-redemption, need no card and never autocharge; retain the seven-day trial.
-Pending owner question: Play with in-app subscription (coordinator recommendation),
-Play consumption-only plus website subscription, or APK first. No answer recorded.
-Still material: long offline validity versus replacement/strict two-device use;
-holder identity/freshness migration, trial/recovery, time uncertainty and gift overlap.
-A positive holder cache currently has no age-based expiry; seven days would change behavior.
-Android requires native IME/device proof; local cleanup/translation parity is unproved.
-Provider eligibility, jurisdiction/taxes/final price and publication identity remain open.
+- Code signing. Recommended: a Certum individual OV certificate in the cloud (SimplySign),
+  about EUR 139-209 a year. Azure Artifact Signing does not accept EU individuals. Expect
+  SmartScreen to show the owner's legal name and to keep warning until downloads build
+  reputation; renewals may reset it. Signing locally is recommended over CI, where Certum
+  needs a long-lived TOTP secret.
+- After the certificate: set `bundle.publisher`, which also fixes Apps & Features showing
+  "organic". Keep reading the old `Software\organic\Lectus` key.
+- The website "Open Lectus in 3 steps" page waits for a public site. The Microsoft Store /
+  MSIX route is the only way to remove SmartScreen warnings entirely.
 
-## Existing source and acceptance
+## Still open from the access/Android run (run_db09bc5a3181)
 
-Wizard, trial, sound-alikes/prompt budget, bounded scan and NSIS art are complete
-through ca23c01; review fixes 061a023. Historical checks: 310 native passes/13 ignored;
-frontend build, 25 wizard, 11 guided and 18 legal tests. UI IPC is mocked.
-No fresh installer/microphone-permission acceptance; macOS uncompiled and real
-Windows-to-Mac insertion pending. Discovery did not repeat unchanged full suites.
-History/art paths: `docs/handoffs/archive/HANDOFF-2026-11-13-setup-complete.md`.
+Seven follow-up assignments were submitted. Auth and policy returned `outcome_unknown`; follow
+their Orca receipts and do not resend. The Android channel question and full design approval
+are pending. Pointers: `docs/handoffs/2026-11-13-orca-architect-prompt.md`,
+`docs/handoffs/2026-11-13-access-android-coordination.md`,
+`docs/designs/2026-11-13-access-and-android.md`.
 
-## Release gates
+## Release gates (unchanged)
 
-`legal/manifest.json` is unchanged/unapproved. Publisher, licence/support, identity
-disclosures and third-party obligations remain unresolved. Privacy wording must
-include shortcut practice/permission tests when legal drafts are finalized.
-Four owner WAVs and bias benchmark precede prompt changes; myself/Mycel ambiguity
-and automatic word learning remain separate. Official ChatGPT/Claude login and
-real inference still need a fresh candidate/readiness check and native acceptance.
-No capture/injection/shortcut change or installed-app replacement is authorized.
-
-## Artifacts and suggested skills
-
-Only docs plus ignored disposable synthetic labs are authorized in this phase.
-No keys/accounts/services/deployments created by the coordinator. Usage totals unavailable.
-Use task-observer, model-router, orca-cli, orchestration, parallel-feature-development;
-brainstorming/grill-me for material gaps. Writing-plans only after full design approval.
+- `legal/manifest.json` is unapproved, and publisher, licence and identity are unresolved.
+- No capture, injection or shortcut change, and no installed-app replacement, without the
+  owner.
+- Official ChatGPT/Claude login and real inference still need native acceptance. macOS is
+  uncompiled.
 
 ## Next-session prompt
 
 ```text
-Resume Lectus Run run_db09bc5a3181. Read docs/HANDOFF.md, docs/handoffs/2026-11-13-orca-architect-prompt.md, docs/handoffs/2026-11-13-access-android-coordination.md and docs/designs/2026-11-13-access-and-android.md. Initial discovery is complete; seven follow-up assignments were submitted. Inspect existing identities, handle reports/questions and dispatch the ready independent frontier without duplicating unknown launches. The Android-channel question and full design approval remain pending.
-Model: gpt-6-astra xhigh — cross-platform architecture and auth/billing supervision.
-Skills: task-observer, model-router, orca-cli, orchestration, parallel-feature-development, brainstorming, grill-me.
+Continue Lectus on feat/remote-dictation from docs/HANDOFF.md. The one-click installer, signing hook and in-app discovery are committed and tested on side-by-side test builds. Next: owner decision on the code-signing certificate, then a real-name candidate once legal approves, and owner-run acceptance (auto-launch, /R, DPI). Keep publication and installed-app gates closed.
 ```
