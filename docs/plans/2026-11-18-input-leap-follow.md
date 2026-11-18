@@ -20,6 +20,32 @@ read at commit `34a34fb` (last upstream commit, 2025-11-27). IL = Input Leap.
 5. **Do not design the component installer yet.** Build it only if the prototype passes the gate,
    and decide then whether the engine is IL (archived) or Deskflow (active).
 
+## Owner direction (same day, after reading the plan)
+
+- The owner tried the shipped Send/Receive feature and did not get on with it: "not
+  straightforward". So the base remote delivery counts as tried and not adopted, not as proven.
+- The real goal is wider than following IL: one app that shares the **keyboard, mouse and
+  microphone** between two computers on the same network, more efficient than IL, with dictation
+  inside it. That is what would set Lectus apart. Coordinating IL is a stepping stone at most.
+- Consequence for this plan: the prototype above still answers "is dictation that follows the
+  computer worth having", but the engine question moves to the front. Three candidates:
+  1. **Fork IL.** C++/Qt, GPL-2.0, archived, no upstream. Every fix is ours and stays GPL.
+  2. **Own narrow engine inside Lectus**, Rust, PC to Mac only. Lectus already has a keyboard
+     hook on both systems and text injection. The active computer is then known by construction,
+     which removes the main unknown and the log reader. Cost: key mapping, modifier state, stuck
+     keys, clipboard, elevated windows. No IL code may be copied (GPL); the design must be ours.
+  3. **Deskflow as the engine.** Active, same ancestry, same licence constraints as IL.
+- **Find the lag before choosing.** "More efficient" only pays off if IL itself is the cause.
+  Cheap checks, in order: `ping` PC to Mac for jitter and loss (the Mac is likely on Wi-Fi, and
+  IL sends mouse moves over TCP+TLS, which stalls on a lost packet); the same session on a
+  release build instead of the Debug one; the same session with Deskflow. If the network is the
+  cause, an own engine helps only if it moves pointer traffic to UDP. If the Debug build is the
+  cause, no rewrite is needed to fix the lag.
+- **Microphone.** For dictation, sending the finished text is already the efficient path: no
+  audio leaves the PC. Sharing the microphone as an audio device on the Mac (calls, recordings)
+  is a different feature: audio streaming plus a virtual input device on macOS, with its own
+  install and signing cost. Open question to the owner: which of the two is wanted.
+
 ## Starting point
 
 | | In code (this branch) | Shipped (v0.7.1) | Shown on the real PC + Mac |

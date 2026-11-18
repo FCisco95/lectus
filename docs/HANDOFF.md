@@ -93,7 +93,10 @@ log (`switch from "A" to "B"`); the Mac stays on 0.7.1 Receive; destination lock
 Input Leap upstream was archived 2026-07-26 and has no supported active-screen interface on
 Windows/macOS. Open: owner runs Step 0 of the plan (15 minutes, no code) to learn whether PC
 Lectus sees the dictation key while Input Leap relays to the Mac. Building the prototype needs
-the owner's approval (destination routing). Real PC-to-Mac insertion is still unverified.
+the owner's approval (destination routing). Owner tried Send/Receive and found it "not
+straightforward". His wider goal: one app sharing keyboard, mouse and microphone, more efficient
+than Input Leap. Engine choice (fork, own Rust engine, Deskflow) waits on a lag diagnosis and on
+whether the microphone is needed for dictation only or as an audio device on the Mac.
 
 ## Still open from the access/Android run (run_db09bc5a3181)
 
