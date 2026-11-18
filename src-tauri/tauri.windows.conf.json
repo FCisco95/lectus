@@ -7,6 +7,10 @@
       "target/release/ggml-base.dll": "ggml-base.dll",
       "target/release/llama.dll": "llama.dll",
       "target/release/llama-common.dll": "llama-common.dll",
+      "target/release/msvcp140.dll": "msvcp140.dll",
+      "target/release/vcruntime140.dll": "vcruntime140.dll",
+      "target/release/vcruntime140_1.dll": "vcruntime140_1.dll",
+      "target/release/vcomp140.dll": "vcomp140.dll",
       "target/release/build/llama-cpp-sys-2-*/out/backends/*.dll": "backends/"
     }
   }

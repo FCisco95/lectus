@@ -60,6 +60,11 @@ ${StrLoc}
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCTNAME}"
 !define MANUKEY "Software\${MANUFACTURER}"
 !define MANUPRODUCTKEY "${MANUKEY}\${PRODUCTNAME}"
+; Lectus: up to 0.7.1 there was no bundle.publisher, so Tauri derived the manufacturer
+; "organic" from the identifier and saved the install dir under Software\organic\<product>.
+; Read it as a fallback, and remove it once the current key is written.
+!define LEGACYMANUKEY "Software\organic"
+!define LEGACYMANUPRODUCTKEY "${LEGACYMANUKEY}\${PRODUCTNAME}"
 !define UNINSTALLERSIGNCOMMAND "{{uninstaller_sign_cmd}}"
 !define ESTIMATEDSIZE "{{estimated_size}}"
 !define STARTMENUFOLDER "{{start_menu_folder}}"
@@ -405,6 +410,7 @@ Function PageLeaveReinstall
       ExecWait '$R1' $0
     ${Else}
       ReadRegStr $4 SHCTX "${MANUPRODUCTKEY}" ""
+      ${IfThen} $4 == "" ${|} ReadRegStr $4 SHCTX "${LEGACYMANUPRODUCTKEY}" "" ${|}
       ReadRegStr $R1 SHCTX "${UNINSTKEY}" "UninstallString"
       ${IfThen} $UpdateMode = 1 ${|} StrCpy $R1 "$R1 /UPDATE" ${|} ; append /UPDATE
       ${IfThen} $PassiveMode = 1 ${|} StrCpy $R1 "$R1 /P" ${|} ; append /P
@@ -540,6 +546,7 @@ FunctionEnd
   LangString lectusCloseApp ${LANG_ENGLISH} "${PRODUCTNAME} is open. Close it and continue installing?"
   LangString lectusDowngrade ${LANG_ENGLISH} "A newer version of ${PRODUCTNAME} ($InstalledVersion) is already installed. Replace it with version ${VERSION}?"
   LangString lectusWebView2 ${LANG_ENGLISH} "Installing Microsoft WebView2..."
+  LangString lectusNeedsVulkan ${LANG_ENGLISH} "${PRODUCTNAME} needs a graphics driver with Vulkan support, and this PC does not have one yet.$\n$\nInstall the latest graphics driver from your PC maker, or from NVIDIA, AMD or Intel, then run this installer again."
   LangString lectusFontTitle ${LANG_ENGLISH} "Segoe UI Variable Display"
   LangString lectusFontBody ${LANG_ENGLISH} "Segoe UI Variable Text"
 !endif
@@ -554,6 +561,7 @@ FunctionEnd
   LangString lectusCloseApp ${LANG_PORTUGUESE} "O ${PRODUCTNAME} está aberto. Fechar e continuar a instalação?"
   LangString lectusDowngrade ${LANG_PORTUGUESE} "Já está instalada uma versão mais recente do ${PRODUCTNAME} ($InstalledVersion). Substituir pela versão ${VERSION}?"
   LangString lectusWebView2 ${LANG_PORTUGUESE} "A instalar o Microsoft WebView2..."
+  LangString lectusNeedsVulkan ${LANG_PORTUGUESE} "O ${PRODUCTNAME} precisa de um driver gráfico com suporte para Vulkan, e este PC ainda não o tem.$\n$\nInstale o driver gráfico mais recente do fabricante do PC, ou da NVIDIA, AMD ou Intel, e execute este instalador novamente."
   LangString lectusFontTitle ${LANG_PORTUGUESE} "Segoe UI Variable Display"
   LangString lectusFontBody ${LANG_PORTUGUESE} "Segoe UI Variable Text"
 !endif
@@ -568,6 +576,7 @@ FunctionEnd
   LangString lectusCloseApp ${LANG_SIMPCHINESE} "${PRODUCTNAME} 正在运行。要关闭它并继续安装吗？"
   LangString lectusDowngrade ${LANG_SIMPCHINESE} "已安装较新版本的 ${PRODUCTNAME}（$InstalledVersion）。要替换为 ${VERSION} 版本吗？"
   LangString lectusWebView2 ${LANG_SIMPCHINESE} "正在安装 Microsoft WebView2..."
+  LangString lectusNeedsVulkan ${LANG_SIMPCHINESE} "${PRODUCTNAME} 需要支持 Vulkan 的显卡驱动程序，但这台电脑尚未安装。$\n$\n请从电脑制造商或 NVIDIA、AMD、Intel 安装最新的显卡驱动程序，然后重新运行此安装程序。"
   LangString lectusFontTitle ${LANG_SIMPCHINESE} "Microsoft YaHei UI"
   LangString lectusFontBody ${LANG_SIMPCHINESE} "Microsoft YaHei UI"
 !endif
@@ -582,6 +591,7 @@ FunctionEnd
   LangString lectusCloseApp ${LANG_TRADCHINESE} "${PRODUCTNAME} 正在執行。要關閉它並繼續安裝嗎？"
   LangString lectusDowngrade ${LANG_TRADCHINESE} "已安裝較新版本的 ${PRODUCTNAME}（$InstalledVersion）。要以 ${VERSION} 版取代嗎？"
   LangString lectusWebView2 ${LANG_TRADCHINESE} "正在安裝 Microsoft WebView2..."
+  LangString lectusNeedsVulkan ${LANG_TRADCHINESE} "${PRODUCTNAME} 需要支援 Vulkan 的顯示卡驅動程式，但這部電腦尚未安裝。$\n$\n請從電腦製造商或 NVIDIA、AMD、Intel 安裝最新的顯示卡驅動程式，然後重新執行此安裝程式。"
   LangString lectusFontTitle ${LANG_TRADCHINESE} "Microsoft JhengHei UI"
   LangString lectusFontBody ${LANG_TRADCHINESE} "Microsoft JhengHei UI"
 !endif
@@ -618,6 +628,21 @@ Function .onInit
   !if "${DISPLAYLANGUAGESELECTOR}" == "true"
     !insertmacro MUI_LANGDLL_DISPLAY
   !endif
+
+  ; Lectus: chirp.exe imports vulkan-1.dll at load time (whisper's GPU backend). The Vulkan
+  ; loader ships with the graphics driver; without it the app cannot start at all, so stop
+  ; before anything changes, with a message that says what to do. Silent installs and
+  ; updates skip the check: an update means the app already runs on this PC.
+  ${IfNot} ${Silent}
+  ${AndIf} $UpdateMode <> 1
+    ${DisableX64FSRedirection}
+    ${IfNot} ${FileExists} "$SYSDIR\vulkan-1.dll"
+      ${EnableX64FSRedirection}
+      MessageBox MB_OK|MB_ICONEXCLAMATION "$(lectusNeedsVulkan)"
+      Quit
+    ${EndIf}
+    ${EnableX64FSRedirection}
+  ${EndIf}
 
   ; One-click: ask before closing a running Lectus, before anything changes, so a
   ; double-click never ends a dictation silently. The updater (/P) keeps the stock
@@ -829,6 +854,10 @@ Section Install
 
   ; Save $INSTDIR in registry for future installations
   WriteRegStr SHCTX "${MANUPRODUCTKEY}" "" $INSTDIR
+  !if "${MANUKEY}" != "${LEGACYMANUKEY}"
+    DeleteRegKey SHCTX "${LEGACYMANUPRODUCTKEY}"
+    DeleteRegKey /ifempty SHCTX "${LEGACYMANUKEY}"
+  !endif
 
   !if "${INSTALLMODE}" == "both"
     ; Save install mode to be selected by default for the next installation such as updating
@@ -1080,6 +1109,7 @@ SectionEnd
 
 Function RestorePreviousInstallLocation
   ReadRegStr $4 SHCTX "${MANUPRODUCTKEY}" ""
+  ${IfThen} $4 == "" ${|} ReadRegStr $4 SHCTX "${LEGACYMANUPRODUCTKEY}" "" ${|}
   StrCmp $4 "" +2 0
     StrCpy $INSTDIR $4
 FunctionEnd
