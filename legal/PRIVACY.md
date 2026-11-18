@@ -1,8 +1,10 @@
-# Lectus Privacy Notice — factual draft
+# Lectus Privacy Notice: factual draft
 
-Public privacy contact: bakehouselabs@proton.me.
+Controller: João Francisco Vieira, an individual based in Portugal, trading as Bakehouse Labs.
 
-This notice describes the implementation being prepared. Publisher identity, controller/processor roles, lawful bases, international-transfer disclosures and applicable rights/contact procedures need review before distribution. It is not a completed GDPR compliance statement.
+Privacy contact: bakehouselabs@proton.me.
+
+This notice describes the implementation being prepared. The controller's geographic address, controller/processor roles, lawful bases, international-transfer disclosures and applicable rights/contact procedures need review before distribution. It is not a completed GDPR compliance statement.
 
 ## Microphone and local processing
 
@@ -38,6 +40,6 @@ Choose local processing to avoid sending dictation audio/text to a model provide
 
 ## Legal acknowledgements
 
-When final Terms are available, their accepted version/content fingerprint and acceptance time are stored on this device. This is a local receipt, not tamper-proof independent evidence. Acknowledging the Privacy Notice is not blanket consent to optional processing. The final notice must identify the actual publisher and explain applicable data rights and a working contact route before public distribution.
+When final Terms are available, their accepted version/content fingerprint and acceptance time are stored on this device. This is a local receipt, not tamper-proof independent evidence. Acknowledging the Privacy Notice is not blanket consent to optional processing. Before public distribution the final notice must add the controller's address and explain applicable data rights, including the right to complain to the Portuguese data protection authority (CNPD), with a working contact route.
 
 The optional Gemma model agreement has its own local receipt in model-license-gemma-3.json, containing only the model/document version, content fingerprint and acceptance time. Refusing it or revoking it blocks future Gemma use without deleting previous dictations or model files. An already-admitted processing operation may finish. The receipt is not uploaded by Lectus and does not grant cloud-processing permission.

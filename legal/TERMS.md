@@ -1,12 +1,14 @@
-# Lectus Terms — draft, not approved for distribution
+# Lectus Terms: draft, not approved for distribution
 
-This working draft is not a final agreement. Publisher identification, business/contact arrangements, applicable consumer provisions and intended markets remain unresolved. Do not ask users to accept this draft as final Terms.
+This working draft is not a final agreement. The publisher's address and tax details, business/contact arrangements, applicable consumer provisions and intended markets remain unresolved. Do not ask users to accept this draft as final Terms.
 
 ## Publisher and contact
 
-Public support contact: bakehouselabs@proton.me.
+Lectus is published by João Francisco Vieira, an individual based in Portugal, under the trading name Bakehouse Labs. Bakehouse Labs is a trading name, not a company.
 
-The legal publisher must be identified before distribution. Lectus is a product name, not a claim that a company has been incorporated. No private personal information should be inserted here without an explicit publication decision and review of applicable disclosure requirements.
+Support: bakehouselabs@proton.me.
+
+Before publication this section must also give the publisher's geographic address and tax number (NIF), which Portuguese law asks online service providers to keep available (Decreto-Lei n.º 7/2004, article 10). The address can be a business address rather than a home address. Confirm the exact list with an accountant or lawyer.
 
 ## What Lectus does
 
@@ -25,6 +27,8 @@ Use only audio and text you are entitled to process. Obtain any permissions requ
 ## Software and model licenses
 
 Third-party components and downloaded models remain subject to their respective licenses. Whisper, Qwen and Gemma are separate projects; model access does not transfer their intellectual property. Attribution, source-availability and model-use obligations must be distributed as required. The accompanying notices identify these components; no proprietary or open-source license for Lectus itself is asserted by this draft.
+
+The Windows version includes Microsoft Visual C++ runtime files (msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll and vcomp140.dll), redistributed as Distributable Code under the Microsoft Visual Studio license terms. Microsoft and its suppliers keep all rights in them. You may use them only as part of Lectus, and you may not modify, reverse engineer, decompile or disassemble them, except where the law allows it despite this limit.
 
 Gemma 3 cleanup is optional and requires a separate affirmative acceptance of the bundled Google Gemma Terms of Use and incorporated Gemma Prohibited Use Policy. When using that model, you must comply with its use restrictions, including Section 3.2 of those Terms. Copies, the required Notice and document provenance are supplied with the software. Refusing or revoking the model agreement leaves ordinary dictation available and does not enable a cloud provider. This technical acceptance flow does not replace review of the final distribution agreement.
 

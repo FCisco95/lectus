@@ -5,8 +5,9 @@
   "identity_disclosures_reviewed": false,
   "third_party_notices_reviewed": false,
   "publisher": {
-    "kind": "undecided",
-    "legal_name": "",
+    "kind": "individual",
+    "legal_name": "João Francisco Vieira",
+    "trading_name": "Bakehouse Labs",
     "country": "PT",
     "support_email": "bakehouselabs@proton.me",
     "privacy_email": "bakehouselabs@proton.me"
