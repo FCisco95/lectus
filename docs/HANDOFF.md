@@ -62,6 +62,9 @@ Previous handoff (access/Android Orca run): `docs/handoffs/archive/HANDOFF-2026-
   money or partners. Paid plans should go through a Merchant of Record, but check
   `.context/lectus-access-android-20261113/billing-policy.md` first (Paddle bans vouchers,
   Lemon Squeezy bans crypto-related products).
+- 2026-11-18: for the lag diagnosis only, the owner authorized installing a release build of
+  Input Leap and Deskflow on the PC and the Mac. He also wants the two computers linked with
+  one click, never by typing or guessing an IP.
 
 ## Release gates (open)
 
@@ -96,8 +99,9 @@ Lectus sees the dictation key while Input Leap relays to the Mac. Building the p
 the owner's approval (destination routing). Owner tried Send/Receive and found it "not
 straightforward". His wider goal: one app sharing keyboard, mouse and microphone, more efficient
 than Input Leap. Microphone decided: dictation only on both computers, so text is sent, never
-audio. Engine choice (fork, own Rust engine, Deskflow) waits on a lag diagnosis: next session,
-compare the Debug Input Leap build with a release build and with Deskflow (needs installs).
+audio. Engine choice (fork, own Rust engine, Deskflow) waits on a lag diagnosis. **Next session:
+run "Next session: lag diagnosis and the address problem" in the plan** (installs authorized,
+see Owner decisions). First network sample: median 4 ms, max 108 ms, no loss, in the plan.
 
 ## Still open from the access/Android run (run_db09bc5a3181)
 
@@ -108,5 +112,7 @@ Android channel question and full design approval are pending. See
 ## Next-session prompt
 
 ```text
-Continue Lectus on feat/remote-dictation from docs/HANDOFF.md. Installer now ships the MSVC runtime, checks for Vulkan, publishes as Bakehouse Labs; legal identity is the owner trading as Bakehouse Labs. Next: run scripts/diagnostics/sandbox-acceptance (Windows Sandbox is enabled; needs the owner's restart first), then legal disclosures and approval. Keep publication and installed-app gates closed.
+Lectus, feat/remote-dictation, read docs/HANDOFF.md first. The owner's current priority is the lag diagnosis in docs/plans/2026-11-18-input-leap-follow.md, section "Next session: lag diagnosis and the address problem": first make the Mac reach the PC by name instead of IP, then compare the Debug Input Leap build with a release build and with Deskflow, with numbers. Installs of those two are authorized for this purpose; review each download first and keep the current setup restorable. No Lectus capture, injection or shortcut change without asking.
+
+Parked installer work, for when that is done: Installer now ships the MSVC runtime, checks for Vulkan, publishes as Bakehouse Labs; legal identity is the owner trading as Bakehouse Labs. Next: run scripts/diagnostics/sandbox-acceptance (Windows Sandbox is enabled; needs the owner's restart first), then legal disclosures and approval. Keep publication and installed-app gates closed.
 ```

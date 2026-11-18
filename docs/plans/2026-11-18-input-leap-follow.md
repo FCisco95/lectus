@@ -50,6 +50,31 @@ read at commit `34a34fb` (last upstream commit, 2025-11-27). IL = Input Leap.
   is large enough to feel as a pointer stutter over TCP. One sample, not a finding. Repeat during
   a real working session and with the Mac on cable or closer to the router.
 
+- **One-click link, never an IP.** Owner requirement: link the two computers with one click
+  instead of guessing the address. In the product this is Lectus's job: pair once, then "Connect"
+  finds the peer by its paired identity (the mDNS discovery that already exists for text) and
+  hands the current address to the engine. Whatever engine wins must accept an address or name
+  from Lectus at start, with no manual field.
+
+## Next session: lag diagnosis and the address problem (owner authorized the installs)
+
+Authorized 2026-11-18, for this purpose only: install a release build of Input Leap and Deskflow
+on the PC and the Mac. Review each download before installing. Keep the current Debug folder and
+config so the setup can be put back.
+
+1. Address, zero install: on the Mac, check whether the PC name resolves
+   (`dns-sd -G v4 <pc-name>.local`, then `ping`). If it does, point the client at the name
+   instead of the IP. That alone ends the IP edits for today's setup. If it does not, note why
+   (Windows firewall mDNS rule, network profile) before changing anything.
+2. Baseline with the current Debug build: 10 minutes of normal work on the Mac through the
+   link, `ping` running, count the visible stutters and the disconnects in the server log.
+3. Same 10 minutes on a release build of Input Leap (v3.0.2 is the last one with installers).
+4. Same 10 minutes on Deskflow. Note whether it finds the other computer without an address.
+5. If possible, repeat the worst case with the Mac on cable or next to the router.
+6. Decide: release build or network fixes the lag, so no own engine is needed for lag; or the
+   lag stays, so an own engine with pointer traffic over UDP is justified. Record the numbers
+   here and the outcome in `docs/HANDOFF.md`.
+
 ## Starting point
 
 | | In code (this branch) | Shipped (v0.7.1) | Shown on the real PC + Mac |
