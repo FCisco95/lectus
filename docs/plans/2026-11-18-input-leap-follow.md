@@ -49,6 +49,13 @@ read at commit `34a34fb` (last upstream commit, 2025-11-27). IL = Input Leap.
   p95 16 ms, max 108 ms, 2 of 60 over 20 ms. The typical delay is fine; the occasional spike
   is large enough to feel as a pointer stutter over TCP. One sample, not a finding. Repeat during
   a real working session and with the Mac on cable or closer to the router.
+- **Second sample** (2026-11-19 23:35-23:45, 600 pings by name, cursor on the PC the whole
+  time, so IL sent no input to the Mac): no loss, median 12 ms, p95 101 ms, p99 116 ms, max
+  700 ms; 261/600 over 20 ms, 179 over 50 ms, spread evenly from 0 to 120 ms through the
+  whole run. One IL disconnect (TLS EOF, 23:38:52, reconnected in 1 s) while idle. The flat
+  0-120 ms spread looks like Mac Wi-Fi power save (one beacon interval is about 102 ms), not
+  congestion. Unverified; it may disappear while the Mac receives steady traffic, which is
+  what the next run with the cursor on the Mac checks.
 
 - **One-click link, never an IP.** Owner requirement: link the two computers with one click
   instead of guessing the address. In the product this is Lectus's job: pair once, then "Connect"
