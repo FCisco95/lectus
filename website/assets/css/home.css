@@ -345,7 +345,7 @@
 /* ---- Pricing ---- */
 .price-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(32px, 5vw, 72px); align-items: start; }
 .price-grid .lede { margin-top: 20px; }
-.price-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.price-cards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 .price-card { display: flex; flex-direction: column; padding: 26px 26px 28px; border-radius: var(--r-4); background: var(--card); border: 1px solid var(--green); box-shadow: 0 0 0 3px var(--green-wash), var(--shadow-2); }
 .price-card-quiet { border-color: var(--line-2); box-shadow: none; background: transparent; }
 .price-name { font-weight: 700; color: var(--ink-3); }

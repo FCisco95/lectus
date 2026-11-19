@@ -112,6 +112,7 @@
 .prose li { position: relative; padding-left: 22px; }
 .prose li::before { content: ""; position: absolute; left: 2px; top: 0.62em; width: 8px; height: 8px; border-radius: 50%; background: var(--green-bright); }
 .prose .note { margin-top: 28px; }
+.prose .note p { margin-top: 0; }
 
 /* ---- Not found ---- */
 .lost { min-height: 62vh; display: grid; align-content: center; justify-items: start; gap: 22px; padding-block: 72px; }
