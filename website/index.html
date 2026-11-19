@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lectus: voice dictation for Windows that runs on your own computer</title>
+<meta name="description" content="Hold a key, speak, and your words land in whatever text field you were already in. Lectus turns speech into text on your own computer. Windows 10 and 11.">
+<meta name="theme-color" content="#f3f5ee">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Lectus: talk, and it types">
+<meta property="og:description" content="Voice dictation for Windows that works in any app and runs on your own computer.">
+<meta property="og:image" content="assets/img/share.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="assets/img/lectus-mark-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<link rel="preload" href="assets/fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/atkinson-next-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/demo.css">
+<link rel="stylesheet" href="assets/css/home.css">
+<script type="module" src="assets/js/site.js"></script>
+<script type="module" src="assets/js/demos.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header" data-header>
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="Lectus home"><img src="assets/img/lectus-mark-64.png" width="30" height="30" alt="">Lectus</a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
+      <span class="visually-hidden">Menu</span>
+      <svg class="bars" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14"/></svg>
+      <svg class="x" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15"/></svg>
+    </button>
+    <nav class="site-nav" id="site-nav" aria-label="Main" data-nav>
+      <ul>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#privacy">Privacy</a></li>
+        <li><a href="changelog/">What's new</a></li>
+        <li class="nav-cta"><a class="btn btn-primary" href="download/?dl=1">Download for Windows</a></li>
+      </ul>
+    </nav>
+    <div class="header-cta">
+      <a class="btn btn-primary btn-sm" href="download/?dl=1">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="dl-arrow" d="M10 3v10m0 0 4-4m-4 4-4-4"/><path d="M4 16.5h12"/></svg>
+        Download
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ================= Hero ================= -->
+<section class="hero" data-enter>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <h1>Talk.<br>Lectus types.</h1>
+      <p class="lede">Voice dictation for Windows. Hold <span class="keys"><kbd>Right Ctrl</kbd></span>, speak, and your words land in whatever text field you were already in. The speech model runs on your own computer.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="download/?dl=1">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="dl-arrow" d="M10 3v10m0 0 4-4m-4 4-4-4"/><path d="M4 16.5h12"/></svg>
+          Download for Windows
+        </a>
+        <a class="btn btn-quiet" href="#how">Try the demo</a>
+      </div>
+      <p class="hero-meta small muted">
+        Version <span data-release="version">0.7.1</span> for Windows 10 and 11.
+        <span data-placeholder="trial terms and price, confirm at launch">Free for 7 days, no card.</span>
+        <span data-os-note hidden></span>
+      </p>
+    </div>
+
+    <div class="hero-stage" data-demo="hero">
+      <div class="scene-bar">
+        <div class="seg" role="group" aria-label="Choose the app in the demo">
+          <button type="button" aria-pressed="true" data-scene-btn="mail">Email</button>
+          <button type="button" aria-pressed="false" data-scene-btn="chat">Chat</button>
+          <button type="button" aria-pressed="false" data-scene-btn="code">Code</button>
+          <button type="button" aria-pressed="false" data-scene-btn="notes">Notes</button>
+        </div>
+        <button class="icon-btn" type="button" aria-pressed="false" data-demo-pause>
+          <span class="visually-hidden">Pause the demo</span>
+          <svg class="pause" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3.5" y="2.5" width="3" height="11" rx="1"/><rect x="9.5" y="2.5" width="3" height="11" rx="1"/></svg>
+          <svg class="play" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.5 2.7v10.6a.6.6 0 0 0 .9.5l8.3-5.3a.6.6 0 0 0 0-1L5.4 2.2a.6.6 0 0 0-.9.5Z"/></svg>
+        </button>
+      </div>
+
+      <div class="desktop" role="img" aria-label="Demo: a sentence is spoken while Right Ctrl is held, and it appears as text in the open app.">
+        <div class="win" data-scene="mail" style="--app:#2f6fed"
+             data-say="Hi Marta, thanks for the notes. Let's move the review to Friday morning, and I'll bring the numbers.">
+          <div class="win-bar"><span class="win-title"><i></i>Re: Review notes</span><span class="win-ctl"><span></span><span></span><span></span></span></div>
+          <div class="win-body mail">
+            <div class="mail-row">To <span class="chip">Marta Reis</span></div>
+            <div class="mail-row">Subject <b>Re: Review notes</b></div>
+            <div class="mail-text">
+              <p><span class="landed" data-land>Hi Marta, thanks for the notes. Let's move the review to Friday morning, and I'll bring the numbers.</span><span class="caret"></span></p>
+              <p class="quote">On Tuesday, Marta Reis wrote: I left comments on pages 3 and 7. Can we go through them this week?</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="win" data-scene="chat" data-lang="Portuguese" style="--app:#17a2a2" hidden
+             data-say="Já enviei o relatório. Vemo-nos às três?">
+          <div class="win-bar"><span class="win-title"><i></i>Team chat</span><span class="win-ctl"><span></span><span></span><span></span></span></div>
+          <div class="win-body chat">
+            <div class="chat-side"><p class="h">Equipa</p><p># geral</p><p class="on"># produto</p><p># lançamento</p><p>Inês Duarte</p></div>
+            <div class="chat-main">
+              <div class="chat-log">
+                <div class="msg"><span class="av" style="--c:#c9853b">I</span><p><b>Inês Duarte</b>Tens o relatório de ontem?</p></div>
+                <div class="msg"><span class="av" style="--c:#3b82f6">R</span><p><b>Rui Matos</b>E a que horas falamos hoje?</p></div>
+              </div>
+              <div class="chat-box"><span class="landed" data-land>Já enviei o relatório. Vemo-nos às três?</span><span class="caret"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="win is-dark" data-scene="code" style="--app:#1db584" hidden
+             data-say="Retry the upload three times before showing the error.">
+          <div class="win-bar"><span class="win-title"><i></i>upload.ts</span><span class="win-ctl"><span></span><span></span><span></span></span></div>
+          <div class="win-body code">
+            <div class="ln"><span>12</span><span><span class="k">export async function</span> <span class="f">upload</span>(file: File) {</span></div>
+            <div class="ln"><span>13</span><span>&nbsp;&nbsp;<span class="c">// <span class="landed" data-land>Retry the upload three times before showing the error.</span></span><span class="caret"></span></span></div>
+            <div class="ln"><span>14</span><span>&nbsp;&nbsp;<span class="k">for</span> (<span class="k">let</span> attempt = 1; attempt &lt;= 3; attempt++) {</span></div>
+            <div class="ln"><span>15</span><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="k">const</span> res = <span class="k">await</span> <span class="f">send</span>(file);</span></div>
+            <div class="ln"><span>16</span><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="k">if</span> (res.ok) <span class="k">return</span> res;</span></div>
+            <div class="ln"><span>17</span><span>&nbsp;&nbsp;}</span></div>
+            <div class="ln"><span>18</span><span>&nbsp;&nbsp;<span class="k">throw new</span> <span class="f">Error</span>(<span class="s">"Upload failed"</span>);</span></div>
+            <div class="ln"><span>19</span><span>}</span></div>
+          </div>
+        </div>
+
+        <div class="win" data-scene="notes" style="--app:#ffa500" hidden
+             data-say="Open with the story about the lost notebook. Then show the two charts, and end with the question about next year.">
+          <div class="win-bar"><span class="win-title"><i></i>Talk outline</span><span class="win-ctl"><span></span><span></span><span></span></span></div>
+          <div class="win-body doc">
+            <h4>Talk outline</h4>
+            <p>Twenty minutes, no slides for the first five.</p>
+            <p><span class="landed" data-land>Open with the story about the lost notebook. Then show the two charts, and end with the question about next year.</span><span class="caret"></span></p>
+          </div>
+        </div>
+
+        <div class="pill" data-state="idle" data-pill>
+          <img class="pill-orb" src="assets/img/lectus-mark-64.png" width="36" height="36" alt="">
+          <div class="pill-capsule">
+            <img class="pill-mark" src="assets/img/lectus-mark-64.png" width="22" height="22" alt="">
+            <div class="pill-wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <span class="pill-label" data-pill-label>Listening…</span>
+          </div>
+        </div>
+        <div class="taskbar" aria-hidden="true"><i></i><i class="on"></i><i></i><i></i><i></i><time>10:42</time></div>
+      </div>
+
+      <div class="voice-lane" aria-hidden="true">
+        <span class="who" data-who>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="6" height="10" rx="3"/><path d="M4.5 10a5.5 5.5 0 0 0 11 0M10 15.5v2"/></svg>
+          <span data-who-label>You say</span>
+        </span>
+        <p class="heard" data-heard></p>
+        <span class="keys" data-keys><kbd>Right Ctrl</kbd></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Speed ================= -->
+<section class="section band-soft" id="speed">
+  <div class="wrap speed-grid">
+    <div class="speed-copy">
+      <h2>Most people type 40 words a minute. They speak 150.</h2>
+      <p class="lede">The same three sentences, written both ways. One of them is done before the other reaches the first full stop.</p>
+      <button class="btn btn-quiet btn-sm" type="button" data-race-replay>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10a6 6 0 1 0 2-4.5M4 3.5v3h3"/></svg>
+        Run the race again
+      </button>
+      <p class="small muted">Typical speeds for an adult, shown eight times faster than real time.</p>
+    </div>
+    <div class="race" data-demo="race" data-text="The supplier confirmed the new date this morning. We can keep the launch on the twelfth if the samples arrive by Monday. I will send the updated plan to everyone before lunch.">
+      <div class="lane" data-lane="type">
+        <div class="lane-head">
+          <span class="lane-name"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="2" y="5" width="16" height="10" rx="2"/><path d="M5.5 8.5h.01M8.5 8.5h.01M11.5 8.5h.01M14.5 8.5h.01M6.5 11.8h7"/></svg>Typing</span>
+          <span class="lane-clock"><span data-clock>0:48</span></span>
+        </div>
+        <p class="lane-text"><span data-out>The supplier confirmed the new date this morning. We can keep the launch on the twelfth if the samples arrive by Monday. I will send the updated plan to everyone before lunch.</span><span class="caret"></span></p>
+        <div class="lane-track"><i data-bar style="--p:1"></i></div>
+      </div>
+      <div class="lane lane-voice" data-lane="voice">
+        <div class="lane-head">
+          <span class="lane-name"><img src="assets/img/lectus-mark-64.png" width="20" height="20" alt="">Speaking with Lectus</span>
+          <span class="lane-clock"><span data-clock>0:13</span></span>
+        </div>
+        <p class="lane-text"><span data-out>The supplier confirmed the new date this morning. We can keep the launch on the twelfth if the samples arrive by Monday. I will send the updated plan to everyone before lunch.</span><span class="caret"></span></p>
+        <div class="lane-track"><i data-bar style="--p:1"></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= How it works: interactive ================= -->
+<section class="section" id="how">
+  <div class="wrap how-grid">
+    <div class="how-copy">
+      <h2>Hold the key, say it, let go.</h2>
+      <ol class="how-steps">
+        <li>
+          <h3>Hold <span class="keys"><kbd>Right Ctrl</kbd></span></h3>
+          <p>The small Lectus orb opens and starts listening. It keeps the half second before your key press, so the first word is never cut off.</p>
+        </li>
+        <li>
+          <h3>Say what you mean</h3>
+          <p>Talk at your normal pace. The coloured bars follow your voice so you know it hears you. Music and videos are muted while you speak.</p>
+        </li>
+        <li>
+          <h3>Let go</h3>
+          <p>Lectus turns the recording into text on your computer and types it where your cursor is. No window to switch to, nothing to paste.</p>
+        </li>
+      </ol>
+      <p class="how-alt">Prefer one press to start and one to stop? Set a second key for that. You can change either key to one you like.</p>
+    </div>
+
+    <div class="try" data-demo="try">
+      <div class="try-desk">
+        <div class="win try-win" style="--app:#ffa500">
+          <div class="win-bar"><span class="win-title"><i></i>Untitled note</span><span class="win-ctl"><span></span><span></span><span></span></span></div>
+          <div class="win-body doc">
+            <p><span class="landed" data-land></span><span class="caret"></span><span class="ph" data-try-hint> Hold the key below and watch this note fill in.</span></p>
+          </div>
+        </div>
+        <div class="pill" data-state="idle" data-pill>
+          <img class="pill-orb" src="assets/img/lectus-mark-64.png" width="36" height="36" alt="">
+          <div class="pill-capsule">
+            <img class="pill-mark" src="assets/img/lectus-mark-64.png" width="22" height="22" alt="">
+            <div class="pill-wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <span class="pill-label" data-pill-label>Listening…</span>
+          </div>
+        </div>
+      </div>
+      <div class="voice-lane">
+        <span class="who" data-who>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="6" height="10" rx="3"/><path d="M4.5 10a5.5 5.5 0 0 0 11 0M10 15.5v2"/></svg>
+          <span data-who-label>Sample voice</span>
+        </span>
+        <p class="heard" data-heard aria-live="polite"></p>
+      </div>
+      <div class="try-controls">
+        <button class="holdkey" type="button" data-hold aria-describedby="try-help">
+          <span class="holdkey-cap">Right Ctrl</span>
+          <span class="holdkey-hint" data-hold-hint>Press and hold</span>
+        </button>
+        <p class="small muted" id="try-help">Hold this key with your mouse or finger, or hold the real <strong>Right Ctrl</strong> on your keyboard. This page plays a sample voice and never uses your microphone.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Features ================= -->
+<section class="section section-features" id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>It writes the way you would have typed it.</h2>
+      <p class="lede">Whisper gives Lectus the words. These four things make the text yours.</p>
+    </div>
+
+    <!-- Clean-up -->
+    <div class="feature feature-cleanup">
+      <div class="feature-copy">
+        <h3>Clean-up that drops the ums</h3>
+        <p>Switch on AI clean-up and Lectus fixes punctuation, capitals and spacing, and removes filler words. It is told never to translate, summarise or answer what you said, so your meaning stays put.</p>
+        <p>Choose a tone: neutral, formal, casual or concise. Clean-up can run on your computer with a local model, or with a cloud service you connect yourself.</p>
+      </div>
+      <div class="feature-demo cleanup" data-demo="cleanup">
+        <div class="cleanup-head">
+          <span class="cleanup-title">AI clean-up</span>
+          <button class="switch" type="button" role="switch" aria-checked="true" data-cleanup-switch><span class="visually-hidden">AI clean-up</span><i></i></button>
+        </div>
+        <p class="cleanup-text is-on" data-cleanup-text>
+          <span class="filler">um, </span>I looked at the numbers and<span class="filler">, uh,</span> I think we can ship on <span class="swap"><span class="off">monday</span><span class="on">Monday</span></span><span class="filler">, like,</span> if the tests pass<span class="add">.</span>
+        </p>
+        <p class="cleanup-foot small" data-cleanup-foot>3 filler words removed, 1 capital and 1 full stop added.</p>
+      </div>
+    </div>
+
+    <!-- Vocabulary -->
+    <div class="feature feature-vocab is-flipped">
+      <div class="feature-copy">
+        <h3>Your words, spelled your way</h3>
+        <p>Add the names, products and jargon you use. Lectus listens for them, and replacement rules fix what a speech model keeps getting wrong.</p>
+        <p>Sound-alike fixes exist for English and Portuguese, the two languages we test most.</p>
+      </div>
+      <div class="feature-demo vocab" data-demo="vocab">
+        <div class="vocab-row vocab-live">
+          <span class="vocab-label">Heard</span>
+          <span class="vocab-heard spoken" data-vocab-heard>cube control get pods</span>
+          <svg viewBox="0 0 24 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 6h21m0 0-4-4m4 4-4 4"/></svg>
+          <span class="vocab-label">Written</span>
+          <span class="vocab-written" data-vocab-written>kubectl get pods</span>
+        </div>
+        <div class="vocab-panel">
+          <p class="vocab-h">Words</p>
+          <ul class="chips"><li>kubectl</li><li>Marta Reis</li><li>Lectus</li><li>Postgres</li><li>Alfama</li></ul>
+          <p class="vocab-h">Replace</p>
+          <ul class="rules">
+            <li><span class="spoken">cube control</span><i></i><span>kubectl</span></li>
+            <li><span class="spoken">marta raise</span><i></i><span>Marta Reis</span></li>
+            <li><span class="spoken">new line</span><i></i><span>(line break)</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Languages -->
+    <div class="feature feature-lang">
+      <div class="feature-copy">
+        <h3>Speak your language. It notices.</h3>
+        <p>Leave the language on auto-detect and switch mid-day without touching a setting. Or pin one of these: English, Portuguese, Spanish, French, German, Italian, Dutch, Japanese, Chinese.</p>
+        <p>Optional translation lets you speak in one language and write in another.</p>
+      </div>
+      <div class="feature-demo lang" data-demo="lang">
+        <div class="lang-field">
+          <span class="lang-tag" data-lang-tag>English</span>
+          <p class="lang-text"><span class="landed" data-land lang="en">See you at three.</span><span class="caret"></span></p>
+        </div>
+        <ul class="lang-list" aria-hidden="true">
+          <li data-l="English" class="on">EN</li><li data-l="Portuguese">PT</li><li data-l="Spanish">ES</li><li data-l="French">FR</li><li data-l="German">DE</li><li data-l="Italian">IT</li><li data-l="Dutch">NL</li><li data-l="Japanese">JA</li><li data-l="Chinese">ZH</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- History: the app itself -->
+    <div class="feature feature-app is-stacked">
+      <div class="feature-copy">
+        <h3>Everything you dictated, kept on your computer</h3>
+        <p>Lectus keeps your last 500 dictations on this device. Filter them, copy one back with a click, or clear the lot. Home shows your words and dictations this week and your streak.</p>
+      </div>
+      <div class="app-frame" aria-label="The Lectus window, showing the Home screen" role="img">
+        <div class="win-bar"><span class="win-title"><img src="assets/img/lectus-mark-64.png" width="16" height="16" alt="">Lectus</span><span class="win-ctl"><span></span><span></span><span></span></span></div>
+        <div class="app-body">
+          <div class="app-side">
+            <p class="on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M2.5 7.5 8 3l5.5 4.5V13h-11z"/></svg>Home</p>
+            <p><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/></svg>Dictations</p>
+            <p><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7a3 3 0 0 1 3 3v7H6a3 3 0 0 1-3-3z"/><path d="M6 6.5h4M6 9h3"/></svg>Vocabulary</p>
+            <p><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="5.5" cy="10.5" r="2.5"/><path d="m7.5 8.5 5-5M10.5 5.5l1.5 1.5"/></svg>Membership</p>
+            <p class="app-gap"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="2"/><path d="M8 2v1.6M8 12.4V14M2 8h1.6M12.4 8H14M3.8 3.8l1.1 1.1M11.1 11.1l1.1 1.1M3.8 12.2l1.1-1.1M11.1 4.9l1.1-1.1"/></svg>Settings</p>
+            <p><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M6.4 6.4a1.7 1.7 0 1 1 2.4 1.6c-.5.3-.8.6-.8 1.1M8 11.3v.1"/></svg>Help</p>
+            <span class="app-ver">v<span data-release="version">0.7.1</span></span>
+          </div>
+          <div class="app-main">
+            <p class="app-hello">Welcome back, Marta</p>
+            <div class="app-stats">
+              <div><b>4,812</b><span>Words this week</span></div>
+              <div><b>96</b><span>Dictations this week</span></div>
+              <div><b>12</b><span>Day streak</span></div>
+            </div>
+            <p class="app-h">Recent dictations</p>
+            <ul class="app-list">
+              <li><time>10:42</time><span>Hi Marta, thanks for the notes. Let's move the review to Friday morning, and I'll bring the numbers.</span><em>Copy</em></li>
+              <li><time>10:31</time><span>Já enviei o relatório. Vemo-nos às três?</span><em>Copy</em></li>
+              <li><time>10:07</time><span>Retry the upload three times before showing the error.</span><em>Copy</em></li>
+              <li><time>09:55</time><span>Open with the story about the lost notebook. Then show the two charts, and end with the question about next year.</span><em>Copy</em></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <dl class="details">
+      <div><dt>Rules per app</dt><dd>Clean-up on in your mail, off in your code editor. Each app can have its own language, tone and way of inserting text.</dd></div>
+      <div><dt>Types or pastes</dt><dd>Lectus types the text as keystrokes and falls back to the clipboard when an app refuses them. Your clipboard is put back afterwards.</dd></div>
+      <div><dt>An orb you can move</dt><dd>Drag the orb anywhere on screen. It remembers the spot and stays above your other windows.</dd></div>
+      <div><dt>Seven model sizes</dt><dd>From a 75 MB model for older PCs to Large v3 for the most accuracy. Setup suggests one for your hardware.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<!-- ================= Privacy ================= -->
+<section class="section band-night" id="privacy">
+  <div class="wrap">
+    <div class="privacy-grid">
+      <div class="privacy-copy">
+        <h2>Your voice stays on your computer.</h2>
+        <p class="lede">Lectus runs the speech model on your own graphics card. No recording is saved to disk, and no audio is sent to a server unless you switch a cloud option on yourself.</p>
+        <p class="privacy-fact"><b>72 to 148 ms</b> to turn a short clip into text with the Base model on an RTX 3080. Measured on our own PC, model time only.</p>
+      </div>
+
+      <div class="flow" data-demo="flow" role="img" aria-label="Diagram: sound goes from your microphone to the speech model on your graphics card and then to your text field, all inside your computer. Cloud options sit outside and are off.">
+        <div class="flow-box">
+          <span class="flow-box-label">Your computer</span>
+          <div class="flow-line" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="flow-nodes">
+            <div class="node">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg>
+              <b>Microphone</b><span>Listens only while you hold the key</span>
+            </div>
+            <div class="node">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9.5 9.5h5v5h-5zM9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg>
+              <b>Speech model</b><span>Whisper, on your graphics card</span>
+            </div>
+            <div class="node">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9.5h6M7 13h3M15.5 9v6"/></svg>
+              <b>Your text field</b><span>Typed where your cursor is</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-cloud">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a4 4 0 0 1-.6-7.96 5.5 5.5 0 0 1 10.7 1.1A3.5 3.5 0 0 1 17 18z"/><path d="M4 4l16 16"/></svg>
+          <p><b>Cloud speech and clean-up</b><span>Off until you turn them on, with your own key</span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="online">
+      <h3>What does go online, so you are never surprised</h3>
+      <ul>
+        <li><b>Model downloads.</b> The speech model is fetched once from Hugging Face. After that, dictation works with no internet.</li>
+        <li><b>Update checks.</b> Lectus asks GitHub whether a newer version exists.</li>
+        <li><b>Membership checks.</b> Lectus confirms your membership from time to time.</li>
+        <li><b>Anything you switch on.</b> Cloud speech, cloud clean-up and translation send that request to the service you chose.</li>
+      </ul>
+      <p class="small"><a class="text-link" href="privacy/">Read the privacy notice</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Two computers ================= -->
+<section class="section" id="remote">
+  <div class="wrap remote-grid">
+    <div class="remote" data-demo="remote" role="img" aria-label="Demo: a sentence spoken at a Windows PC arrives as text on a Mac on the same network.">
+      <div class="device device-pc">
+        <div class="device-screen">
+          <span class="device-os">Windows PC</span>
+          <div class="pill" data-state="idle" data-pill>
+            <img class="pill-orb" src="assets/img/lectus-mark-64.png" width="36" height="36" alt="">
+            <div class="pill-capsule">
+              <img class="pill-mark" src="assets/img/lectus-mark-64.png" width="22" height="22" alt="">
+              <div class="pill-wave"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+              <span class="pill-label" data-pill-label>Listening…</span>
+            </div>
+          </div>
+        </div>
+        <i class="device-foot"></i>
+      </div>
+      <div class="wire" aria-hidden="true">
+        <span class="packet" data-packet>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>
+          text
+        </span>
+      </div>
+      <div class="device device-mac">
+        <div class="device-screen">
+          <span class="device-os">Mac</span>
+          <p class="device-text"><span class="landed" data-land>The draft is ready for your comments.</span><span class="caret"></span></p>
+        </div>
+        <i class="device-foot"></i>
+      </div>
+    </div>
+    <div class="remote-copy">
+      <h2>Speak at one computer. Type on another.</h2>
+      <p class="lede">Pair two computers on the same network with a code. Dictate into the microphone on your PC and the finished text is typed on the other machine.</p>
+      <ul class="ticks">
+        <li>Only text travels, never audio.</li>
+        <li>It is encrypted and goes straight from one computer to the other, with no server in between.</li>
+        <li>The receiving computer keeps its own microphone off.</li>
+      </ul>
+      <p class="small muted" data-placeholder="confirm the Mac build ships with the launch version">Works between a Windows PC and an Apple silicon Mac.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Local API ================= -->
+<section class="section band-soft" id="api">
+  <div class="wrap api-grid">
+    <div class="api-copy">
+      <h2>A speech API on your own machine.</h2>
+      <p class="lede">Turn on the local API and your scripts and tools can send a WAV file and get text back. It listens only on this computer, needs a token, and uses the local model only.</p>
+      <ul class="ticks">
+        <li>Bound to 127.0.0.1, off by default.</li>
+        <li>Clips up to 120 seconds, 30 requests a minute.</li>
+        <li>Never touches the microphone, your history or the cloud.</li>
+      </ul>
+    </div>
+    <div class="term" data-demo="term">
+      <div class="term-bar"><span>PowerShell</span><button class="term-copy" type="button" data-copy="#api-cmd"><span data-copy-label>Copy</span></button></div>
+      <pre><code id="api-cmd">curl.exe http://127.0.0.1:8756/v1/transcribe `
+  -H "Authorization: Bearer $env:LECTUS_TOKEN" `
+  -H "Content-Type: audio/wav" `
+  --data-binary "@clip.wav"</code>
+<code class="term-out">{ "text": "Retry the upload three times before showing the error." }</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Install and updates ================= -->
+<section class="section" id="install">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Installed in under a minute. It keeps itself up to date.</h2>
+      <p class="lede">One file, no administrator rights, no restart. Here is exactly what you will see.</p>
+    </div>
+    <ol class="install" data-demo="install">
+      <li class="install-step">
+        <div class="install-mock mock-dl">
+          <div class="dl-chip">
+            <img src="assets/img/lectus-mark-64.png" width="28" height="28" alt="">
+            <p><b>Lectus_<span data-release="version">0.7.1</span>_x64-setup.exe</b><span class="dl-state" data-dl-state>Done</span></p>
+            <i class="dl-bar"><i></i></i>
+          </div>
+        </div>
+        <h3>Download the setup file</h3>
+        <p>One file for 64-bit Windows 10 and 11.</p>
+      </li>
+      <li class="install-step">
+        <div class="install-mock mock-ss">
+          <div class="ss">
+            <p class="ss-title">Windows protected your PC</p>
+            <p class="ss-body">Microsoft Defender SmartScreen prevented an unrecognised app from starting. <u class="ss-more">More info</u></p>
+            <span class="ss-btn ss-run">Run anyway</span><span class="ss-btn">Don't run</span>
+          </div>
+        </div>
+        <h3>Tell Windows it is fine</h3>
+        <p>Lectus is new and not code-signed yet, so Windows asks first. Choose <strong>More info</strong>, then <strong>Run anyway</strong>.</p>
+      </li>
+      <li class="install-step">
+        <div class="install-mock mock-setup">
+          <div class="setup">
+            <img src="assets/img/lectus-mark-192.png" width="52" height="52" alt="">
+            <p class="setup-title">Getting Lectus ready</p>
+            <p class="setup-sub">This takes less than a minute.</p>
+            <i class="setup-bar"><i></i></i>
+          </div>
+        </div>
+        <h3>Wait a few seconds</h3>
+        <p>Lectus installs, opens, and walks you through your microphone, your words and your shortcut.</p>
+      </li>
+    </ol>
+
+    <div class="updates">
+      <div class="updates-copy">
+        <h3>Updates arrive on their own</h3>
+        <p>Lectus checks for a new version when it starts, downloads it in the background and checks its signature. It never restarts in the middle of your work: you choose when.</p>
+        <p><a class="text-link" href="changelog/">See what changed in each version</a></p>
+      </div>
+      <div class="update-banner" aria-hidden="true">
+        <img src="assets/img/lectus-mark-64.png" width="28" height="28" alt="">
+        <p><b>Update ready</b><span>Restart Lectus to finish. Your settings and history are kept.</span></p>
+        <span class="ub-btn ub-primary">Restart now</span><span class="ub-btn">Later</span>
+      </div>
+    </div>
+    <p class="install-more"><a class="text-link" href="download/">Full install guide, requirements and fixes</a></p>
+  </div>
+</section>
+
+<!-- ================= Access ================= -->
+<section class="section band-soft" id="pricing" data-placeholder="pricing: final price, plans and payment route are not decided">
+  <div class="wrap price-grid">
+    <div>
+      <h2>Free for seven days. Then decide.</h2>
+      <p class="lede">The trial is the whole app, with no card and no account. You get a week of real work with it before you choose.</p>
+    </div>
+    <div class="price-cards">
+      <div class="price-card">
+        <p class="price-name">Trial</p>
+        <p class="price-amount">Free <span>for 7 days</span></p>
+        <ul class="ticks">
+          <li>Every feature on this page</li>
+          <li>Unlimited dictation</li>
+          <li>Nothing to cancel</li>
+        </ul>
+        <a class="btn btn-primary" href="download/?dl=1">Download for Windows</a>
+      </div>
+      <div class="price-card price-card-quiet">
+        <p class="price-name">Membership</p>
+        <p class="price-amount">Price to be announced</p>
+        <ul class="ticks">
+          <li>Keep dictating after the trial</li>
+          <li>All updates included</li>
+          <li>Local API for your own tools</li>
+        </ul>
+        <p class="small muted">We will publish the price here before the trial of the first public version ends.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section class="section" id="faq">
+  <div class="wrap faq-grid">
+    <h2>Questions people ask first</h2>
+    <div class="faq">
+      <details>
+        <summary>Does it work without internet?<span class="tick"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 1v12M1 7h12"/></svg></span></summary>
+        <div class="answer"><p>Yes. Lectus needs the internet once, to download the speech model during setup. After that, dictation runs on your computer with no connection. Cloud options are separate and stay off unless you enable them.</p></div>
+      </details>
+      <details>
+        <summary>Which apps can I dictate into?<span class="tick"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 1v12M1 7h12"/></svg></span></summary>
+        <div class="answer"><p>Any app where you can click into a text field and type: mail, chat, documents, browsers, code editors. Lectus sends the text as keystrokes, and uses the clipboard for apps that do not accept them.</p></div>
+      </details>
+      <details>
+        <summary>What does my PC need?<span class="tick"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 1v12M1 7h12"/></svg></span></summary>
+        <div class="answer"><p>Windows 10 or 11 (64-bit), a microphone, and a graphics driver with Vulkan support. Current NVIDIA, AMD and Intel drivers include it. You do not need administrator rights.</p></div>
+      </details>
+      <details>
+        <summary>Why does Windows warn me when I open the setup file?<span class="tick"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 1v12M1 7h12"/></svg></span></summary>
+        <div class="answer"><p>Lectus is new and is not code-signed yet, so SmartScreen shows "Windows protected your PC". Choose More info, check the file is the Lectus setup you downloaded, then choose Run anyway.</p><p>If Smart App Control is on, Windows blocks every unsigned app and offers no way past. The <a class="text-link" href="download/#fixes">install guide</a> explains your options.</p></div>
+      </details>
+      <details>
+        <summary>Is my audio stored or sent anywhere?<span class="tick"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 1v12M1 7h12"/></svg></span></summary>
+        <div class="answer"><p>By default, no. The recording lives in memory while it is turned into text, and is not saved as a file. The resulting text goes into your dictation history on your own computer. Audio leaves your machine only if you turn on a cloud speech option.</p></div>
+      </details>
+      <details>
+        <summary>Is there a Mac version?<span class="tick"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 1v12M1 7h12"/></svg></span></summary>
+        <div class="answer" data-placeholder="Mac status for the launch version"><p>A build for Apple silicon Macs exists and is still being finished. Windows is the version we recommend today. The <a class="text-link" href="download/#mac">download page</a> has the current state.</p></div>
+      </details>
+      <details>
+        <summary>How do I change the shortcut?<span class="tick"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M7 1v12M1 7h12"/></svg></span></summary>
+        <div class="answer"><p>Open Settings and choose Dictation. You can hold a single modifier key such as Right Ctrl, use a two-key combination, or use F13 to F15 if your keyboard has them. A second key can start and stop dictation with one press each.</p></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Close ================= -->
+<section class="close band-green">
+  <div class="wrap close-grid">
+    <h2>Say it once.<br>Skip the typing.</h2>
+    <div class="close-actions">
+      <a class="btn btn-primary btn-on-dark" href="download/?dl=1">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="dl-arrow" d="M10 3v10m0 0 4-4m-4 4-4-4"/><path d="M4 16.5h12"/></svg>
+        Download for Windows
+      </a>
+      <p class="small">Version <span data-release="version">0.7.1</span>, Windows 10 and 11, 64-bit.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="brand" href="./"><img src="assets/img/lectus-mark-64.png" width="30" height="30" alt="">Lectus</a>
+        <p>Voice dictation that runs on your own computer. Named after the Eclectus parrot, a colourful bird and a great talker.</p>
+      </div>
+      <div class="footer-col">
+        <h2>Product</h2>
+        <ul>
+          <li><a href="download/">Download</a></li>
+          <li><a href="changelog/">What's new</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h2>Help</h2>
+        <ul>
+          <li><a href="download/#steps">Install guide</a></li>
+          <li><a href="download/#fixes">If something stops you</a></li>
+          <li><a href="#faq">Questions</a></li>
+          <li><a href="mailto:bakehouselabs@proton.me" data-placeholder="confirm the public support address">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h2>Legal</h2>
+        <ul>
+          <li><a href="privacy/">Privacy</a></li>
+          <li><a href="terms/">Terms</a></li>
+          <li><a href="https://github.com/FCisco95/lectus-releases/releases" rel="noopener">All releases on GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>© 2026 Bakehouse Labs</span>
+      <span>This site sets no cookies and loads nothing from other servers.</span>
+      <button class="motion-toggle" type="button" aria-pressed="false" data-motion-toggle>Pause animations</button>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

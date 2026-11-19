@@ -1,0 +1,10 @@
+{
+  "version": "0.7.1",
+  "date": "2026-10-11",
+  "windows": {
+    "file": "Lectus_0.7.1_x64-setup.exe",
+    "url": "https://github.com/FCisco95/lectus-releases/releases/download/v0.7.1/Lectus_0.7.1_x64-setup.exe",
+    "size_bytes": 86234567
+  },
+  "notes_url": "https://github.com/FCisco95/lectus-releases/releases/tag/v0.7.1"
+}

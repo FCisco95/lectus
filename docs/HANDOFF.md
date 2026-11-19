@@ -1,6 +1,6 @@
 # Lectus - handoff
 
-Updated: 2026-11-18, third session (planning only). Branch: feat/remote-dictation. No tag, release or app replacement.
+Updated: 2026-11-19 (website built). Previous: 2026-11-18, third session (planning only). Branch: feat/remote-dictation. No tag, release or app replacement.
 Previous handoff (access/Android Orca run): `docs/handoffs/archive/HANDOFF-2026-11-13-access-android-run.md`.
 
 ## State
@@ -102,6 +102,18 @@ than Input Leap. Microphone decided: dictation only on both computers, so text i
 audio. Engine choice (fork, own Rust engine, Deskflow) waits on a lag diagnosis. **Next session:
 run "Next session: lag diagnosis and the address problem" in the plan** (installs authorized,
 see Owner decisions). First network sample: median 4 ms, max 108 ms, no loss, in the plan.
+
+## Website (built 2026-11-19, not deployed)
+
+`website/`: static marketing site, no build step, no third-party requests. Home with live demos
+(hero dictation in four apps, typing-versus-speaking race, hold-the-key tryout, clean-up,
+vocabulary, languages, privacy flow, remote dictation, local API, install and updates), plus
+`download/`, `changelog/`, `privacy/`, `terms/`, `404.html`. `website/README.md` has preview,
+the release sync script and the placeholder list. Checked at 1440 and 390 px in headless Chrome,
+with and without reduced motion; no console errors.
+- The copy describes the next release (wizard, trial, installer, translation, local API). Publish
+  it with that release, not before. Legal gates above apply to the site too.
+- Open for the owner: price and payment route, final legal texts, Mac status, domain and host.
 
 ## Still open from the access/Android run (run_db09bc5a3181)
 

@@ -1,0 +1,8 @@
+Fonts in this folder are self-hosted so the site loads nothing from other servers.
+
+Bricolage Grotesque      Copyright The Bricolage Grotesque Project Authors
+Atkinson Hyperlegible Next, Atkinson Hyperlegible Mono
+                         Copyright Braille Institute of America, Inc.
+
+All are licensed under the SIL Open Font License 1.1: https://openfontlicense.org
+Files were taken from the Fontsource distribution (latin and latin-ext subsets).
