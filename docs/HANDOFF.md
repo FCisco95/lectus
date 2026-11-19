@@ -110,7 +110,9 @@ see Owner decisions). First network sample: median 4 ms, max 108 ms, no loss, in
 vocabulary, languages, privacy flow, remote dictation, local API, install and updates), plus
 `download/`, `changelog/`, `privacy/`, `terms/`, `404.html`. `website/README.md` has preview,
 the release sync script and the placeholder list. Checked at 1440 and 390 px in headless Chrome,
-with and without reduced motion; no console errors.
+with and without reduced motion; no console errors. Also checked 768/820/1024 px, the
+auto-download (`download/?dl=1` starts the GitHub file) and the walkthrough autoplay.
+Owner reviewed the first version on 2026-11-19: "for now looks good".
 - The copy describes the next release (wizard, trial, installer, translation, local API). Publish
   it with that release, not before. Legal gates above apply to the site too.
 - Open for the owner: price and payment route, final legal texts, Mac status, domain and host.
