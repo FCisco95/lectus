@@ -73,6 +73,9 @@ config so the setup can be put back.
    server listens on IPv4 only; the Mac still picked IPv4. The drop during the switch was the
    PC server being closed (`got shutdown signal` 23:54:55; the `.bat` loop ends with its
    window), not the name.
+   Confirmed 2026-11-19: after a PC reboot the PC got a new address (192.168.68.57) and the
+   Mac reconnected by name with no edit. The server does not start at boot; the `.bat`
+   must be run by hand.
    Owner direction, same day: he would rather build the Input Leap part inside Lectus (option 2
    above).
 2. Baseline with the current Debug build: 10 minutes of normal work on the Mac through the
