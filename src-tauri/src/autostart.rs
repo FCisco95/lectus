@@ -332,6 +332,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)] // C:\ paths are not absolute and have no file name on macOS
     fn takeover_hands_off_to_newer_different_exe() {
         let running = PathBuf::from(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
         let cargo = PathBuf::from(r"C:\lt\release\chirp.exe");
@@ -366,6 +367,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)] // C:\ paths are not absolute and have no file name on macOS
     fn rewrites_leftover_run_value() {
         let leftover = PathBuf::from(r"C:\lt\release\chirp.exe");
         let installed = PathBuf::from(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
@@ -413,6 +415,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)] // C:\ paths are not absolute and have no file name on macOS
     fn rewrites_installed_path_missing_autostart_flag() {
         let installed = PathBuf::from(r"C:\Users\me\AppData\Local\Lectus\chirp.exe");
         let next = replacement_value(

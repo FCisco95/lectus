@@ -58,8 +58,10 @@ jobs:
         run: cargo test --release --lib
 
       # No updater artifacts: they need the signing key, and this build is never published.
+      # check-legal runs without --release: it still reports, but the publication gate is for
+      # releases, not for a private test build. release.yml keeps the full gate.
       - name: Build app bundle
-        run: npm run tauri -- build --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'
+        run: npm run tauri -- build --bundles app --config '{"bundle":{"createUpdaterArtifacts":false},"build":{"beforeBundleCommand":"node scripts/check-legal.mjs"}}'
 
       - name: Zip app
         run: |
