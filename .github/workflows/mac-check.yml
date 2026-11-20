@@ -1,0 +1,74 @@
+name: Mac check
+
+# Build-only check of the current code on macOS (Apple silicon). Publishes nothing, signs
+# nothing, uses no secrets. Start it by pushing a tag: git tag mac-check-<date> && git push origin
+# mac-check-<date>, then delete the tag when the run is done. The unsigned .app is kept as a run
+# artifact for 7 days so it can be tried on a Mac (right-click > Open, or xattr -cr Lectus.app).
+on:
+  push:
+    tags: ['mac-check-*']
+
+permissions:
+  contents: read
+
+jobs:
+  mac:
+    runs-on: macos-15 # Xcode 16; see release.yml for why not macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Download bundled whisper model
+        run: bash scripts/download_model.sh
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: lectus-mac-check
+          workspaces: src-tauri
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      # Same warm-up as release.yml: tauri-build checks resource globs before llama-cpp-sys-2
+      # has produced the dylibs.
+      - name: Prebuild native deps
+        working-directory: src-tauri
+        continue-on-error: true
+        run: cargo build --release --keep-going
+
+      - name: Native tests
+        id: tests
+        working-directory: src-tauri
+        continue-on-error: true
+        run: cargo test --release --lib
+
+      # No updater artifacts: they need the signing key, and this build is never published.
+      - name: Build app bundle
+        run: npm run tauri -- build --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      - name: Zip app
+        run: |
+          cd src-tauri/target/release/bundle/macos
+          ditto -c -k --keepParent *.app "$GITHUB_WORKSPACE/Lectus-mac-check.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Lectus-mac-check
+          path: Lectus-mac-check.zip
+          retention-days: 7
+
+      - name: Fail if native tests failed
+        if: steps.tests.outcome == 'failure'
+        run: |
+          echo "::error::cargo test --release --lib failed on macOS; see the Native tests step"
+          exit 1
