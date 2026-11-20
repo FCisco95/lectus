@@ -56,6 +56,10 @@ read at commit `34a34fb` (last upstream commit, 2025-11-27). IL = Input Leap.
   0-120 ms spread looks like Mac Wi-Fi power save (one beacon interval is about 102 ms), not
   congestion. Unverified; it may disappear while the Mac receives steady traffic, which is
   what the next run with the cursor on the Mac checks.
+- **Third sample** (2026-11-19 23:55 to 00:05, owner working on the Mac through IL): no
+  loss, median 11 ms, p95 95 ms, p99 110 ms, max 117 ms; 245/600 over 20 ms, 152 over 50 ms.
+  Same 0-120 ms spread as idle, so steady IL traffic does not remove it. Owner's stutter
+  count and the IL log counts for this window: see the next handoff.
 
 - **One-click link, never an IP.** Owner requirement: link the two computers with one click
   instead of guessing the address. In the product this is Lectus's job: pair once, then "Connect"
