@@ -21,8 +21,13 @@ jobs:
           node-version: 22
           cache: npm
 
+      # Pinned: Rust 1.100 moved build scripts' OUT_DIR (build/<crate>/<hash>/out), which breaks
+      # llama-cpp-sys-2 0.1.151's DLL/dylib copy (it walks 3 levels up to find target/release).
+      # Unpin after updating llama-cpp-2 to a release that handles the new layout.
       - name: Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.99.1
 
       - name: Download bundled whisper model
         run: bash scripts/download_model.sh
