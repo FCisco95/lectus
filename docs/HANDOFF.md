@@ -75,7 +75,8 @@ Previous handoff (access/Android Orca run): `docs/handoffs/archive/HANDOFF-2026-
   versions, `publication_approved`.
 - Smart App Control blocks unsigned installers with no override.
 - No capture, injection or shortcut change, and no installed-app replacement, without the owner.
-- Official ChatGPT/Claude login and real inference need native acceptance. macOS is uncompiled.
+- Official ChatGPT/Claude login and real inference need native acceptance. macOS builds in CI but
+  has never run on a real Mac (see Website and Mac check).
 
 ## Next
 
@@ -87,6 +88,19 @@ Previous handoff (access/Android Orca run): `docs/handoffs/archive/HANDOFF-2026-
    build changed. Read `result.json`, the screenshots and `app-stderr.log`.
 2. Owner: address/NIF choice and accountant check, then legal approval, then a real-name candidate.
 3. Owner-run acceptance over the real install: auto-launch, wizard, `/R`, DPI.
+
+## Website and Mac check (2026-11-19/20)
+
+- `website/`: static site, no build step, no third-party requests; `website/README.md` has the
+  preview, release sync and placeholder list. Owner approved v1 ("for now looks good"). Pricing
+  stays "Price to be announced" until the payment route is decided. Copy describes the next
+  release: publish with it, after the legal gates. Open: legal texts, Mac status, domain, host.
+- `mac-check.yml`: push a `mac-check-*` tag to build, test and bundle on macos-15 (no signing,
+  no publishing, unsigned .app kept 7 days); delete the tag after. Run 44717254383 with Share M1:
+  319 tests pass, app bundles.
+- CI pins Rust 1.99.1: Rust 1.100's new build-dir layout breaks llama-cpp-sys-2 0.1.151. npm
+  `@tauri-apps/api` ~2.11 and `plugin-dialog` ~2.7 must match the crate minors or `tauri build`
+  (release CI) refuses; local `cargo build` never checks this.
 
 ## Input Leap follow mode (planned 2026-11-18, no code)
 
