@@ -13,6 +13,19 @@ is ours.
 - Consequence: v1 does not need UDP. One TCP connection with `TCP_NODELAY` is enough to match
   today's experience. Add a UDP pointer channel only if a measured run shows stalls.
 
+## Owner direction (2026-11-20)
+
+"Make it simpler: one click, almost a button, auto connect when in reach." So the link
+connects by itself whenever the paired Mac is discovered and reconnects every second after a
+drop; the only choice left is one toggle. Built into M1 already. M4 shrinks to first-time
+pairing without copying a code.
+
+## M1 status (2026-11-20)
+
+Code: `src-tauri/src/share/` (link, pointer, windows, macos), toggle in the remote panel,
+reuses the Send/Receive pairing, mDNS `_lectus-share._tcp`. Native tests 328 passed (16 new).
+Not run on hardware yet; the Mac side is uncompiled until a `mac-check-*` run.
+
 ## v1 scope
 
 - PC (Windows) shares its keyboard and mouse with one Mac. The Mac is to the left, as today.

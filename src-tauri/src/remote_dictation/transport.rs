@@ -22,7 +22,7 @@ pub struct Pairing {
     key: [u8; 32],
 }
 
-fn random<const N: usize>() -> Result<[u8; N]> {
+pub(crate) fn random<const N: usize>() -> Result<[u8; N]> {
     let mut bytes = [0; N];
     getrandom::getrandom(&mut bytes).map_err(|_| anyhow!("Random generator unavailable"))?;
     Ok(bytes)
@@ -86,7 +86,7 @@ struct Reply {
     error: Option<String>,
 }
 
-fn seal<T: Serialize>(pairing: &Pairing, kind: &[u8], value: &T) -> Result<Vec<u8>> {
+pub(crate) fn seal<T: Serialize>(pairing: &Pairing, kind: &[u8], value: &T) -> Result<Vec<u8>> {
     let nonce = random::<24>()?;
     let plain = serde_json::to_vec(value)?;
     let cipher = XChaCha20Poly1305::new((&pairing.key).into());
@@ -107,7 +107,7 @@ fn seal<T: Serialize>(pairing: &Pairing, kind: &[u8], value: &T) -> Result<Vec<u
     Ok(frame)
 }
 
-fn open<T: DeserializeOwned>(pairing: &Pairing, kind: &[u8], frame: &[u8]) -> Result<T> {
+pub(crate) fn open<T: DeserializeOwned>(pairing: &Pairing, kind: &[u8], frame: &[u8]) -> Result<T> {
     if frame.len() < 40 || frame.len() > MAX_FRAME {
         bail!("Invalid message size");
     }
@@ -124,7 +124,7 @@ fn open<T: DeserializeOwned>(pairing: &Pairing, kind: &[u8], frame: &[u8]) -> Re
     serde_json::from_slice(&plain).context("Invalid delivery message")
 }
 
-fn write_frame(stream: &mut impl Write, frame: &[u8]) -> Result<()> {
+pub(crate) fn write_frame(stream: &mut impl Write, frame: &[u8]) -> Result<()> {
     if frame.len() > MAX_FRAME {
         bail!("Message too large");
     }
@@ -133,7 +133,7 @@ fn write_frame(stream: &mut impl Write, frame: &[u8]) -> Result<()> {
     Ok(())
 }
 
-fn read_frame(stream: &mut impl Read) -> Result<Vec<u8>> {
+pub(crate) fn read_frame(stream: &mut impl Read) -> Result<Vec<u8>> {
     let mut size = [0; 4];
     stream.read_exact(&mut size)?;
     let size = u32::from_be_bytes(size) as usize;

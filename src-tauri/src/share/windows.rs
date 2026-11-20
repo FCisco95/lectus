@@ -1,0 +1,336 @@
+//! PC side of Lectus Share: low-level mouse and keyboard hooks on their own message-pump
+//! thread. While the Mac is active the mouse is swallowed and forwarded; the cursor stays parked
+//! in the middle of the primary screen and the motion is read as its offset from there.
+//!
+//! The hook callbacks only update atomics and queue a message, to stay far below the
+//! `LowLevelHooksTimeout`. This module never touches the dictation keyboard hook.
+use super::link::{Msg, Session, PING_EVERY, SILENCE_LIMIT};
+use anyhow::{anyhow, Result};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, AtomicU64, Ordering};
+use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+use windows::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
+use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::System::Threading::GetCurrentThreadId;
+use windows::Win32::UI::Input::KeyboardAndMouse::VK_SCROLL;
+use windows::Win32::UI::WindowsAndMessaging::{
+    CallNextHookEx, DispatchMessageW, GetMessageW, GetSystemMetrics,
+    PostThreadMessageW, SetCursorPos, SetWindowsHookExW, TranslateMessage, UnhookWindowsHookEx,
+    HC_ACTION, KBDLLHOOKSTRUCT, LLMHF_INJECTED, MSG, MSLLHOOKSTRUCT, SM_CXSCREEN,
+    SM_CYSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN,
+    WH_KEYBOARD_LL, WH_MOUSE_LL, WM_KEYDOWN, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN,
+    WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_QUIT, WM_RBUTTONDOWN,
+    WM_RBUTTONUP, WM_SYSKEYDOWN, WM_XBUTTONDOWN, WM_XBUTTONUP,
+};
+
+/// The cursor must push against the left edge this long before the Mac takes over.
+const EDGE_DWELL_MS: u64 = 50;
+
+static OUT: Mutex<Option<Sender<Msg>>> = Mutex::new(None);
+static LINKED: AtomicBool = AtomicBool::new(false);
+static REMOTE: AtomicBool = AtomicBool::new(false);
+static EDGE_SINCE: AtomicU64 = AtomicU64::new(0);
+static PARK_X: AtomicI32 = AtomicI32::new(0);
+static PARK_Y: AtomicI32 = AtomicI32::new(0);
+static HOOK_THREAD: AtomicU32 = AtomicU32::new(0);
+/// Only the newest session may clear the shared sender when it ends.
+static SESSION: AtomicU64 = AtomicU64::new(0);
+static EPOCH: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+
+fn now_ms() -> u64 {
+    EPOCH.get_or_init(Instant::now).elapsed().as_millis() as u64 + 1
+}
+
+fn queue(msg: Msg) {
+    if let Some(tx) = OUT.lock().unwrap().as_ref() {
+        let _ = tx.send(msg);
+    }
+}
+
+struct Virtual {
+    x: i32,
+    y: i32,
+    h: i32,
+}
+
+fn virtual_screen() -> Virtual {
+    unsafe {
+        Virtual {
+            x: GetSystemMetrics(SM_XVIRTUALSCREEN),
+            y: GetSystemMetrics(SM_YVIRTUALSCREEN),
+            h: GetSystemMetrics(SM_CYVIRTUALSCREEN).max(1),
+        }
+    }
+}
+
+/// Hands the mouse to the Mac. Called on the hook thread.
+fn go_remote(y: i32) {
+    let v = virtual_screen();
+    let frac = ((y - v.y) as f64 / (v.h - 1).max(1) as f64).clamp(0.0, 1.0);
+    let (cx, cy) = unsafe { (GetSystemMetrics(SM_CXSCREEN) / 2, GetSystemMetrics(SM_CYSCREEN) / 2) };
+    PARK_X.store(cx, Ordering::SeqCst);
+    PARK_Y.store(cy, Ordering::SeqCst);
+    REMOTE.store(true, Ordering::SeqCst);
+    unsafe {
+        let _ = SetCursorPos(cx, cy);
+    }
+    log::info!("share: mouse to the Mac at y={frac:.3}");
+    queue(Msg::Enter { y: frac });
+}
+
+/// Gives the mouse back to the PC, at the left edge and the given height (0 top, 1 bottom).
+fn come_back(frac: Option<f64>) {
+    if !REMOTE.swap(false, Ordering::SeqCst) {
+        return;
+    }
+    EDGE_SINCE.store(0, Ordering::SeqCst);
+    let v = virtual_screen();
+    unsafe {
+        match frac {
+            Some(f) => {
+                let y = v.y + (f.clamp(0.0, 1.0) * (v.h - 1) as f64).round() as i32;
+                let _ = SetCursorPos(v.x + 2, y);
+            }
+            None => {
+                let _ = SetCursorPos(PARK_X.load(Ordering::SeqCst), PARK_Y.load(Ordering::SeqCst));
+            }
+        }
+    }
+    log::info!("share: mouse back on the PC");
+}
+
+unsafe extern "system" fn mouse_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+    if code == HC_ACTION as i32 {
+        let ms = &*(lparam.0 as *const MSLLHOOKSTRUCT);
+        let injected = ms.flags & LLMHF_INJECTED != 0;
+        let kind = wparam.0 as u32;
+        if REMOTE.load(Ordering::SeqCst) && !injected {
+            let msg = match kind {
+                WM_MOUSEMOVE => {
+                    let dx = ms.pt.x - PARK_X.load(Ordering::Relaxed);
+                    let dy = ms.pt.y - PARK_Y.load(Ordering::Relaxed);
+                    (dx != 0 || dy != 0).then_some(Msg::Move { dx, dy })
+                }
+                WM_LBUTTONDOWN => Some(Msg::Button { b: 0, down: true }),
+                WM_LBUTTONUP => Some(Msg::Button { b: 0, down: false }),
+                WM_RBUTTONDOWN => Some(Msg::Button { b: 1, down: true }),
+                WM_RBUTTONUP => Some(Msg::Button { b: 1, down: false }),
+                WM_MBUTTONDOWN => Some(Msg::Button { b: 2, down: true }),
+                WM_MBUTTONUP => Some(Msg::Button { b: 2, down: false }),
+                WM_MOUSEWHEEL => Some(Msg::Wheel { dx: 0, dy: (ms.mouseData >> 16) as i16 as i32 }),
+                WM_MOUSEHWHEEL => Some(Msg::Wheel { dx: (ms.mouseData >> 16) as i16 as i32, dy: 0 }),
+                WM_XBUTTONDOWN | WM_XBUTTONUP => None,
+                _ => None,
+            };
+            if let Some(msg) = msg {
+                queue(msg);
+            }
+            return LRESULT(1); // swallowed: the PC cursor stays parked
+        }
+        if kind == WM_MOUSEMOVE && !injected && LINKED.load(Ordering::SeqCst) {
+            if ms.pt.x <= virtual_screen().x {
+                let since = EDGE_SINCE.load(Ordering::SeqCst);
+                let now = now_ms();
+                if since == 0 {
+                    EDGE_SINCE.store(now, Ordering::SeqCst);
+                } else if now - since >= EDGE_DWELL_MS {
+                    EDGE_SINCE.store(0, Ordering::SeqCst);
+                    go_remote(ms.pt.y);
+                    return LRESULT(1);
+                }
+            } else {
+                EDGE_SINCE.store(0, Ordering::SeqCst);
+            }
+        }
+    }
+    CallNextHookEx(None, code, wparam, lparam)
+}
+
+/// Scroll Lock always takes the mouse back while the Mac is active. Nothing else is touched.
+unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+    if code == HC_ACTION as i32 && REMOTE.load(Ordering::SeqCst) {
+        let kb = &*(lparam.0 as *const KBDLLHOOKSTRUCT);
+        if kb.vkCode == VK_SCROLL.0 as u32 {
+            if matches!(wparam.0 as u32, WM_KEYDOWN | WM_SYSKEYDOWN) {
+                queue(Msg::Leave);
+                come_back(None);
+            }
+            return LRESULT(1);
+        }
+    }
+    CallNextHookEx(None, code, wparam, lparam)
+}
+
+/// Installs both hooks on a dedicated pump thread. Idempotent.
+pub fn install() -> Result<()> {
+    if HOOK_THREAD.load(Ordering::SeqCst) != 0 {
+        return Ok(());
+    }
+    let (tx, rx) = channel::<Result<u32, String>>();
+    std::thread::spawn(move || unsafe {
+        let hmod = match GetModuleHandleW(None) {
+            Ok(h) => h,
+            Err(e) => {
+                let _ = tx.send(Err(e.to_string()));
+                return;
+            }
+        };
+        let mouse = SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_proc), hmod, 0);
+        let keys = SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), hmod, 0);
+        let (mouse, keys) = match (mouse, keys) {
+            (Ok(m), Ok(k)) => (m, k),
+            (m, k) => {
+                if let Ok(m) = m {
+                    let _ = UnhookWindowsHookEx(m);
+                }
+                if let Ok(k) = k {
+                    let _ = UnhookWindowsHookEx(k);
+                }
+                let _ = tx.send(Err("Windows refused the mouse hook".into()));
+                return;
+            }
+        };
+        let _ = tx.send(Ok(GetCurrentThreadId()));
+        let mut msg = MSG::default();
+        while GetMessageW(&mut msg, None, 0, 0).as_bool() {
+            let _ = TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+        let _ = UnhookWindowsHookEx(mouse);
+        let _ = UnhookWindowsHookEx(keys);
+    });
+    let id = rx
+        .recv_timeout(Duration::from_secs(3))
+        .map_err(|_| anyhow!("The mouse hook did not start"))?
+        .map_err(|e| anyhow!(e))?;
+    HOOK_THREAD.store(id, Ordering::SeqCst);
+    Ok(())
+}
+
+pub fn uninstall() {
+    LINKED.store(false, Ordering::SeqCst);
+    come_back(None);
+    *OUT.lock().unwrap() = None;
+    let id = HOOK_THREAD.swap(0, Ordering::SeqCst);
+    if id != 0 {
+        unsafe {
+            let _ = PostThreadMessageW(id, WM_QUIT, WPARAM(0), LPARAM(0));
+        }
+    }
+}
+
+/// Sums consecutive moves so a slow link never builds a backlog of tiny steps.
+fn coalesce(first: Msg, rx: &Receiver<Msg>) -> (Msg, Option<Msg>) {
+    let Msg::Move { mut dx, mut dy } = first else {
+        return (first, None);
+    };
+    while let Ok(next) = rx.try_recv() {
+        match next {
+            Msg::Move { dx: x, dy: y } => {
+                dx += x;
+                dy += y;
+            }
+            other => return (Msg::Move { dx, dy }, Some(other)),
+        }
+    }
+    (Msg::Move { dx, dy }, None)
+}
+
+/// Runs one connected session until the link drops or Share stops. Returns why it ended.
+pub fn run_session(session: Session, stop: &Arc<AtomicBool>) -> String {
+    let mut reader = match session.split() {
+        Ok(r) => r,
+        Err(e) => return e.to_string(),
+    };
+    let mut writer = session;
+    let mine = SESSION.fetch_add(1, Ordering::SeqCst) + 1;
+    let (tx, rx) = channel();
+    *OUT.lock().unwrap() = Some(tx);
+    LINKED.store(true, Ordering::SeqCst);
+    let heard = Arc::new(AtomicU64::new(now_ms()));
+    let alive = Arc::new(AtomicBool::new(true));
+    {
+        let heard = heard.clone();
+        let alive = alive.clone();
+        std::thread::spawn(move || {
+            while alive.load(Ordering::SeqCst) {
+                match reader.recv() {
+                    Ok(msg) => {
+                        heard.store(now_ms(), Ordering::SeqCst);
+                        if let Msg::Left { y } = msg {
+                            come_back(Some(y));
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
+            alive.store(false, Ordering::SeqCst);
+        });
+    }
+    let mut last_ping = Instant::now() - PING_EVERY;
+    let mut pending: Option<Msg> = None;
+    let reason = loop {
+        if stop.load(Ordering::SeqCst) {
+            let _ = writer.send(Msg::Leave);
+            break "Share stopped".to_string();
+        }
+        if !alive.load(Ordering::SeqCst) {
+            break "link closed".to_string();
+        }
+        if now_ms() - heard.load(Ordering::SeqCst) > SILENCE_LIMIT.as_millis() as u64 {
+            break "no answer for 3 s".to_string();
+        }
+        if last_ping.elapsed() >= PING_EVERY {
+            if let Err(e) = writer.send(Msg::Ping) {
+                break e.to_string();
+            }
+            last_ping = Instant::now();
+        }
+        let next = match pending.take() {
+            Some(m) => m,
+            None => match rx.recv_timeout(Duration::from_millis(100)) {
+                Ok(m) => m,
+                Err(RecvTimeoutError::Timeout) => continue,
+                Err(RecvTimeoutError::Disconnected) => break "Share stopped".to_string(),
+            },
+        };
+        let (msg, rest) = coalesce(next, &rx);
+        pending = rest;
+        if let Err(e) = writer.send(msg) {
+            break e.to_string();
+        }
+    };
+    alive.store(false, Ordering::SeqCst);
+    if SESSION.load(Ordering::SeqCst) == mine {
+        LINKED.store(false, Ordering::SeqCst);
+        *OUT.lock().unwrap() = None;
+        // After a drop the Mac is unreachable: put the cursor back where the user can see it.
+        come_back(None);
+    }
+    writer.close();
+    reason
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn coalesce_sums_moves_and_keeps_the_next_message() {
+        let (tx, rx) = channel();
+        tx.send(Msg::Move { dx: 2, dy: 3 }).unwrap();
+        tx.send(Msg::Button { b: 0, down: true }).unwrap();
+        tx.send(Msg::Move { dx: 9, dy: 9 }).unwrap();
+        let (m, rest) = coalesce(Msg::Move { dx: 1, dy: 1 }, &rx);
+        assert_eq!(m, Msg::Move { dx: 3, dy: 4 });
+        assert_eq!(rest, Some(Msg::Button { b: 0, down: true }));
+        assert_eq!(rx.try_recv().unwrap(), Msg::Move { dx: 9, dy: 9 });
+    }
+
+    #[test]
+    fn coalesce_passes_other_messages_untouched() {
+        let (_tx, rx) = channel::<Msg>();
+        assert_eq!(coalesce(Msg::Ping, &rx), (Msg::Ping, None));
+    }
+}

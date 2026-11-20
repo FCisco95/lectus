@@ -21,6 +21,7 @@ mod playback;
 mod remote_dictation;
 mod resources;
 mod setup_wizard;
+mod share;
 mod state;
 mod subscriptions;
 mod transcription;
@@ -1256,6 +1257,7 @@ pub fn run() {
         })
         .manage(PreRoll(Mutex::new(None)))
         .manage(remote_dictation::RemoteState::new())
+        .manage(share::ShareState::new())
         .manage(api_adapter::ApiServiceState::default())
         .manage(playback::platform_ducker())
         .invoke_handler(tauri::generate_handler![
@@ -1323,6 +1325,8 @@ pub fn run() {
             remote_dictation::remote_get_settings,
             remote_dictation::remote_save_settings,
             remote_dictation::remote_test_connection,
+            share::share_get,
+            share::share_set,
             updates::restart_and_apply,
             updates::take_whats_new_notes,
         ])
