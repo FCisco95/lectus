@@ -94,7 +94,10 @@ config so the setup can be put back.
 3. Same 10 minutes on a release build of Input Leap (v3.0.2 is the last one with installers).
 4. Same 10 minutes on Deskflow. Note whether it finds the other computer without an address.
 5. If possible, repeat the worst case with the Mac on cable or next to the router.
-6. Decide: release build or network fixes the lag, so no own engine is needed for lag; or the
+6. **Decided 2026-11-20:** owner felt no real lag in the in-use run ("almost never stuck,
+   smooth"), so steps 3-5 are dropped and nothing was installed. The own engine goes ahead for
+   the product, not for lag, over TCP first: `2026-11-20-lectus-share.md`.
+   Original step: decide: release build or network fixes the lag, so no own engine is needed for lag; or the
    lag stays, so an own engine with pointer traffic over UDP is justified. Record the numbers
    here and the outcome in `docs/HANDOFF.md`.
 

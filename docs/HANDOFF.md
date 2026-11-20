@@ -98,8 +98,9 @@ PC reboot changed the PC address (.51 to .57). Nothing changed on the PC. The IL
 start at boot: run `Desktop\InputLeap\input-leap\Start Server.bat`. Network, 600 pings each:
 Mac idle median 12 ms, p95 101; Mac in use median 11 ms, p95 95, max 117, no loss. The even
 0-120 ms spread suggests Mac Wi-Fi power save (unverified). Numbers in the plan, section
-"Owner direction". Open: owner's stutter count for the in-use run; a cable/near-router run;
-then the engine design (pointer traffic over UDP if the spikes are the Wi-Fi).
+"Owner direction". Owner felt the in-use run smooth, so no release IL or Deskflow install.
+Design for the own engine: `docs/plans/2026-11-20-lectus-share.md` (TCP first, UDP only if
+measured stalls). Open: owner approval for M1, which changes the input capture pipeline.
 
 ## Still open from the access/Android run (run_db09bc5a3181)
 
@@ -110,7 +111,7 @@ Android channel question and full design approval are pending. See
 ## Next-session prompt
 
 ```text
-Lectus, feat/remote-dictation, read docs/HANDOFF.md first. The Mac already reaches the PC by name. Next for the Input Leap work: get the owner's stutter count, repeat the 10-minute ping with the Mac on cable or near the router, then design the own keyboard/mouse engine inside Lectus (docs/plans/2026-11-18-input-leap-follow.md, option 2). No Lectus capture, injection or shortcut change without asking.
+Lectus, feat/remote-dictation, read docs/HANDOFF.md first. The Mac already reaches the PC by name. Next for the Input Leap work: docs/plans/2026-11-20-lectus-share.md; start M1 only after the owner approves the input capture change. No Lectus capture, injection or shortcut change without asking.
 
 Parked installer work, for when that is done: Installer now ships the MSVC runtime, checks for Vulkan, publishes as Bakehouse Labs; legal identity is the owner trading as Bakehouse Labs. Next: run scripts/diagnostics/sandbox-acceptance (Windows Sandbox is enabled; needs the owner's restart first), then legal disclosures and approval. Keep publication and installed-app gates closed.
 ```
