@@ -38,10 +38,10 @@ function SharePanel({ mode }: { mode: Mode }) {
       <label className="checkbox-row" style={{ flex: 1 }}>
         <input type="checkbox" checked={view.enabled} disabled={busy} onChange={(e) => toggle(e.target.checked)} />
         <span className="checkbox-text">
-          {mode === 'send' ? 'Share this mouse with the paired Mac (test)' : 'Let the paired PC move this mouse (test)'}
+          {mode === 'send' ? 'Share mouse and keyboard with the paired Mac (test)' : 'Let the paired PC control this Mac (test)'}
           <small>
             {mode === 'send'
-              ? 'Connects by itself when the Mac is in reach. Push the cursor past the left edge to move to the Mac; Scroll Lock brings it back. Stop Input Leap first.'
+              ? 'Connects by itself when the Mac is in reach. Push the cursor past the left edge to move mouse and keyboard to the Mac; Scroll Lock brings them back. Dictation goes to the computer the mouse is on. Stop Input Leap first.'
               : 'Needs Accessibility. Stop Input Leap first.'}
             {view.enabled && view.status ? <><br /><span role={view.error ? 'alert' : 'status'}
               style={{ color: view.error ? 'var(--danger, #c44)' : undefined }}>{view.status}</span></> : null}

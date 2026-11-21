@@ -51,6 +51,8 @@ pub trait KeyboardHook: Sized {
 mod windows;
 #[cfg(target_os = "windows")]
 pub use windows::WindowsHook as PlatformHook;
+#[cfg(target_os = "windows")]
+pub use windows::dictation_vks;
 
 #[cfg(target_os = "macos")]
 mod macos;

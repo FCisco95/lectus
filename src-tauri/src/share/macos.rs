@@ -1,9 +1,12 @@
 //! Mac side of Lectus Share: turns the PC's mouse messages into Core Graphics events.
 //! Needs the Accessibility permission Lectus already asks for. M1 uses the main display only.
 use super::link::{Msg, Session, PING_EVERY};
+use super::keys::{KeyAction, KeyState};
 use super::pointer::{Bounds, PointerAction, RemotePointer};
 use core_graphics::display::CGDisplay;
-use core_graphics::event::{CGEvent, CGEventTapLocation, CGEventType, CGMouseButton, EventField};
+use core_graphics::event::{
+    CGEvent, CGEventFlags, CGEventTapLocation, CGEventType, CGMouseButton, EventField,
+};
 use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
 use core_graphics::geometry::CGPoint;
 use std::ffi::c_void;
@@ -33,6 +36,7 @@ const HID_EVENT_TAP: u32 = 0;
 
 static POINTER: Mutex<Option<RemotePointer>> = Mutex::new(None);
 static GENERATION: AtomicU64 = AtomicU64::new(0);
+static KEYS: Mutex<Option<KeyState>> = Mutex::new(None);
 
 fn main_bounds() -> Bounds {
     let r = CGDisplay::main().bounds();
@@ -92,8 +96,35 @@ fn post(action: PointerAction) {
     }
 }
 
-/// Lets go of every button Share pressed. Safe to call at any time.
+fn post_key(a: KeyAction) {
+    let Ok(src) = CGEventSource::new(CGEventSourceStateID::HIDSystemState) else {
+        return;
+    };
+    if let Ok(e) = CGEvent::new_keyboard_event(src, a.code, a.down) {
+        if a.modifier {
+            e.set_type(CGEventType::FlagsChanged);
+        }
+        e.set_flags(CGEventFlags::from_bits_truncate(a.flags));
+        if a.repeat {
+            e.set_integer_value_field(EventField::KEYBOARD_EVENT_AUTOREPEAT, 1);
+        }
+        e.post(CGEventTapLocation::HID);
+    }
+}
+
+fn release_keys() {
+    let ups = KEYS
+        .lock()
+        .unwrap()
+        .as_mut()
+        .map(|k| k.release_all())
+        .unwrap_or_default();
+    ups.into_iter().for_each(post_key);
+}
+
+/// Lets go of every key and button Share pressed. Safe to call at any time.
 pub fn release_all() {
+    release_keys();
     let actions = POINTER
         .lock()
         .unwrap()
@@ -124,6 +155,27 @@ pub fn run_session(mut session: Session, stop: &Arc<AtomicBool>) -> String {
             Ok(m) => m,
             Err(e) => break format!("{e:#}"),
         };
+        // Answer before handling, so a long burst of keys never starves the PC's watchdog.
+        if last_ping.elapsed() >= PING_EVERY {
+            if let Err(e) = session.send(Msg::Ping) {
+                break e.to_string();
+            }
+            last_ping = Instant::now();
+        }
+        if let Msg::Key { s, e, down } = msg {
+            let action = KEYS
+                .lock()
+                .unwrap()
+                .get_or_insert_with(KeyState::default)
+                .handle(s, e, down);
+            if let Some(a) = action {
+                post_key(a);
+            }
+            continue;
+        }
+        if matches!(msg, Msg::Leave) {
+            release_keys();
+        }
         let actions = {
             let mut guard = POINTER.lock().unwrap();
             let pointer = guard.get_or_insert_with(|| RemotePointer::new(main_bounds()));
@@ -147,16 +199,11 @@ pub fn run_session(mut session: Session, stop: &Arc<AtomicBool>) -> String {
             }
         }
         if let Some(y) = exit {
+            release_keys();
             log::info!("share: mouse back to the PC");
             if let Err(e) = session.send(Msg::Left { y }) {
                 break e.to_string();
             }
-        }
-        if last_ping.elapsed() >= PING_EVERY {
-            if let Err(e) = session.send(Msg::Ping) {
-                break e.to_string();
-            }
-            last_ping = Instant::now();
         }
     };
     if GENERATION.load(Ordering::SeqCst) == mine {

@@ -93,6 +93,11 @@ fn clear_press_state() {
     }
 }
 
+/// The dictation key(s) (second is 0 for a single key), so Lectus Share leaves them to dictation.
+pub fn dictation_vks() -> (u32, u32) {
+    (TARGET_VK.load(Ordering::Relaxed), TARGET_VK2.load(Ordering::Relaxed))
+}
+
 pub struct WindowsHook {
     thread_id: u32,
 }

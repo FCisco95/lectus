@@ -9,6 +9,8 @@ pub mod link;
 // Used by the Mac side; tested everywhere.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 mod pointer;
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+mod keys;
 #[cfg(target_os = "windows")]
 mod windows;
 #[cfg(target_os = "macos")]
@@ -102,6 +104,16 @@ pub(crate) fn status(app: &tauri::AppHandle, text: impl Into<String>, error: boo
     let state = app.state::<ShareState>();
     *state.status.lock().unwrap() = (text.clone(), error);
     let _ = app.emit("share-status", serde_json::json!({"status": text, "error": error}));
+}
+
+/// Where dictation goes while Share runs on the PC: `Some(true)` the Mac (the mouse is there),
+/// `Some(false)` this PC (the mouse is here, or the Mac is out of reach). `None` when Share is
+/// off, so the remote dictation setting decides alone. Read once, when a dictation starts.
+pub fn follow() -> Option<bool> {
+    #[cfg(target_os = "windows")]
+    return windows::follow();
+    #[cfg(not(target_os = "windows"))]
+    None
 }
 
 pub fn stop(app: &tauri::AppHandle) {

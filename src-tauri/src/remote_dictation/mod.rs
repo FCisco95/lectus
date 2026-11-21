@@ -117,7 +117,18 @@ impl RemoteState {
             Mode::Local => Ok(None),
             Mode::Send => {
                 Pairing::parse(&s.peer_code)?;
-                Ok(Some(s.peer_code.clone()))
+                // Lectus Share: dictation follows the mouse, fixed at key-down.
+                match crate::share::follow() {
+                    Some(false) => {
+                        log::info!("share: dictation on this PC (mouse here)");
+                        Ok(None)
+                    }
+                    Some(true) => {
+                        log::info!("share: dictation to the Mac (mouse there)");
+                        Ok(Some(s.peer_code.clone()))
+                    }
+                    None => Ok(Some(s.peer_code.clone())),
+                }
             }
             Mode::Receive => bail!("Receive mode uses the microphone on your other computer"),
         }

@@ -24,7 +24,12 @@ pairing without copying a code.
 
 Code: `src-tauri/src/share/` (link, pointer, windows, macos), toggle in the remote panel,
 reuses the Send/Receive pairing, mDNS `_lectus-share._tcp`. Native tests 328 passed (16 new).
-Not run on hardware yet; the Mac side is uncompiled until a `mac-check-*` run.
+Hardware, 2026-11-21: the PC mouse moves onto the Mac and back (owner: "working").
+Owner then asked for the keyboard and for dictation to follow the mouse, so M2 and M3 were
+built together: keys forwarded by scan code (Ctrl = Command, Windows = Control, Alt = Option,
+Right Ctrl stays the dictation key, Caps Lock not forwarded), and in Send mode with Share on
+the destination is the computer the mouse is on at key-down. Mac test builds need
+`brew install openssl@4` (libllama-common links Homebrew OpenSSL; a release blocker for macOS).
 
 ## v1 scope
 

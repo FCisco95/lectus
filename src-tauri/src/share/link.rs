@@ -29,6 +29,8 @@ pub enum Msg {
     Button { b: u8, down: bool },
     /// PC to Mac: Windows wheel units, 120 per notch. Positive `dy` scrolls up, positive `dx` right.
     Wheel { dx: i32, dy: i32 },
+    /// PC to Mac: a key by position: set-1 scan code `s`, E0-extended `e`.
+    Key { s: u16, e: bool, down: bool },
     /// PC to Mac: the PC took the mouse back (escape key or shutdown).
     Leave,
     /// Mac to PC: the cursor crossed the Mac's right edge at `y`.

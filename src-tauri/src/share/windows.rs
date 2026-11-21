@@ -14,6 +14,7 @@ use windows::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::System::Threading::GetCurrentThreadId;
 use windows::Win32::UI::Input::KeyboardAndMouse::VK_SCROLL;
+use windows::Win32::UI::WindowsAndMessaging::{LLKHF_EXTENDED, LLKHF_INJECTED};
 use windows::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, DispatchMessageW, GetMessageW, GetSystemMetrics,
     PostThreadMessageW, SetCursorPos, SetWindowsHookExW, TranslateMessage, UnhookWindowsHookEx,
@@ -34,6 +35,9 @@ static EDGE_SINCE: AtomicU64 = AtomicU64::new(0);
 static PARK_X: AtomicI32 = AtomicI32::new(0);
 static PARK_Y: AtomicI32 = AtomicI32::new(0);
 static HOOK_THREAD: AtomicU32 = AtomicU32::new(0);
+/// Keys whose key-down went to the Mac (bit = scan code | 0x100 if extended). Their key-up
+/// follows; a key-up for a key pressed before the mouse crossed goes to the PC instead.
+static FORWARDED: [AtomicU64; 8] = [const { AtomicU64::new(0) }; 8];
 /// Only the newest session may clear the shared sender when it ends.
 static SESSION: AtomicU64 = AtomicU64::new(0);
 static EPOCH: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
@@ -84,6 +88,8 @@ fn come_back(frac: Option<f64>) {
     if !REMOTE.swap(false, Ordering::SeqCst) {
         return;
     }
+    // The Mac releases what it holds; later key-ups belong to the PC again.
+    FORWARDED.iter().for_each(|w| w.store(0, Ordering::SeqCst));
     EDGE_SINCE.store(0, Ordering::SeqCst);
     let v = virtual_screen();
     unsafe {
@@ -147,19 +153,59 @@ unsafe extern "system" fn mouse_proc(code: i32, wparam: WPARAM, lparam: LPARAM) 
     CallNextHookEx(None, code, wparam, lparam)
 }
 
-/// Scroll Lock always takes the mouse back while the Mac is active. Nothing else is touched.
+/// Sets or clears a key's bit; returns whether it was set before.
+fn forwarded(slot: usize, set: bool) -> bool {
+    let (word, bit) = (&FORWARDED[slot / 64], 1u64 << (slot % 64));
+    let before = if set {
+        word.fetch_or(bit, Ordering::SeqCst)
+    } else {
+        word.fetch_and(!bit, Ordering::SeqCst)
+    };
+    before & bit != 0
+}
+
+/// While the Mac is active every key goes to the Mac, except: Scroll Lock (takes the mouse
+/// back), the dictation key (stays with dictation on this PC), injected keys, and key-ups of
+/// keys that were already down before the mouse crossed.
 unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     if code == HC_ACTION as i32 && REMOTE.load(Ordering::SeqCst) {
         let kb = &*(lparam.0 as *const KBDLLHOOKSTRUCT);
+        let down = matches!(wparam.0 as u32, WM_KEYDOWN | WM_SYSKEYDOWN);
         if kb.vkCode == VK_SCROLL.0 as u32 {
-            if matches!(wparam.0 as u32, WM_KEYDOWN | WM_SYSKEYDOWN) {
+            if down {
                 queue(Msg::Leave);
                 come_back(None);
             }
             return LRESULT(1);
         }
+        let (d1, d2) = crate::hook::dictation_vks();
+        let injected = kb.flags.0 & LLKHF_INJECTED.0 != 0;
+        if injected || kb.vkCode == d1 || (d2 != 0 && kb.vkCode == d2) {
+            return CallNextHookEx(None, code, wparam, lparam);
+        }
+        if kb.scanCode & 0x200 != 0 {
+            return LRESULT(1); // the fake left Ctrl that AltGr adds
+        }
+        let extended = kb.flags.0 & LLKHF_EXTENDED.0 != 0;
+        let scan = (kb.scanCode & 0xFF) as u16;
+        let slot = scan as usize | if extended { 0x100 } else { 0 };
+        if down {
+            forwarded(slot, true);
+        } else if !forwarded(slot, false) {
+            return CallNextHookEx(None, code, wparam, lparam);
+        }
+        queue(Msg::Key { s: scan, e: extended, down });
+        return LRESULT(1);
     }
     CallNextHookEx(None, code, wparam, lparam)
+}
+
+/// See [`super::follow`].
+pub fn follow() -> Option<bool> {
+    if HOOK_THREAD.load(Ordering::SeqCst) == 0 {
+        return None;
+    }
+    Some(LINKED.load(Ordering::SeqCst) && REMOTE.load(Ordering::SeqCst))
 }
 
 /// Installs both hooks on a dedicated pump thread. Idempotent.
