@@ -36,6 +36,11 @@ impl Pairing {
         })
     }
 
+    /// A pairing from a key agreed elsewhere (Lectus Link pairing).
+    pub(crate) fn from_key(id: String, key: [u8; 32]) -> Self {
+        Self { id, key }
+    }
+
     pub fn code(&self) -> String {
         format!(
             "LECTUS1.{}.{}",

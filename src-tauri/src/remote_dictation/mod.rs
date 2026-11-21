@@ -87,18 +87,6 @@ impl RemoteState {
         self.settings.lock().unwrap().mode
     }
 
-    /// The paired route that Lectus Share reuses: the peer code in Send mode, our own code in
-    /// Receive mode. None in Local mode or when the code is invalid.
-    pub fn share_route(&self) -> Option<(Mode, Pairing)> {
-        let s = self.settings.lock().unwrap();
-        let code = match s.mode {
-            Mode::Local => return None,
-            Mode::Send => &s.peer_code,
-            Mode::Receive => &s.receiver_code,
-        };
-        Pairing::parse(code).ok().map(|p| (s.mode, p))
-    }
-
     pub fn view(&self) -> View {
         let s = self.settings.lock().unwrap().clone();
         let (status, error) = self.status.lock().unwrap().clone();
@@ -117,18 +105,7 @@ impl RemoteState {
             Mode::Local => Ok(None),
             Mode::Send => {
                 Pairing::parse(&s.peer_code)?;
-                // Lectus Share: dictation follows the mouse, fixed at key-down.
-                match crate::share::follow() {
-                    Some(false) => {
-                        log::info!("share: dictation on this PC (mouse here)");
-                        Ok(None)
-                    }
-                    Some(true) => {
-                        log::info!("share: dictation to the Mac (mouse there)");
-                        Ok(Some(s.peer_code.clone()))
-                    }
-                    None => Ok(Some(s.peer_code.clone())),
-                }
+                Ok(Some(s.peer_code.clone()))
             }
             Mode::Receive => bail!("Receive mode uses the microphone on your other computer"),
         }
@@ -147,11 +124,9 @@ impl RemoteState {
     fn start(&self, app: &tauri::AppHandle) -> Result<()> {
         self.session.lock().unwrap().take();
         self.peers.lock().unwrap().clear();
-        crate::share::stop(app);
         let settings = self.settings.lock().unwrap().clone();
         if settings.mode == Mode::Local {
             self.message(app, "Dictating on this computer", false);
-            crate::share::restart(app);
             return Ok(());
         }
         let pairing = Pairing::parse(if settings.mode == Mode::Receive {
@@ -265,7 +240,6 @@ impl RemoteState {
             );
         }
         *self.session.lock().unwrap() = Some(session);
-        crate::share::restart(app);
         Ok(())
     }
 

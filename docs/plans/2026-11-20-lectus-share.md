@@ -31,6 +31,17 @@ Right Ctrl stays the dictation key, Caps Lock not forwarded), and in Send mode w
 the destination is the computer the mouse is on at key-down. Mac test builds need
 `brew install openssl@4` (libllama-common links Homebrew OpenSSL; a release blocker for macOS).
 
+## Lectus Link (2026-11-21)
+
+Owner, after the first hardware run: it felt like "a weird thing of Lectus"; it needs its own
+section, a main and a receiver role, and a choice of where the other computer stands. Built:
+Settings > Link (working name "Lectus Link"), off by default, independent of remote dictation.
+Main (Windows) / Other computer (Mac) roles, side picker (left/right/above/below), pairing by
+picking the computer from an mDNS list and typing the 6-digit code it shows (SPAKE2, 3 tries
+per code), auto-reconnect, dictation text over the same link with an acknowledgement (never
+retried, deduplicated on the receiver). Native tests 339 passed. Settings in `link.json`.
+Not yet on hardware.
+
 ## v1 scope
 
 - PC (Windows) shares its keyboard and mouse with one Mac. The Mac is to the left, as today.

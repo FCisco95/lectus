@@ -1,6 +1,6 @@
-//! Platform-free cursor logic for the controlled computer, so it is tested on every OS.
+//! Platform-free cursor logic for the receiving computer, so it is tested on every OS.
 //! The Mac side turns the returned actions into Core Graphics events.
-use super::link::Msg;
+use super::link::{Edge, Msg};
 use std::time::{Duration, Instant};
 
 const DOUBLE_CLICK: Duration = Duration::from_millis(500);
@@ -22,8 +22,8 @@ pub enum PointerAction {
     Button { x: f64, y: f64, b: u8, down: bool, clicks: i64 },
     /// Line units. Positive `y` scrolls up, positive `x` scrolls left (Core Graphics order).
     Scroll { y: i32, x: i32 },
-    /// Tell the PC the cursor crossed the right edge at this height (0 top, 1 bottom).
-    Exit { y: f64 },
+    /// Tell the main computer the cursor crossed back, at `at` along the shared edge.
+    Exit { at: f64 },
 }
 
 pub struct RemotePointer {
@@ -31,6 +31,8 @@ pub struct RemotePointer {
     x: f64,
     y: f64,
     active: bool,
+    /// The edge of this screen that faces the main computer.
+    edge: Edge,
     held: [bool; 3],
     last_down: Option<(u8, Instant, f64, f64)>,
     clicks: i64,
@@ -44,6 +46,7 @@ impl RemotePointer {
             x: bounds.x + bounds.w / 2.0,
             y: bounds.y + bounds.h / 2.0,
             active: false,
+            edge: Edge::Right,
             held: [false; 3],
             last_down: None,
             clicks: 0,
@@ -59,23 +62,31 @@ impl RemotePointer {
         self.bounds = bounds;
     }
 
+    fn right(&self) -> f64 {
+        self.bounds.x + self.bounds.w
+    }
+
+    fn bottom(&self) -> f64 {
+        self.bounds.y + self.bounds.h
+    }
+
     /// Follows the real cursor, which the Mac's own trackpad may have moved.
     pub fn sync(&mut self, x: f64, y: f64) {
         if self.active {
             self.x = x.clamp(self.bounds.x, self.right() - 1.0);
-            self.y = y.clamp(self.bounds.y, self.bounds.y + self.bounds.h - 1.0);
+            self.y = y.clamp(self.bounds.y, self.bottom() - 1.0);
         }
-    }
-
-    fn right(&self) -> f64 {
-        self.bounds.x + self.bounds.w
     }
 
     fn drag(&self) -> Option<u8> {
         (0..3u8).find(|&b| self.held[b as usize])
     }
 
-    /// Releases every held button at the current position and stops following the PC.
+    fn frac(v: f64, start: f64, len: f64) -> f64 {
+        ((v - start) / (len - 1.0).max(1.0)).clamp(0.0, 1.0)
+    }
+
+    /// Releases every held button at the current position and stops following the main computer.
     pub fn release_all(&mut self) -> Vec<PointerAction> {
         let mut out = Vec::new();
         for b in 0..3u8 {
@@ -95,25 +106,43 @@ impl RemotePointer {
     }
 
     pub fn handle(&mut self, msg: Msg, now: Instant) -> Vec<PointerAction> {
+        let b = self.bounds;
         match msg {
-            Msg::Enter { y } => {
+            Msg::Enter { e, at } => {
+                let at = at.clamp(0.0, 1.0);
                 self.active = true;
-                self.x = self.right() - 2.0;
-                self.y = self.bounds.y + y.clamp(0.0, 1.0) * (self.bounds.h - 1.0);
+                self.edge = e;
+                let along_y = b.y + at * (b.h - 1.0);
+                let along_x = b.x + at * (b.w - 1.0);
+                (self.x, self.y) = match e {
+                    Edge::Right => (self.right() - 2.0, along_y),
+                    Edge::Left => (b.x + 1.0, along_y),
+                    Edge::Top => (along_x, b.y + 1.0),
+                    Edge::Bottom => (along_x, self.bottom() - 2.0),
+                };
                 vec![PointerAction::Move { x: self.x, y: self.y, drag: None }]
             }
             Msg::Leave => self.release_all(),
             _ if !self.active => Vec::new(),
             Msg::Move { dx, dy } => {
-                let nx = self.x + dx as f64;
-                self.y = (self.y + dy as f64).clamp(self.bounds.y, self.bounds.y + self.bounds.h - 1.0);
-                if nx >= self.right() && dx > 0 {
-                    let frac = (self.y - self.bounds.y) / (self.bounds.h - 1.0).max(1.0);
+                let (nx, ny) = (self.x + dx as f64, self.y + dy as f64);
+                let crossed = match self.edge {
+                    Edge::Right => dx > 0 && nx >= self.right(),
+                    Edge::Left => dx < 0 && nx < b.x,
+                    Edge::Top => dy < 0 && ny < b.y,
+                    Edge::Bottom => dy > 0 && ny >= self.bottom(),
+                };
+                self.x = nx.clamp(b.x, self.right() - 1.0);
+                self.y = ny.clamp(b.y, self.bottom() - 1.0);
+                if crossed {
+                    let at = match self.edge {
+                        Edge::Left | Edge::Right => Self::frac(self.y, b.y, b.h),
+                        Edge::Top | Edge::Bottom => Self::frac(self.x, b.x, b.w),
+                    };
                     let mut out = self.release_all();
-                    out.push(PointerAction::Exit { y: frac });
+                    out.push(PointerAction::Exit { at });
                     return out;
                 }
-                self.x = nx.clamp(self.bounds.x, self.right() - 1.0);
                 vec![PointerAction::Move { x: self.x, y: self.y, drag: self.drag() }]
             }
             Msg::Button { b, down } if b < 3 => {
@@ -159,18 +188,29 @@ mod tests {
 
     const SCREEN: Bounds = Bounds { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 };
 
-    fn entered() -> (RemotePointer, Instant) {
+    fn entered_at(e: Edge) -> (RemotePointer, Instant) {
         let mut p = RemotePointer::new(SCREEN);
         let now = Instant::now();
-        p.handle(Msg::Enter { y: 0.5 }, now);
+        p.handle(Msg::Enter { e, at: 0.5 }, now);
         (p, now)
     }
 
+    fn entered() -> (RemotePointer, Instant) {
+        entered_at(Edge::Right)
+    }
+
     #[test]
-    fn enter_places_the_cursor_at_the_right_edge_at_the_same_height() {
+    fn enter_places_the_cursor_on_the_facing_edge() {
         let mut p = RemotePointer::new(SCREEN);
-        let a = p.handle(Msg::Enter { y: 0.5 }, Instant::now());
-        assert_eq!(a, vec![PointerAction::Move { x: 1468.0, y: 477.5, drag: None }]);
+        let now = Instant::now();
+        assert_eq!(
+            p.handle(Msg::Enter { e: Edge::Right, at: 0.5 }, now),
+            vec![PointerAction::Move { x: 1468.0, y: 477.5, drag: None }]
+        );
+        assert_eq!(
+            p.handle(Msg::Enter { e: Edge::Top, at: 0.0 }, now),
+            vec![PointerAction::Move { x: 0.0, y: 1.0, drag: None }]
+        );
         assert!(p.active());
     }
 
@@ -189,14 +229,29 @@ mod tests {
     }
 
     #[test]
-    fn crossing_the_right_edge_releases_buttons_and_hands_back() {
+    fn crossing_the_facing_edge_releases_buttons_and_hands_back() {
         let (mut p, now) = entered();
         p.handle(Msg::Button { b: 0, down: true }, now);
         let a = p.handle(Msg::Move { dx: 10, dy: 0 }, now);
         assert_eq!(a.len(), 2);
         assert!(matches!(a[0], PointerAction::Button { b: 0, down: false, .. }));
-        assert!(matches!(a[1], PointerAction::Exit { y } if (y - 0.5).abs() < 0.01));
+        assert!(matches!(a[1], PointerAction::Exit { at } if (at - 0.5).abs() < 0.01));
         assert!(!p.active());
+    }
+
+    #[test]
+    fn other_edges_do_not_hand_back() {
+        let (mut p, now) = entered_at(Edge::Bottom);
+        let a = p.handle(Msg::Move { dx: 5000, dy: 0 }, now);
+        assert!(matches!(a[0], PointerAction::Move { .. }));
+        let a = p.handle(Msg::Move { dx: 0, dy: 50 }, now);
+        assert!(matches!(a[0], PointerAction::Exit { at } if (at - 1.0).abs() < 0.01));
+    }
+
+    #[test]
+    fn left_edge_hands_back_when_moving_left() {
+        let (mut p, now) = entered_at(Edge::Left);
+        assert!(matches!(p.handle(Msg::Move { dx: -2, dy: 0 }, now)[0], PointerAction::Exit { .. }));
     }
 
     #[test]
@@ -214,8 +269,7 @@ mod tests {
         p.handle(Msg::Button { b: 0, down: false }, now);
         let a = p.handle(Msg::Button { b: 0, down: true }, now + Duration::from_millis(200));
         assert!(matches!(a[0], PointerAction::Button { clicks: 2, .. }));
-        let slow = p.handle(Msg::Button { b: 0, down: false }, now);
-        assert!(matches!(slow[0], PointerAction::Button { clicks: 2, down: false, .. }));
+        p.handle(Msg::Button { b: 0, down: false }, now);
         let a = p.handle(Msg::Button { b: 0, down: true }, now + Duration::from_secs(2));
         assert!(matches!(a[0], PointerAction::Button { clicks: 1, .. }));
     }

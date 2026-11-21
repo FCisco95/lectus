@@ -12,46 +12,6 @@ interface RemoteSettings {
   error: boolean;
 }
 interface Status { status: string; error: boolean }
-interface ShareView { enabled: boolean; status: string; error: boolean }
-
-/** Lectus Share test (M1): the PC lends its mouse to the paired Mac. Reuses the pairing above. */
-function SharePanel({ mode }: { mode: Mode }) {
-  const [view, setView] = useState<ShareView | null>(null);
-  const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    let mounted = true;
-    invoke<ShareView>('share_get').then((v) => { if (mounted) setView(v); }).catch(() => {});
-    const unlisten = listen<Status>('share-status', (e) => {
-      if (mounted) setView((v) => (v ? { ...v, status: e.payload.status, error: e.payload.error } : v));
-    });
-    return () => { mounted = false; unlisten.then((off) => off()); };
-  }, []);
-  if (!view || mode === 'local') return null;
-  const toggle = async (enabled: boolean) => {
-    setBusy(true);
-    try { setView(await invoke<ShareView>('share_set', { enabled })); }
-    catch (e) { setView({ ...view, enabled, status: String(e), error: true }); }
-    finally { setBusy(false); }
-  };
-  return (
-    <div className="row">
-      <label className="checkbox-row" style={{ flex: 1 }}>
-        <input type="checkbox" checked={view.enabled} disabled={busy} onChange={(e) => toggle(e.target.checked)} />
-        <span className="checkbox-text">
-          {mode === 'send' ? 'Share mouse and keyboard with the paired Mac (test)' : 'Let the paired PC control this Mac (test)'}
-          <small>
-            {mode === 'send'
-              ? 'Connects by itself when the Mac is in reach. Push the cursor past the left edge to move mouse and keyboard to the Mac; Scroll Lock brings them back. Dictation goes to the computer the mouse is on. Stop Input Leap first.'
-              : 'Needs Accessibility. Stop Input Leap first.'}
-            {view.enabled && view.status ? <><br /><span role={view.error ? 'alert' : 'status'}
-              style={{ color: view.error ? 'var(--danger, #c44)' : undefined }}>{view.status}</span></> : null}
-          </small>
-        </span>
-      </label>
-    </div>
-  );
-}
-
 export function RemoteDictationPanel() {
   const [saved, setSaved] = useState<RemoteSettings | null>(null);
   const [mode, setMode] = useState<Mode>('local');
@@ -153,7 +113,6 @@ export function RemoteDictationPanel() {
           </div>
         </>
       )}
-      {saved && <SharePanel mode={saved.mode} />}
       <div className="row">
         <div className="row-label">
           <span role={status.error ? 'alert' : 'status'} style={{ color: status.error ? 'var(--danger, #c44)' : undefined }}>

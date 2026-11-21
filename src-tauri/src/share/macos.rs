@@ -1,5 +1,5 @@
-//! Mac side of Lectus Share: turns the PC's mouse messages into Core Graphics events.
-//! Needs the Accessibility permission Lectus already asks for. M1 uses the main display only.
+//! Receiving side of Lectus Link (macOS): turns the main computer's mouse and key messages
+//! into Core Graphics events and inserts dictated text. Needs Accessibility. Main display only.
 use super::link::{Msg, Session, PING_EVERY};
 use super::keys::{KeyAction, KeyState};
 use super::pointer::{Bounds, PointerAction, RemotePointer};
@@ -11,8 +11,10 @@ use core_graphics::event_source::{CGEventSource, CGEventSourceStateID};
 use core_graphics::geometry::CGPoint;
 use std::ffi::c_void;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use std::time::{Duration, Instant};
+use tauri::Manager;
 
 // core-graphics 0.24 gates the scroll constructor behind a feature; call the C API directly.
 #[link(name = "ApplicationServices", kind = "framework")]
@@ -37,6 +39,57 @@ const HID_EVENT_TAP: u32 = 0;
 static POINTER: Mutex<Option<RemotePointer>> = Mutex::new(None);
 static GENERATION: AtomicU64 = AtomicU64::new(0);
 static KEYS: Mutex<Option<KeyState>> = Mutex::new(None);
+/// Recent dictation ids, so a resent frame can never paste twice.
+static SEEN: Mutex<VecDeque<[u8; 16]>> = Mutex::new(VecDeque::new());
+
+/// Inserts one dictation on the main thread, with the same checks as remote dictation.
+fn insert_text(app: &tauri::AppHandle, id: [u8; 16], text: String) -> Option<String> {
+    {
+        let mut seen = SEEN.lock().unwrap();
+        if seen.contains(&id) {
+            return None; // already inserted: confirm again, never paste twice
+        }
+        seen.push_back(id);
+        if seen.len() > 64 {
+            seen.pop_front();
+        }
+    }
+    let deadline = Instant::now() + Duration::from_secs(3);
+    let (tx, rx) = std::sync::mpsc::sync_channel(1);
+    let handle = app.clone();
+    let queued = app.run_on_main_thread(move || {
+        let result = (|| -> anyhow::Result<()> {
+            if Instant::now() >= deadline {
+                anyhow::bail!("Delivery expired; nothing was inserted");
+            }
+            if !handle.state::<crate::AppState>().config.lock().unwrap().onboarding_completed
+                || crate::legal::requires_acceptance()
+            {
+                anyhow::bail!("Complete setup and review the current Terms on this Mac first");
+            }
+            if !handle
+                .state::<crate::license::LicenseState>()
+                .status(crate::now_millis())
+                .allows_dictation()
+            {
+                anyhow::bail!("Unlock Lectus on this Mac first");
+            }
+            if !crate::accessibility_status() {
+                anyhow::bail!("Allow Lectus in macOS Privacy & Security > Accessibility");
+            }
+            crate::injection::inject_remote_text(&text)
+        })();
+        let _ = tx.send(result);
+    });
+    if let Err(e) = queued {
+        return Some(e.to_string());
+    }
+    match rx.recv_timeout(Duration::from_secs(4)) {
+        Ok(Ok(())) => None,
+        Ok(Err(e)) => Some(e.to_string()),
+        Err(_) => Some("This Mac did not respond in time".into()),
+    }
+}
 
 fn main_bounds() -> Bounds {
     let r = CGDisplay::main().bounds();
@@ -135,7 +188,7 @@ pub fn release_all() {
 }
 
 /// Runs one PC connection. A newer connection ends this one. Returns why it ended.
-pub fn run_session(mut session: Session, stop: &Arc<AtomicBool>) -> String {
+pub fn run_session(app: &tauri::AppHandle, mut session: Session, stop: &Arc<AtomicBool>) -> String {
     let mine = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
     release_all();
     POINTER
@@ -145,7 +198,7 @@ pub fn run_session(mut session: Session, stop: &Arc<AtomicBool>) -> String {
     let mut last_ping = Instant::now();
     let reason = loop {
         if stop.load(Ordering::SeqCst) {
-            break "Share stopped".to_string();
+            break "Link stopped".to_string();
         }
         if GENERATION.load(Ordering::SeqCst) != mine {
             session.close();
@@ -161,6 +214,14 @@ pub fn run_session(mut session: Session, stop: &Arc<AtomicBool>) -> String {
                 break e.to_string();
             }
             last_ping = Instant::now();
+        }
+        if let Msg::Text { id, text } = msg {
+            log::info!("share: dictation received ({} chars)", text.chars().count());
+            let error = insert_text(app, id, text);
+            if let Err(e) = session.send(Msg::Ack { id, error }) {
+                break e.to_string();
+            }
+            continue;
         }
         if let Msg::Key { s, e, down } = msg {
             let action = KEYS
@@ -181,7 +242,7 @@ pub fn run_session(mut session: Session, stop: &Arc<AtomicBool>) -> String {
             let pointer = guard.get_or_insert_with(|| RemotePointer::new(main_bounds()));
             if matches!(msg, Msg::Enter { .. }) {
                 pointer.set_bounds(main_bounds());
-                log::info!("share: mouse arrived from the PC");
+                log::info!("share: mouse arrived from the main computer");
             }
             if matches!(msg, Msg::Move { .. } | Msg::Button { .. }) {
                 if let Some(at) = cursor_location() {
@@ -192,16 +253,16 @@ pub fn run_session(mut session: Session, stop: &Arc<AtomicBool>) -> String {
         };
         let mut exit = None;
         for action in actions {
-            if let PointerAction::Exit { y } = action {
-                exit = Some(y);
+            if let PointerAction::Exit { at } = action {
+                exit = Some(at);
             } else {
                 post(action);
             }
         }
-        if let Some(y) = exit {
+        if let Some(at) = exit {
             release_keys();
-            log::info!("share: mouse back to the PC");
-            if let Err(e) = session.send(Msg::Left { y }) {
+            log::info!("share: mouse back to the main computer");
+            if let Err(e) = session.send(Msg::Left { at }) {
                 break e.to_string();
             }
         }

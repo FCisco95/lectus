@@ -13,28 +13,56 @@ use std::{
     time::Duration,
 };
 
-const MAGIC: &[u8; 8] = b"LECSHR01";
+pub const MAGIC: &[u8; 8] = b"LECLNK02";
 /// Both sides send a Ping every second; three silent seconds mean the link is gone.
 pub const PING_EVERY: Duration = Duration::from_secs(1);
 pub const SILENCE_LIMIT: Duration = Duration::from_secs(3);
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+/// A screen edge. In settings it says where the other computer is; in messages it is the
+/// edge of the receiving screen that faces the main computer.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Edge {
+    #[default]
+    Left,
+    Right,
+    Top,
+    Bottom,
+}
+
+impl Edge {
+    pub fn opposite(self) -> Edge {
+        match self {
+            Edge::Left => Edge::Right,
+            Edge::Right => Edge::Left,
+            Edge::Top => Edge::Bottom,
+            Edge::Bottom => Edge::Top,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "t", rename_all = "snake_case")]
 pub enum Msg {
-    /// PC to Mac: the cursor enters the Mac at its right edge, `y` from 0 (top) to 1.
-    Enter { y: f64 },
-    /// PC to Mac: relative motion in PC pixels.
+    /// Main to receiver: the cursor enters through edge `e` of the receiving screen, at `at`
+    /// along it (0 = top or left end, 1 = bottom or right end).
+    Enter { e: Edge, at: f64 },
+    /// Main to receiver: relative motion in main-screen pixels.
     Move { dx: i32, dy: i32 },
-    /// PC to Mac: 0 left, 1 right, 2 middle.
+    /// Main to receiver: 0 left, 1 right, 2 middle.
     Button { b: u8, down: bool },
-    /// PC to Mac: Windows wheel units, 120 per notch. Positive `dy` scrolls up, positive `dx` right.
+    /// Main to receiver: Windows wheel units, 120 per notch. Positive `dy` scrolls up, `dx` right.
     Wheel { dx: i32, dy: i32 },
-    /// PC to Mac: a key by position: set-1 scan code `s`, E0-extended `e`.
+    /// Main to receiver: a key by position: set-1 scan code `s`, E0-extended `e`.
     Key { s: u16, e: bool, down: bool },
-    /// PC to Mac: the PC took the mouse back (escape key or shutdown).
+    /// Main to receiver: insert this dictation once. Answered by `Ack` with the same id.
+    Text { id: [u8; 16], text: String },
+    /// Main to receiver: the main computer took the mouse back (escape key or shutdown).
     Leave,
-    /// Mac to PC: the cursor crossed the Mac's right edge at `y`.
-    Left { y: f64 },
+    /// Receiver to main: the cursor crossed back at `at` along the shared edge.
+    Left { at: f64 },
+    /// Receiver to main: result of a `Text`. `error` is None when the text was inserted.
+    Ack { id: [u8; 16], error: Option<String> },
     Ping,
 }
 
@@ -155,6 +183,7 @@ fn handshake_pc(mut stream: TcpStream, pairing: &Pairing) -> Result<Session> {
 }
 
 pub fn accept(mut stream: TcpStream, pairing: &Pairing) -> Result<Session> {
+    // Pairing traffic is routed elsewhere before this point; see `super::pair`.
     prepare(&stream)?;
     let mut magic = [0; 8];
     stream.read_exact(&mut magic)?;
@@ -197,14 +226,17 @@ mod tests {
     #[test]
     fn messages_flow_both_ways_in_order() {
         let (mut pc, mut mac) = pair();
-        pc.send(Msg::Enter { y: 0.5 }).unwrap();
+        pc.send(Msg::Enter { e: Edge::Right, at: 0.5 }).unwrap();
         pc.send(Msg::Move { dx: -3, dy: 7 }).unwrap();
         pc.send(Msg::Button { b: 0, down: true }).unwrap();
-        assert_eq!(mac.recv().unwrap(), Msg::Enter { y: 0.5 });
+        assert_eq!(mac.recv().unwrap(), Msg::Enter { e: Edge::Right, at: 0.5 });
         assert_eq!(mac.recv().unwrap(), Msg::Move { dx: -3, dy: 7 });
         assert_eq!(mac.recv().unwrap(), Msg::Button { b: 0, down: true });
-        mac.send(Msg::Left { y: 0.25 }).unwrap();
-        assert_eq!(pc.recv().unwrap(), Msg::Left { y: 0.25 });
+        mac.send(Msg::Left { at: 0.25 }).unwrap();
+        assert_eq!(pc.recv().unwrap(), Msg::Left { at: 0.25 });
+        let text = Msg::Text { id: [7; 16], text: "Olá, mundo".into() };
+        pc.send(text.clone()).unwrap();
+        assert_eq!(mac.recv().unwrap(), text);
     }
 
     #[test]

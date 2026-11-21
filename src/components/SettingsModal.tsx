@@ -7,16 +7,18 @@ import { DictationPanel } from './settings/DictationPanel';
 import { AIPanel } from './settings/AIPanel';
 import { ModelsPanel } from './settings/ModelsPanel';
 import { ApiPanel } from './settings/ApiPanel';
+import { LinkPanel } from './settings/LinkPanel';
 
 /** Everything configurable. The four panels are reused unchanged — only their
  *  container moved. */
-export type SettingsTab = 'general' | 'dictation' | 'models' | 'ai' | 'api';
+export type SettingsTab = 'general' | 'dictation' | 'models' | 'ai' | 'link' | 'api';
 
 const TABS: Array<{ id: SettingsTab; label: string; icon: IconName }> = [
   { id: 'general', label: 'General', icon: 'general' },
   { id: 'dictation', label: 'Dictation', icon: 'dictation' },
   { id: 'models', label: 'Models', icon: 'models' },
   { id: 'ai', label: 'AI cleanup', icon: 'ai' },
+  { id: 'link', label: 'Link', icon: 'link' },
   { id: 'api', label: 'Local API', icon: 'key' },
 ];
 
@@ -117,6 +119,7 @@ export function SettingsModal({ config, update, initialTab, version, onClose }: 
           {tab === 'dictation' && <DictationPanel config={config} update={update} />}
           {tab === 'models' && <ModelsPanel config={config} update={update} />}
           {tab === 'ai' && <AIPanel config={config} update={update} />}
+          {tab === 'link' && <LinkPanel />}
           {tab === 'api' && <ApiPanel />}
         </div>
       </div>

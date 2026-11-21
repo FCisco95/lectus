@@ -827,8 +827,18 @@ async fn do_pipeline(
     cfg: config::Config,
     original_app: Option<String>,
 ) -> Result<String, String> {
-    let remote_destination = app_handle.state::<remote_dictation::RemoteState>()
-        .destination().map_err(|e| e.to_string())?;
+    // Lectus Link decides first: dictation goes where the mouse is at key-down.
+    let link_follow = share::follow();
+    let link_destination = link_follow == Some(true);
+    if let Some(remote) = link_follow {
+        log::info!("share: dictation to {}", if remote { "the other computer" } else { "this computer" });
+    }
+    let remote_destination = if link_follow.is_some() {
+        None
+    } else {
+        app_handle.state::<remote_dictation::RemoteState>()
+            .destination().map_err(|e| e.to_string())?
+    };
     let use_cloud = cfg.use_cloud;
     if use_cloud && !cfg.cloud_processing_acknowledged {
         let message = "Cloud speech is paused. Review the provider processing choice in Settings → General.";
@@ -1066,7 +1076,16 @@ async fn do_pipeline(
         }
 
         let t_inject = std::time::Instant::now();
-        if let Some(code) = remote_destination {
+        if link_destination {
+            let text = transcript.clone();
+            let delivered = tokio::task::spawn_blocking(move || share::send_text(&text).map_err(|e| e.to_string()))
+                .await.map_err(|e| e.to_string())?;
+            if let Err(error) = delivered {
+                let _ = app_handle.emit("processing-error", &error);
+                show_app_window(app_handle, false);
+                return Err(error);
+            }
+        } else if let Some(code) = remote_destination {
             let handle = app_handle.clone();
             let text = transcript.clone();
             let delivered = tokio::task::spawn_blocking(move || {
@@ -1257,7 +1276,7 @@ pub fn run() {
         })
         .manage(PreRoll(Mutex::new(None)))
         .manage(remote_dictation::RemoteState::new())
-        .manage(share::ShareState::new())
+        .manage(share::LinkState::new())
         .manage(api_adapter::ApiServiceState::default())
         .manage(playback::platform_ducker())
         .invoke_handler(tauri::generate_handler![
@@ -1325,8 +1344,11 @@ pub fn run() {
             remote_dictation::remote_get_settings,
             remote_dictation::remote_save_settings,
             remote_dictation::remote_test_connection,
-            share::share_get,
-            share::share_set,
+            share::link_get,
+            share::link_set,
+            share::link_pair,
+            share::link_forget,
+            share::link_new_code,
             updates::restart_and_apply,
             updates::take_whats_new_notes,
         ])
@@ -1443,6 +1465,7 @@ pub fn run() {
             }
 
             remote_dictation::start_at_login(app.handle());
+            share::restart(app.handle());
 
             // Start the always-on pre-roll capture stream (500 ms ring).
             {
